@@ -1,67 +1,76 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { StyleSheet } from 'react-native';
+import CustomTabBarButton from '../../components/CustomTabBarButton'; // Import CustomTabBarButton
 
 const Main = () => {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: 'black',
-        tabBarInactiveTintColor: '#ffffff',
-        tabBarStyle: {
-          backgroundColor: '#68C2FF', // Bottom bar background color
-          borderTopWidth: 0, // Remove border for a cleaner look
-        },
+        tabBarStyle: styles.tabBarStyle, // Apply borderRadius and other styles here
+        tabBarItemStyle: styles.tabBarItemStyle,
+        tabBarShowLabel: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Feed',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="paw" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <CustomTabBarButton isFocused={focused} label="Adopt" icon="paw" />
           ),
         }}
       />
       <Tabs.Screen
         name="Track"
         options={{
-          title: 'Track',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="truck" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <CustomTabBarButton isFocused={focused} label="Track" icon="truck" />
           ),
         }}
       />
       <Tabs.Screen
         name="List"
         options={{
-          title: 'List Pet',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="plus-circle-outline" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <CustomTabBarButton isFocused={focused} icon="plus-circle-outline" />
           ),
         }}
       />
       <Tabs.Screen
         name="Notification"
         options={{
-          title: 'Notification',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="bell" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <CustomTabBarButton isFocused={focused} label="Notifications" icon="bell" />
           ),
         }}
       />
       <Tabs.Screen
         name="Profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <CustomTabBarButton isFocused={focused} label="Profile" icon="account" />
           ),
         }}
       />
     </Tabs>
   );
 };
+
+const styles = StyleSheet.create({
+  tabBarStyle: {
+    position: 'absolute',
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    backgroundColor: '#68C2FF',
+    height: 70,
+    overflow: 'hidden',
+    paddingHorizontal: 15,
+  },
+  tabBarItemStyle: {
+    flex: 1, // Ensure items take equal width
+    paddingVertical: 15,
+  },
+});
 
 export default Main;
