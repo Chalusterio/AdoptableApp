@@ -19,7 +19,7 @@ const theme = {
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     'Lilita': require('../assets/fonts/LilitaOne-Regular.ttf'),
-    'Lato': require('../assets/fonts/Lato-Semibold.ttf'),
+    'Lato': require('../assets/fonts/Lato-Regular.ttf'),
   });
 
   // Prevent splash screen from hiding automatically

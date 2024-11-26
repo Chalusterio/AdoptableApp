@@ -3,14 +3,17 @@ import { View, Text, StyleSheet, TouchableOpacity, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams  } from 'expo-router';
 
-export default function Options({ route }) {
+export default function Options({ }) {
   const router = useRouter();
   
   // Use useLocalSearchParams to access local search params
   const { userName } = useLocalSearchParams(); // Retrieves 'userName' from search params
 
   const handleAdopt = () => {
-    router.push("Lifestyle");
+    router.push({
+      pathname: 'Lifestyle',
+      params: { userName }, // Pass 'userName' from Options to Lifestyle
+    });
   };
 
   const handleList = () => {
