@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import {View, Text, StyleSheet, Image, TouchableOpacity, Modal, TextInput, Alert, } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 const Profile = () => {
+  // Get parameters from URL (params)
+  const { userName, userEmail, userContactNumber, livingSpace, ownedPets } = useLocalSearchParams();
+
   const [isModalVisible, setModalVisible] = useState(false); // Modal visibility state
   const [profileInfo, setProfileInfo] = useState({
-    name: 'Mary Jane',
-    email: 'maryjane@gmail.com',
-    phone: '0984 174 2482',
-    address: '123 ABC Street, Barangay Carmen, Cagayan de Oro City, Misamis Oriental',
-    houseType: 'House',
-    hasPet: 'Has a pet',
+    name: userName || "User", // Default name if no param
+    email: userEmail || "-", // Default email
+    phone: userContactNumber || "-", // Default phone
+    address: '', // Default address if not provided
+    houseType: livingSpace || "Not Indicated", // Default house type
+    hasPet: ownedPets || "Not Indicated", // Default pet info
   });
 
   const [editableInfo, setEditableInfo] = useState(profileInfo); // Temporary editable state
@@ -61,20 +65,21 @@ const Profile = () => {
 
         <View style={styles.detailItem}>
           <Icon name="location-on" size={20} color="#007bff" style={styles.icon} />
-          <Text style={styles.detailText}>{profileInfo.address}</Text>
+          <Text style={styles.detailText}>{profileInfo.address || 'No Address Provided'}</Text>
         </View>
         <View style={styles.line} />
 
         <View style={styles.detailItem}>
           <Icon name="home" size={20} color="#007bff" style={styles.icon} />
-          <Text style={styles.detailText}>{profileInfo.houseType}</Text>
+          <Text style={styles.detailText}>House Type: {profileInfo.houseType}</Text>
         </View>
         <View style={styles.line} />
 
         <View style={styles.detailItem}>
           <Icon name="pets" size={20} color="#007bff" style={styles.icon} />
-          <Text style={styles.detailText}>{profileInfo.hasPet}</Text>
+          <Text style={styles.detailText}>Pet Owner: {profileInfo.hasPet}</Text>
         </View>
+
       </View>
 
       {/* Edit Profile Modal */}

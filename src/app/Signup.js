@@ -98,7 +98,7 @@ export default function Signup({ }) {
     // Pass the name to the Options screen using query parameters
     router.push({
       pathname: 'Options', 
-      params: { userName: name }, // Passing 'name' as 'userName'
+      params: { userName: name, userEmail: email, userContactNumber: contactNumber },
     });
   };
 

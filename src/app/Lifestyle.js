@@ -9,7 +9,7 @@ export default function Lifestyle() {
   const router = useRouter();
 
   // Use useLocalSearchParams to access local search params
-  const { userName } = useLocalSearchParams(); // Retrieves 'userName' from search params
+  const { userName, userEmail, userContactNumber } = useLocalSearchParams();
 
   const [livingSpace, setLivingSpace] = useState(null);
   const [ownedPets, setOwnedPets] = useState(null);
@@ -20,7 +20,7 @@ export default function Lifestyle() {
     if (livingSpace && ownedPets !== null) {
       router.push({
       pathname: 'Preferences',
-      params: { userName }, // Pass 'userName' from Options to Lifestyle
+      params: { userName, userEmail,userContactNumber, livingSpace, ownedPets }, // Pass 'userName' from Options to Preferences
     });
     } else {
       alert('Please complete all selections.');

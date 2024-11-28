@@ -11,7 +11,7 @@ export default function Preferences() {
   const router = useRouter();
 
   // Use useLocalSearchParams to access local search params
-  const { userName } = useLocalSearchParams(); // Retrieves 'userName' from search params
+  const { userName, userEmail, userContactNumber, livingSpace, ownedPets  } = useLocalSearchParams();
 
   const [petSize, setPetSize] = React.useState(9);
   const [personality, setPersonality] = React.useState(50);
@@ -19,7 +19,14 @@ export default function Preferences() {
   const [selectedGender, setSelectedGender] = React.useState(null);
 
   const handleFindPet = () => {
-    router.push("Main");
+    if (selectedPet && selectedGender !== null) {
+      router.push({
+        pathname: "Main/Profile", 
+        params: { userName, userEmail, userContactNumber, livingSpace, ownedPets }
+      });
+    } else {
+      alert('Please complete all selections.');
+    }
   };
 
   return (
@@ -47,11 +54,10 @@ export default function Preferences() {
               ]}
               onPress={() => setSelectedPet("cat")}
             >
-              <View style={styles.buttonContent}>
                 <MaterialCommunityIcons
                   name="cat"
                   size={24}
-                  color={selectedPet === "cat" ? "#68C2FF" : "gray"}
+                  color={selectedPet === "cat" ? "#68C2FF" : "#666"}
                 />
                 <Text
                   style={[
@@ -61,7 +67,6 @@ export default function Preferences() {
                 >
                   Cat
                 </Text>
-              </View>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -70,11 +75,10 @@ export default function Preferences() {
               ]}
               onPress={() => setSelectedPet("dog")}
             >
-              <View style={styles.buttonContent}>
                 <MaterialCommunityIcons
                   name="dog"
                   size={24}
-                  color={selectedPet === "dog" ? "#68C2FF" : "gray"}
+                  color={selectedPet === "dog" ? "#68C2FF" : "#666"}
                 />
                 <Text
                   style={[
@@ -84,7 +88,6 @@ export default function Preferences() {
                 >
                   Dog
                 </Text>
-              </View>
             </TouchableOpacity>
           </View>
 
@@ -98,11 +101,10 @@ export default function Preferences() {
               ]}
               onPress={() => setSelectedGender("female")}
             >
-              <View style={styles.buttonContent}>
                 <Foundation
                   name="female-symbol"
                   size={24}
-                  color={selectedGender === "female" ? "#68C2FF" : "gray"}
+                  color={selectedGender === "female" ? "#68C2FF" : "#666"}
                 />
                 <Text
                   style={[
@@ -112,7 +114,6 @@ export default function Preferences() {
                 >
                   Female
                 </Text>
-              </View>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -121,11 +122,10 @@ export default function Preferences() {
               ]}
               onPress={() => setSelectedGender("male")}
             >
-              <View style={styles.buttonContent}>
                 <Foundation
                   name="male-symbol"
                   size={24}
-                  color={selectedGender === "male" ? "#68C2FF" : "gray"}
+                  color={selectedGender === "male" ? "#68C2FF" : "#666"}
                 />
                 <Text
                   style={[
@@ -135,7 +135,6 @@ export default function Preferences() {
                 >
                   Male
                 </Text>
-              </View>
           </TouchableOpacity>
         </View>
 
@@ -208,7 +207,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 90,
+    marginBottom: 60,
   },
   greetingText: {
     fontSize: 18,
@@ -230,7 +229,9 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 15,
   },
   optionButton: {
@@ -243,6 +244,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF', // Default background
+    flexDirection: 'row',
   },
   selectedOptionButton: {
     backgroundColor: '#FFFFFF',
@@ -256,9 +258,8 @@ const styles = StyleSheet.create({
     color: '#68C2FF',
   },
   slider: {
-    width: "100%",
-    marginTop: 5,
-    marginBottom: 1,
+    width: '100%',
+    height: 40,
   },
   sliderLabelsContainer: {
     flexDirection: 'row',
@@ -288,24 +289,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  buttonContent: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  selectedButton: {
-    borderColor: "#68C2FF",
-    borderWidth: 2,
-  },
-  selectedText: {
-    color: "#68C2FF",
-  },
-  selectedGenderButton: {
-    borderColor: "#68C2FF",
-    borderWidth: 2,
-  },
-  selectedGenderText: {
-    color: "#68C2FF",
   },
 });

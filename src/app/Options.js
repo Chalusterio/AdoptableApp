@@ -7,12 +7,12 @@ export default function Options({ }) {
   const router = useRouter();
   
   // Use useLocalSearchParams to access local search params
-  const { userName } = useLocalSearchParams(); // Retrieves 'userName' from search params
+  const { userName, userEmail, userContactNumber } = useLocalSearchParams();
 
   const handleAdopt = () => {
     router.push({
       pathname: 'Lifestyle',
-      params: { userName }, // Pass 'userName' from Options to Lifestyle
+      params: { userName, userEmail, userContactNumber }, // Pass 'userName' from Options to Lifestyle
     });
   };
 

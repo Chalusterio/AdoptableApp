@@ -18,7 +18,7 @@ import * as Font from "expo-font";
 import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
 import { useRouter } from 'expo-router';
 
-export default function Login({ navigation }) {
+export default function Login({ }) {
   const theme = useTheme();
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
