@@ -15,6 +15,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
 const Profile = () => {
+  const router = useRouter();
+
   // Get parameters from URL (params)
   const { userName, userEmail, userContactNumber, livingSpace, ownedPets } =
     useLocalSearchParams();
@@ -42,6 +44,10 @@ const Profile = () => {
   const handleEditPress = () => {
     setEditableInfo(profileInfo); // Reset editable info to current profile
     setModalVisible(true);
+  };
+
+  const handleLogout = () => {
+    router.push('Login')
   };
 
   return (
@@ -117,6 +123,10 @@ const Profile = () => {
 
           {/* Horizontal Line */}
           <View style={styles.horizontalLine}></View>
+
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
 
           {/* Edit Profile Modal */}
           <Modal
@@ -266,6 +276,21 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: "gray",
     alignSelf: "center",
+  },
+  logoutButton: {
+    width: 150,
+    height: 50,
+    borderRadius: 30,
+    backgroundColor: '#EF5B5B',
+    alignSelf: 'center',
+    justifyContent: 'center',
+    marginTop: 50,
+  },
+  logoutText: {
+    fontFamily: "Lato",
+    fontSize: 16,
+    color: "white",
+    alignSelf: 'center',
   },
   modalContainer: {
     flex: 1,
