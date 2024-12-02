@@ -46,33 +46,46 @@ const List = () => {
 
   // Function to pick images
   const pickImages = async () => {
+    if (selectedImages.length >= MAX_IMAGES) {
+      alert(`You can only select up to ${MAX_IMAGES} images.`);
+      return; // Prevent adding more images if the limit is reached
+    }
+  
+    // Request permission to access the image library
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      alert("Permission to access media library is required!");
+      alert("Permission to access the media library is required!");
       return;
     }
-
+  
+    // Launch image picker and get the selected images
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
-      selectionLimit: 5,
-      quality: 1,
+      selectionLimit: MAX_IMAGES - selectedImages.length, // Dynamically adjust the selection limit
+      quality: 1, // Highest quality
     });
-
+  
+    console.log("Image Picker Result:", result); // Log the result for debugging
+  
     if (!result.canceled && result.assets) {
-      const newSelectedImages = result.assets.filter(
-        (image) =>
-          !selectedImages.some((selected) => selected.uri === image.uri)
-      ); // Filter out already selected images
+      console.log(
+        "Selected Images:",
+        result.assets.map((image) => image.uri)
+      );
+  
+      // Add the new images to the existing selected images
       setSelectedImages((prevImages) => [
         ...prevImages,
-        ...newSelectedImages.map((image) => ({ uri: image.uri })),
+        ...result.assets.map((image) => ({ uri: image.uri })), // Use object format
       ]);
+    } else if (result.canceled) {
+      console.log("Image selection canceled.");
     } else {
       alert("No images selected.");
     }
   };
-
+  
   // Function to remove an image from the selected images array
   const handleImageRemove = (index) => {
     const updatedImages = selectedImages.filter((_, i) => i !== index);
@@ -82,7 +95,6 @@ const List = () => {
   const handleListPet = () => {
     const selectedImageURIs = selectedImages.map((image) => image.uri);
   
-    // Check if all fields are filled
     if (
       petName &&
       petGender !== null &&
@@ -94,12 +106,10 @@ const List = () => {
       petVaccinated !== null &&
       selectedImageURIs.length > 0
     ) {
-      // Serialize selectedImages as a string
       const serializedImages = JSON.stringify(selectedImageURIs);
   
-      // Navigate to the Feed screen with all values as parameters
       router.push({
-        pathname: "/Main", // Adjust the path as needed
+        pathname: "/Main",
         params: {
           petName,
           petGender,
@@ -109,53 +119,13 @@ const List = () => {
           petDescription,
           petIllnessHistory,
           petVaccinated,
-          selectedImages: serializedImages, // Pass the stringified array of images
+          selectedImages: serializedImages,
         },
       });
     } else {
       alert("Please complete all fields before proceeding.");
     }
-  };    
-
-  // Function to handle image picking
-  const addImage = async () => {
-    if (selectedImages.length >= MAX_IMAGES) {
-      return; // Do not allow adding images if the limit is reached
-    }
-
-    // Request permission to access the image library
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      alert("Permission to access media library is required!");
-      return;
-    }
-
-    // Launch image picker and get the selected image
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      selectionLimit: MAX_IMAGES - selectedImages.length, // Limit selection based on current images
-      quality: 1,
-    });
-
-    console.log("Image Picker Result:", result); // Log the result for debugging
-
-    if (!result.canceled && result.assets) {
-      // Log the image URIs to ensure they are selected
-      console.log(
-        "Selected Images:",
-        result.assets.map((image) => image.uri)
-      );
-
-      // Add the new images to the selected images
-      setSelectedImages((prevImages) => [
-        ...prevImages,
-        ...result.assets.map((image) => ({ uri: image.uri })), // Keep the object format for rendering
-      ]);
-    } else {
-      alert("No images selected.");
-    }
-  };
+  };  
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -177,7 +147,7 @@ const List = () => {
             <View style={styles.formContainer}>
               <Text style={styles.question}>Pet's Name:</Text>
               <TextInput
-                label="Pet's Name"
+                placeholder="Pet's Name"
                 value={petName}
                 onChangeText={setPetName}
                 style={[styles.input, errors.petName && styles.errorInput]}
@@ -237,7 +207,7 @@ const List = () => {
 
               <Text style={styles.question}>Age:</Text>
               <TextInput
-                label="e.g., 5 Years 3 Months"
+                placeholder="e.g., 5 Years 3 Months"
                 value={petAge}
                 onChangeText={setPetAge}
                 style={[styles.input, errors.petAge && styles.errorInput]}
@@ -251,7 +221,7 @@ const List = () => {
 
               <Text style={styles.question}>Weight (kg):</Text>
               <TextInput
-                label="e.g., 25 kg"
+                placeholder="e.g., 25 kg"
                 value={petWeight}
                 onChangeText={setPetWeight}
                 style={[styles.input, errors.petWeight && styles.errorInput]}
@@ -267,7 +237,7 @@ const List = () => {
                 In 3 words, how would you describe this pet's personality?
               </Text>
               <TextInput
-                label="e.g., Friendly, Playful, Loyal"
+                placeholder="e.g., Friendly, Playful, Loyal"
                 value={petPersonality}
                 onChangeText={setPetPersonality}
                 style={[
@@ -284,7 +254,7 @@ const List = () => {
 
               <Text style={styles.question}>Briefly describe this pet:</Text>
               <TextInput
-                label="Provide a brief description of this pet's characteristics"
+                placeholder="Provide a brief description of this pet's characteristics"
                 value={petDescription}
                 onChangeText={setPetDescription}
                 style={[
@@ -305,7 +275,7 @@ const List = () => {
 
               <Text style={styles.question}>Any history of illness?</Text>
               <TextInput
-                label="Mention if the pet has any history of illness (or write None)"
+                placeholder="Mention if the pet has any history of illness (or write None)"
                 value={petIllnessHistory}
                 onChangeText={setPetIllnessHistory}
                 style={[
@@ -400,7 +370,7 @@ const List = () => {
                       {selectedImages.length < 5 && (
                         <TouchableOpacity
                           style={styles.addImageContainer}
-                          onPress={addImage}
+                          onPress={pickImages}
                         >
                           <MaterialIcons name="add" size={50} color="gray" />
                         </TouchableOpacity>
@@ -431,16 +401,16 @@ const styles = StyleSheet.create({
   },
   flexContainer: {
     flex: 1,
-    marginBottom: -70,
+    marginBottom: -80,
   },
   scrollViewContent: {
-    paddingBottom: 100,
+    paddingBottom: 10,
   },
   container: {
     flex: 1,
     width: "100%",
     padding: 30,
-    paddingBottom: 50,
+    paddingBottom: 100,
   },
   titleContainer: {
     width: "100%",
@@ -515,7 +485,7 @@ const styles = StyleSheet.create({
   },
   uploadContainer: {
     width: "100%",
-    height: "15%",
+    height: 210,
     backgroundColor: "#F3F3F3",
     borderRadius: 8,
     marginTop: 10,
@@ -524,7 +494,6 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     width: "100%",
-    height: "50%",
     backgroundColor: "#F3F3F3",
     borderRadius: 8,
     justifyContent: "center",
@@ -538,9 +507,11 @@ const styles = StyleSheet.create({
   },
   listPetButton: {
     backgroundColor: "#EF5B5B",
-    paddingVertical: 15,
-    borderRadius: 20,
+    width: '100%',
+    height: '50',
+    borderRadius: 30,
     alignItems: "center",
+    justifyContent: 'center',
     marginTop: 30,
   },
   listPetButtonText: {
@@ -553,7 +524,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start", // Add some space between images
     alignItems: "center",
     width: "100%",
-    height: '100%',
   },
   imageWrapper: {
     flexDirection: "row",

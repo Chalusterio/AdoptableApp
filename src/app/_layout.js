@@ -20,6 +20,8 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     'Lilita': require('../assets/fonts/LilitaOne-Regular.ttf'),
     'Lato': require('../assets/fonts/Lato-Regular.ttf'),
+    'LatoSemibold': require('../assets/fonts/Lato-Semibold.ttf'),
+    'LatoBold': require('../assets/fonts/Lato-Bold.ttf'),
   });
 
   // Prevent splash screen from hiding automatically
@@ -54,6 +56,7 @@ export default function RootLayout() {
             <Stack.Screen name="Lifestyle" options={{ title: 'Lifestyle'}} />
             <Stack.Screen name="Preferences" options={{ title: 'Preferences'}} />
             <Stack.Screen name="Main" options={{ title: 'Main'}} />
+            <Stack.Screen name="ApprovedAdoption" options={{ title: 'ApprovedAdoption'}} />
           </Stack>  
         </SafeAreaProvider>
       </PaperProvider>
