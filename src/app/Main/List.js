@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
   addImageContainer: {
     justifyContent: "center",
     alignItems: "center",
-    width: 150,
+    width: 200,
     height: 150,
     borderWidth: 2,
     borderColor: "gray",
