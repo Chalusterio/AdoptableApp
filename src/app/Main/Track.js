@@ -4,7 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 const Track = () => {
     return (
         <View style={styles.container}>
-          <Text style={styles.text}>Track!</Text>
+          <Text style={styles.text}>Track yo pet!</Text>
         </View>
       );
     };

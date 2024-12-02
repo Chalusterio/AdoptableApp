@@ -4,7 +4,7 @@ import { MD3LightTheme as DefaultTheme, PaperProvider } from 'react-native-paper
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router'
+import { Stack } from 'expo-router';
 
 // Define theme settings
 const theme = {
@@ -42,21 +42,22 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={theme}>
         <SafeAreaProvider>
-        <Stack
-            screenOptions={{        
+          <Stack
+            screenOptions={{
               headerShown: false,
             }}
           >
-            <Stack.Screen name="index" options={{ title: 'Splash'}} />
-            <Stack.Screen name="Login" options={{ title: 'Login'}} />
-            <Stack.Screen name="Signup" options={{ title: 'Signup'}} />
-            <Stack.Screen name="Options" options={{ title: 'Options'}} />
-            <Stack.Screen name="Lifestyle" options={{ title: 'Lifestyle'}} />
-            <Stack.Screen name="Preferences" options={{ title: 'Preferences'}} />
-            <Stack.Screen name="Main" options={{ title: 'Main'}} />
-          </Stack>  
+            <Stack.Screen name="index" options={{ title: 'Splash' }} />
+            <Stack.Screen name="Login" options={{ title: 'Login' }} />
+            <Stack.Screen name="Signup" options={{ title: 'Signup' }} />
+            <Stack.Screen name="Options" options={{ title: 'Options' }} />
+            <Stack.Screen name="Lifestyle" options={{ title: 'Lifestyle' }} />
+            <Stack.Screen name="Preferences" options={{ title: 'Preferences' }} />
+            <Stack.Screen name="Main" options={{ title: 'Main' }} />
+          </Stack>
         </SafeAreaProvider>
       </PaperProvider>
     </GestureHandlerRootView>
   );
 }
+
