@@ -17,7 +17,10 @@ export default function Options({ }) {
   };
 
   const handleList = () => {
-    router.push("/Main/List"); // Correct path for List screen using expo-router
+    router.push({
+      pathname:"/Main/Profile",
+      params: { userName, userEmail, userContactNumber }, 
+    });
   };
 
   return (

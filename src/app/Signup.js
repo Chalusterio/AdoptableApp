@@ -9,14 +9,12 @@ import {
 import { TextInput, useTheme, Dialog, Portal } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Font from "expo-font";
 import { useRouter } from 'expo-router';
 
 export default function Signup({ }) {
   const theme = useTheme();
   const router = useRouter();
 
-  const [fontsLoaded, setFontsLoaded] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [contactNumber, setContactNumber] = useState("");
@@ -30,24 +28,6 @@ export default function Signup({ }) {
     contactNumber: "",
     password: "",
   });
-
-  useEffect(() => {
-    const loadFonts = async () => {
-      await Font.loadAsync({
-        Lilita: require("../assets/fonts/LilitaOne-Regular.ttf"),
-      });
-      setFontsLoaded(true);
-    };
-    loadFonts();
-  }, []);
-
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
 
   const validateInputs = () => {
     let valid = true;

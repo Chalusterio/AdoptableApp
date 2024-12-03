@@ -1,109 +1,155 @@
-import React, { useEffect } from "react";
-import { View, Text, Image, StyleSheet, ScrollView } from "react-native";
+import React from "react";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
+import FeedHeader from "../../components/FeedHeader"; // Import your Header component
+import { useNavigation } from "@react-navigation/native"; // For navigation
+import { Foundation } from '@expo/vector-icons'; // Import Foundation icons
 
 const Feed = () => {
   const params = useLocalSearchParams();
+  const navigation = useNavigation(); // Hook for navigation
 
-  useEffect(() => {
-    console.log("Received parameters:", params);
-  }, [params]);
+  // Parse the selectedImages string back into an array
+  const selectedImages = params.selectedImages
+    ? JSON.parse(params.selectedImages)
+    : [];
 
-  // Safely parse selectedImages
-  let selectedImages = [];
-  try {
-    if (params.selectedImages) {
-      selectedImages = JSON.parse(params.selectedImages); // Parse the serialized string
-    }
-  } catch (error) {
-    console.error("Error parsing selectedImages:", error);
-  }
-  
+  // Simulating data for pet cards, combining multiple images into one pet card
+  const pets = [
+    {
+      id: "1", // Single pet card
+      petName: params.petName || "Pet 1",
+      petGender: params.petGender || "Unknown",
+      petAge: params.petAge || "Unknown",
+      images: selectedImages, // Store all images in the "images" property
+    },
+  ];
+
+  // Render pet item
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.7}
+      onPress={() => {
+        // Navigate to PetDetails page, passing all images for this pet
+        navigation.navigate("PetDetails", {
+          petId: item.id,
+          images: item.images,
+        });
+      }}
+    >
+      {/* Render only the first image initially */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: item.images[0] }} // Show only the first image
+          style={styles.image}
+        />
+      </View>
+      <View style={styles.petDetailsContainer}>
+        <View style={styles.nameGenderContainer}>
+          <Text style={styles.name}>{item.petName}</Text>
+
+          {/* Conditional rendering for gender icon */}
+          <View style={styles.genderContainer}>
+            {item.petGender === "female" ? (
+              <Foundation name="female-symbol" size={24} color="#EF5B5B" />
+            ) : item.petGender === "male" ? (
+              <Foundation name="male-symbol" size={24} color="#68C2FF" />
+            ) : (
+              <Text style={styles.gender}>Unknown</Text>
+            )}
+          </View>
+        </View>
+        <Text style={styles.age}>{item.petAge}</Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.detailContainer}>
-        {/* Display pet details */}
-        <Text style={styles.label}>Pet Name:</Text>
-        <Text style={styles.value}>{params.petName || "N/A"}</Text>
-
-        <Text style={styles.label}>Pet Gender:</Text>
-        <Text style={styles.value}>{params.petGender || "N/A"}</Text>
-
-        <Text style={styles.label}>Pet Age:</Text>
-        <Text style={styles.value}>{params.petAge || "N/A"}</Text>
-
-        <Text style={styles.label}>Pet Weight:</Text>
-        <Text style={styles.value}>{params.petWeight || "N/A"}</Text>
-
-        <Text style={styles.label}>Pet Personality:</Text>
-        <Text style={styles.value}>{params.petPersonality || "N/A"}</Text>
-
-        <Text style={styles.label}>Pet Description:</Text>
-        <Text style={styles.value}>{params.petDescription || "N/A"}</Text>
-
-        <Text style={styles.label}>Pet Illness History:</Text>
-        <Text style={styles.value}>{params.petIllnessHistory || "N/A"}</Text>
-
-        <Text style={styles.label}>Vaccinated:</Text>
-        <Text style={styles.value}>{params.petVaccinated || "N/A"}</Text>
-      </View>
-
-      {/* Display selected images */}
-      <Text style={styles.imageSectionTitle}>Selected Images:</Text>
-      <ScrollView horizontal style={styles.imageContainer}>
-        {selectedImages.length > 0 ? (
-          selectedImages.map((imageUri, index) => (
-            <Image key={index} source={{ uri: imageUri }} style={styles.image} />
-          ))
-        ) : (
-          <Text style={styles.noImagesText}>No images selected</Text>
-        )}
-      </ScrollView>
-    </ScrollView>
+    <SafeAreaView style={styles.safeArea}>
+      <FeedHeader />
+      <FlatList
+        data={pets}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        numColumns={2} // Display two cards per row
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.container}
+      />
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 20,
+  safeArea: {
+    flex: 1,
     backgroundColor: "#fff",
   },
-  detailContainer: {
-    marginBottom: 20,
+  container: {
+    padding: 16,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
-    color: "#333",
+  row: {
+    justifyContent: "space-between", // Evenly distribute the cards within a row
+    marginBottom: 16,
   },
-  value: {
-    fontSize: 16,
-    marginBottom: 15,
-    color: "#555",
-  },
-  imageSectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#333",
+  card: {
+    width: "48%", // Each card occupies 48% of the row width
+    marginBottom: 16, // Spacing between rows
+    borderRadius: 20,
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    height: 230,
+    elevation: 3, // For Android shadow
   },
   imageContainer: {
     flexDirection: "row",
+    flexWrap: "wrap", // Allow images to wrap into new rows
   },
   image: {
-    width: 150,
+    width: "100%",
     height: 150,
-    borderRadius: 10,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
+    borderTopLeftRadius: 20, // Top-left corner radius
+    borderTopRightRadius: 20, // Top-right corner radius
+    borderBottomLeftRadius: 0, // Bottom-left corner radius
+    borderBottomRightRadius: 0, // Bottom-right corner radius
   },
-  noImagesText: {
+  petDetailsContainer: {
+    flex: 1,
+    margin: 13,
+    alignItems: "center",
+  },
+  nameGenderContainer: {
+    flexDirection: "row", // Make name and gender appear on the same line
+    alignItems: "center", // Vertically align the text and icon
+    marginBottom: 5, // Optional spacing between name and gender
+  },
+  name: {
     fontSize: 16,
-    color: "#999",
+    fontFamily: "LatoBold",
+    color: "black",
+    marginRight: 8, // Adds spacing between name and gender icon
+  },
+  genderContainer: {
+    flexDirection: "row", // Arrange the icon and text in a row
+    alignItems: "center", // Center the icon vertically
+  },
+  gender: {
+    fontSize: 16,
+    fontFamily: "Lato",
+    color: "#C2C2C2",
+  },
+  age: {
+    fontSize: 16,
+    fontFamily: "Lato",
+    color: "#C2C2C2",
   },
 });
 

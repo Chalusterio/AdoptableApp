@@ -450,10 +450,10 @@ const styles = StyleSheet.create({
     marginRight: 20,
   },
   payButton: {
-    width: 90,
+    width: 140,
     height: 50,
     backgroundColor: '#EF5B5B',
-    borderRadius: 25,
+    borderRadius: 30,
     justifyContent: 'center',
   },
   payButtonText: {

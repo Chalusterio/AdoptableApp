@@ -16,12 +16,14 @@ import * as ImagePicker from "expo-image-picker";
 import Foundation from "@expo/vector-icons/Foundation";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
+import * as FileSystem from 'expo-file-system';
 
 const { width } = Dimensions.get("window");
 
 const List = () => {
   const router = useRouter();
 
+  const [petIdCounter, setPetIdCounter] = useState(1); // Initialize the pet ID counter
   const [petName, setPetName] = useState("");
   const [petGender, setSelectedPetGender] = useState(null);
   const [petAge, setPetAge] = useState("");
@@ -31,7 +33,10 @@ const List = () => {
   const [petIllnessHistory, setPetIllnessHistory] = useState("");
   const [petVaccinated, setPetVaccinated] = useState(null);
   const [selectedImages, setSelectedImages] = useState([]);
+  
   const MAX_IMAGES = 5; // Limit for images
+
+  const [pets, setPets] = useState([]); // State to hold the list of pets
 
   const [errors, setErrors] = useState({
     petName: "",
@@ -48,43 +53,53 @@ const List = () => {
   const pickImages = async () => {
     if (selectedImages.length >= MAX_IMAGES) {
       alert(`You can only select up to ${MAX_IMAGES} images.`);
-      return; // Prevent adding more images if the limit is reached
-    }
-  
-    // Request permission to access the image library
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      alert("Permission to access the media library is required!");
       return;
     }
   
-    // Launch image picker and get the selected images
+    // Request permission to access the media library
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      alert("Permission to access camera roll is required!");
+      return;
+    }
+  
+    // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      selectionLimit: MAX_IMAGES - selectedImages.length, // Dynamically adjust the selection limit
-      quality: 1, // Highest quality
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true, // Allows selecting multiple images
+      selectionLimit: MAX_IMAGES - selectedImages.length,
+      quality: 1, // High-quality images
     });
   
-    console.log("Image Picker Result:", result); // Log the result for debugging
+    console.log("Image Picker Result:", result);
   
     if (!result.canceled && result.assets) {
-      console.log(
-        "Selected Images:",
-        result.assets.map((image) => image.uri)
+      // Resolve each URI and update the state
+      const resolvedImages = await Promise.all(
+        result.assets.map(async (image) => {
+          // Save the image to the app's file system
+          const fileName = image.uri.split("/").pop();
+          const fileUri = FileSystem.documentDirectory + fileName;
+  
+          // Move the file to the document directory
+          await FileSystem.copyAsync({
+            from: image.uri,
+            to: fileUri,
+          });
+  
+          // Return the file URI
+          return { uri: fileUri };
+        })
       );
   
-      // Add the new images to the existing selected images
-      setSelectedImages((prevImages) => [
-        ...prevImages,
-        ...result.assets.map((image) => ({ uri: image.uri })), // Use object format
-      ]);
+      // Add resolved URIs to the selected images
+      setSelectedImages((prevImages) => [...prevImages, ...resolvedImages]);
     } else if (result.canceled) {
       console.log("Image selection canceled.");
     } else {
       alert("No images selected.");
     }
-  };
+  };    
   
   // Function to remove an image from the selected images array
   const handleImageRemove = (index) => {
@@ -95,6 +110,7 @@ const List = () => {
   const handleListPet = () => {
     const selectedImageURIs = selectedImages.map((image) => image.uri);
   
+    // Check if all fields are filled out correctly
     if (
       petName &&
       petGender !== null &&
@@ -108,9 +124,14 @@ const List = () => {
     ) {
       const serializedImages = JSON.stringify(selectedImageURIs);
   
+      // Generate new pet ID based on the current counter
+      const newPetId = petIdCounter;
+  
+      // Send the pet data along with the new pet ID
       router.push({
-        pathname: "/Main",
+        pathname: "/Main", // Adjust path as per your routing
         params: {
+          petId: newPetId, // Pass the generated pet ID
           petName,
           petGender,
           petAge,
@@ -119,9 +140,12 @@ const List = () => {
           petDescription,
           petIllnessHistory,
           petVaccinated,
-          selectedImages: serializedImages,
+          selectedImages: serializedImages, // Sending the images array
         },
       });
+  
+      // Increment the pet ID only after successful submission
+      setPetIdCounter((prevPetIdCounter) => prevPetIdCounter + 1);
     } else {
       alert("Please complete all fields before proceeding.");
     }

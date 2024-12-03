@@ -34,31 +34,6 @@ export default function Login({ }) {
     password: "",
   });
 
-  useEffect(() => {
-    const loadFonts = async () => {
-      await Font.loadAsync({
-        Lilita: require("../assets/fonts/LilitaOne-Regular.ttf"),
-      });
-      setFontsLoaded(true);
-    };
-    loadFonts();
-  }, []);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      // Reset errors when the screen is focused
-      setErrors({ email: "", password: "" });
-    }, [])
-  );
-
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
-
   const validateInputs = () => {
     let valid = true;
     const newErrors = { email: "", password: "" };
