@@ -11,19 +11,21 @@ import {
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { TextInput } from "react-native-paper";
+import { TextInput, Dialog, Portal } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
 import Foundation from "@expo/vector-icons/Foundation";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import FontAwesome from '@expo/vector-icons/FontAwesome'; 
 import { useRouter } from "expo-router";
-import * as FileSystem from 'expo-file-system';
-
+import * as FileSystem from "expo-file-system";
+import { usePets } from "../../components/PetContext"; // Adjust the path as needed
 const { width } = Dimensions.get("window");
 
 const List = () => {
   const router = useRouter();
 
-  const [petIdCounter, setPetIdCounter] = useState(1); // Initialize the pet ID counter
+  const { addPet } = usePets(); // Access the context
+
   const [petName, setPetName] = useState("");
   const [petGender, setSelectedPetGender] = useState(null);
   const [petAge, setPetAge] = useState("");
@@ -33,10 +35,9 @@ const List = () => {
   const [petIllnessHistory, setPetIllnessHistory] = useState("");
   const [petVaccinated, setPetVaccinated] = useState(null);
   const [selectedImages, setSelectedImages] = useState([]);
-  
-  const MAX_IMAGES = 5; // Limit for images
+  const [dialogVisible, setDialogVisible] = useState(false); // Dialog visibility state
 
-  const [pets, setPets] = useState([]); // State to hold the list of pets
+  const MAX_IMAGES = 5; // Limit for images
 
   const [errors, setErrors] = useState({
     petName: "",
@@ -55,14 +56,15 @@ const List = () => {
       alert(`You can only select up to ${MAX_IMAGES} images.`);
       return;
     }
-  
+
     // Request permission to access the media library
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       alert("Permission to access camera roll is required!");
       return;
     }
-  
+
     // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -70,9 +72,9 @@ const List = () => {
       selectionLimit: MAX_IMAGES - selectedImages.length,
       quality: 1, // High-quality images
     });
-  
+
     console.log("Image Picker Result:", result);
-  
+
     if (!result.canceled && result.assets) {
       // Resolve each URI and update the state
       const resolvedImages = await Promise.all(
@@ -80,18 +82,18 @@ const List = () => {
           // Save the image to the app's file system
           const fileName = image.uri.split("/").pop();
           const fileUri = FileSystem.documentDirectory + fileName;
-  
+
           // Move the file to the document directory
           await FileSystem.copyAsync({
             from: image.uri,
             to: fileUri,
           });
-  
+
           // Return the file URI
           return { uri: fileUri };
         })
       );
-  
+
       // Add resolved URIs to the selected images
       setSelectedImages((prevImages) => [...prevImages, ...resolvedImages]);
     } else if (result.canceled) {
@@ -99,8 +101,8 @@ const List = () => {
     } else {
       alert("No images selected.");
     }
-  };    
-  
+  };
+
   // Function to remove an image from the selected images array
   const handleImageRemove = (index) => {
     const updatedImages = selectedImages.filter((_, i) => i !== index);
@@ -109,8 +111,7 @@ const List = () => {
 
   const handleListPet = () => {
     const selectedImageURIs = selectedImages.map((image) => image.uri);
-  
-    // Check if all fields are filled out correctly
+
     if (
       petName &&
       petGender !== null &&
@@ -122,34 +123,40 @@ const List = () => {
       petVaccinated !== null &&
       selectedImageURIs.length > 0
     ) {
-      const serializedImages = JSON.stringify(selectedImageURIs);
-  
-      // Generate new pet ID based on the current counter
-      const newPetId = petIdCounter;
-  
-      // Send the pet data along with the new pet ID
-      router.push({
-        pathname: "/Main", // Adjust path as per your routing
-        params: {
-          petId: newPetId, // Pass the generated pet ID
-          petName,
-          petGender,
-          petAge,
-          petWeight,
-          petPersonality,
-          petDescription,
-          petIllnessHistory,
-          petVaccinated,
-          selectedImages: serializedImages, // Sending the images array
-        },
-      });
-  
-      // Increment the pet ID only after successful submission
-      setPetIdCounter((prevPetIdCounter) => prevPetIdCounter + 1);
+      const newPet = {
+        id: Date.now().toString(), // Unique ID
+        petName,
+        petGender,
+        petAge,
+        petWeight,
+        petPersonality,
+        petDescription,
+        petIllnessHistory,
+        petVaccinated,
+        images: selectedImageURIs,
+      };
+
+      // Reset the form fields
+      setPetName("");
+      setSelectedPetGender(null);
+      setPetAge("");
+      setPetWeight("");
+      setPetPersonality("");
+      setPetDescription("");
+      setPetIllnessHistory("");
+      setPetVaccinated(null);
+      setSelectedImages([]); // Reset selected images
+
+      addPet(newPet); // Add the new pet to the context
+
+      // Navigate to Feed or another page
+      router.push("/Main"); // Adjust the path
     } else {
-      alert("Please complete all fields before proceeding.");
+      setDialogVisible(true); // Show the dialog when fields are incomplete
     }
-  };  
+  };
+
+  const hideDialog = () => setDialogVisible(false); // Function to hide the dialog
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -188,19 +195,19 @@ const List = () => {
                 <TouchableOpacity
                   style={[
                     styles.optionButton,
-                    petGender === "female" && styles.selectedOptionButton,
+                    petGender === "Female" && styles.selectedOptionButton,
                   ]}
-                  onPress={() => setSelectedPetGender("female")}
+                  onPress={() => setSelectedPetGender("Female")}
                 >
                   <Foundation
                     name="female-symbol"
                     size={24}
-                    color={petGender === "female" ? "#68C2FF" : "#C2C2C2"}
+                    color={petGender === "Female" ? "#68C2FF" : "#C2C2C2"}
                   />
                   <Text
                     style={[
                       styles.optionText,
-                      petGender === "female" && styles.selectedOptionText,
+                      petGender === "Female" && styles.selectedOptionText,
                     ]}
                   >
                     Female
@@ -209,19 +216,19 @@ const List = () => {
                 <TouchableOpacity
                   style={[
                     styles.optionButton,
-                    petGender === "male" && styles.selectedOptionButton,
+                    petGender === "Male" && styles.selectedOptionButton,
                   ]}
-                  onPress={() => setSelectedPetGender("male")}
+                  onPress={() => setSelectedPetGender("Male")}
                 >
                   <Foundation
                     name="male-symbol"
                     size={24}
-                    color={petGender === "male" ? "#68C2FF" : "#C2C2C2"}
+                    color={petGender === "Male" ? "#68C2FF" : "#C2C2C2"}
                   />
                   <Text
                     style={[
                       styles.optionText,
-                      petGender === "male" && styles.selectedOptionText,
+                      petGender === "Male" && styles.selectedOptionText,
                     ]}
                   >
                     Male
@@ -411,6 +418,27 @@ const List = () => {
                 <Text style={styles.listPetButtonText}>List this pet</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Dialog for Alert */}
+            <Portal>
+              <Dialog visible={dialogVisible} onDismiss={hideDialog}>
+                <Dialog.Icon icon="exclamation-thick" color="#EF5B5B" />
+                <Dialog.Title style={styles.dialogTitle}>Alert</Dialog.Title>
+                <Dialog.Content style={styles.dialogContent}>
+                  <Text style={styles.dialogText}>
+                    Please complete all fields before proceeding.
+                  </Text>
+                </Dialog.Content>
+                <Dialog.Actions style={styles.dialogActions}>
+                  <TouchableOpacity
+                    onPress={hideDialog}
+                    style={styles.dialogButton}
+                  >
+                    <Text style={styles.dialogButtonText}>Okay</Text>
+                  </TouchableOpacity>
+                </Dialog.Actions>
+              </Dialog>
+            </Portal>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -531,11 +559,11 @@ const styles = StyleSheet.create({
   },
   listPetButton: {
     backgroundColor: "#EF5B5B",
-    width: '100%',
-    height: '50',
+    width: "100%",
+    height: "50",
     borderRadius: 30,
     alignItems: "center",
-    justifyContent: 'center',
+    justifyContent: "center",
     marginTop: 30,
   },
   listPetButtonText: {
@@ -578,6 +606,38 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderStyle: "dashed",
     marginHorizontal: 10,
+  },
+  //dialog
+  dialogTitle: {
+    textAlign: "center",  // Center align the title
+    fontFamily: 'Lato',
+    fontSize: 30,
+  },
+  dialogContent: {
+    alignItems: "center",  // Center align the content
+    justifyContent: "center",  // Center vertically
+  },
+  dialogText: {
+    textAlign: "center",  
+    fontSize: 15,
+  },
+  dialogActions: {
+    justifyContent: "center",  // Center align the actions (button)
+    alignItems: "center",  // Center horizontally
+  },
+  dialogButton: {
+    backgroundColor: '#68C2FF',  // Set the background color
+    width: 150,  // Set the width of the button
+    height: 50,  // Set the height of the button
+    borderRadius: 25,  // Set the border radius for rounded corners
+    justifyContent: 'center',  // Center align text inside button
+    alignItems: 'center',  // Center align text inside button
+  },
+  dialogButtonText: {
+    textAlign: "center",  
+    fontSize: 15,
+    color: 'white',
+    fontFamily: 'Lato',
   },
 });
 

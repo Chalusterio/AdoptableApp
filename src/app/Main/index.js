@@ -9,29 +9,32 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router"; // Import useRouter
+import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
 import FeedHeader from "../../components/FeedHeader"; // Import your Header component
-import { useNavigation } from "@react-navigation/native"; // For navigation
-import { Foundation } from '@expo/vector-icons'; // Import Foundation icons
+import { usePets } from "../../components/PetContext"; // Adjust the path as needed
 
 const Feed = () => {
   const params = useLocalSearchParams();
-  const navigation = useNavigation(); // Hook for navigation
+  const { pets } = usePets(); // Access shared pets state
+  const router = useRouter(); // For navigation
 
   // Parse the selectedImages string back into an array
   const selectedImages = params.selectedImages
     ? JSON.parse(params.selectedImages)
     : [];
 
-  // Simulating data for pet cards, combining multiple images into one pet card
-  const pets = [
-    {
-      id: "1", // Single pet card
-      petName: params.petName || "Pet 1",
-      petGender: params.petGender || "Unknown",
-      petAge: params.petAge || "Unknown",
-      images: selectedImages, // Store all images in the "images" property
-    },
-  ];
+  // Validate if required parameters are present
+  const isPetDataValid =
+    params.petName &&
+    params.petGender &&
+    params.petAge &&
+    params.petWeight &&
+    params.petPersonality &&
+    params.petDescription &&
+    params.petIllnessHistory &&
+    typeof params.petVaccinated !== "undefined" &&
+    selectedImages.length > 0;
 
   // Render pet item
   const renderItem = ({ item }) => (
@@ -39,32 +42,26 @@ const Feed = () => {
       style={styles.card}
       activeOpacity={0.7}
       onPress={() => {
-        // Navigate to PetDetails page, passing all images for this pet
-        navigation.navigate("PetDetails", {
-          petId: item.id,
-          images: item.images,
+        router.push({
+          pathname: "/PetDetails",
+          params: {
+            ...item,
+            images: JSON.stringify(item.images),
+          },
         });
       }}
     >
-      {/* Render only the first image initially */}
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: item.images[0] }} // Show only the first image
-          style={styles.image}
-        />
+        <Image source={{ uri: item.images[0] }} style={styles.image} />
       </View>
       <View style={styles.petDetailsContainer}>
         <View style={styles.nameGenderContainer}>
           <Text style={styles.name}>{item.petName}</Text>
-
-          {/* Conditional rendering for gender icon */}
           <View style={styles.genderContainer}>
-            {item.petGender === "female" ? (
+            {item.petGender === "Female" ? (
               <Foundation name="female-symbol" size={24} color="#EF5B5B" />
-            ) : item.petGender === "male" ? (
-              <Foundation name="male-symbol" size={24} color="#68C2FF" />
             ) : (
-              <Text style={styles.gender}>Unknown</Text>
+              <Foundation name="male-symbol" size={24} color="#68C2FF" />
             )}
           </View>
         </View>
@@ -75,15 +72,21 @@ const Feed = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <FeedHeader />
-      <FlatList
-        data={pets}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        numColumns={2} // Display two cards per row
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.container}
-      />
+      <FeedHeader/>
+      {pets.length > 0 ? (
+        <FlatList
+          data={pets}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.container}
+        />
+      ) : (
+        <View style={styles.noPetsContainer}>
+          <Text style={styles.noPetsText}>No pets available. Add a pet to display here!</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -115,7 +118,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: "100%",
-    height: 150,
+    height: 160,
     borderTopLeftRadius: 20, // Top-left corner radius
     borderTopRightRadius: 20, // Top-right corner radius
     borderBottomLeftRadius: 0, // Bottom-left corner radius
@@ -151,6 +154,18 @@ const styles = StyleSheet.create({
     fontFamily: "Lato",
     color: "#C2C2C2",
   },
+  noPetsContainer: {
+    flex: 1, // Allow the container to take full height
+    justifyContent: "center", // Center content vertically
+    alignItems: "center", // Center content horizontally
+  },
+  noPetsText: {
+    textAlign: "center",
+    fontFamily: 'Lato',
+    fontSize: 16,
+    color: "#999",
+  },
+  
 });
 
 export default Feed;

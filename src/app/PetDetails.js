@@ -1,18 +1,35 @@
 import React from "react";
 import { View, Text, Image, StyleSheet, ScrollView } from "react-native";
-import { useRoute } from "@react-navigation/native"; // To access passed params
+import { useLocalSearchParams } from "expo-router"; // To access passed params
 
 const PetDetails = () => {
-  const route = useRoute();
-  const { petId, images } = route.params; // Retrieve params passed from Feed page
+  const {
+    petName,
+    petGender,
+    petAge,
+    petWeight,
+    petPersonality,
+    petDescription,
+    petIllnessHistory,
+    petVaccinated,
+    images,
+  } = useLocalSearchParams(); // Retrieve params
+  const parsedImages = JSON.parse(images || "[]"); // Parse the images string
 
   return (
     <ScrollView style={styles.safeArea}>
       <Text style={styles.title}>Pet Details</Text>
-      <Text style={styles.subtitle}>Pet ID: {petId}</Text>
+      <Text style={styles.subtitle}>Name: {petName}</Text>
+      <Text style={styles.subtitle}>Gender: {petGender}</Text>
+      <Text style={styles.subtitle}>Age: {petAge}</Text>
+      <Text style={styles.subtitle}>Weight: {petWeight}</Text>
+      <Text style={styles.subtitle}>Personality: {petPersonality}</Text>
+      <Text style={styles.subtitle}>Description: {petDescription}</Text>
+      <Text style={styles.subtitle}>Illness History: {petIllnessHistory}</Text>
+      <Text style={styles.subtitle}>Vaccinated: {petVaccinated}</Text>
 
       <View style={styles.imageContainer}>
-        {images.map((uri, index) => (
+        {parsedImages.map((uri, index) => (
           <Image key={index} source={{ uri }} style={styles.image} />
         ))}
       </View>
