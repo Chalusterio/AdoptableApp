@@ -142,6 +142,7 @@ const List = () => {
       };
 
       // Reset the form fields
+      setAdoptionFee("");
       setPetName("");
       setSelectedPetGender(null);
       setPetAge("");
@@ -252,8 +253,7 @@ const List = () => {
                 style={[styles.input, errors.petAge && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="#68C2FF"
-                autoCapitalize="words"
+                activeOutlineColor="gray"
               />
               {errors.petAge && (
                 <Text style={styles.errorText}>{errors.petAge}</Text>
@@ -278,8 +278,7 @@ const List = () => {
                 style={[styles.input, errors.petWeight && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="#68C2FF"
-                maxLength={5} // Limit to a maximum of 5 characters (including "kg")
+                activeOutlineColor="gray"
               />
               {errors.petWeight && (
                 <Text style={styles.errorText}>{errors.petWeight}</Text>
@@ -440,6 +439,20 @@ const List = () => {
               {errors.adoptionFee && (
                 <Text style={styles.errorText}>{errors.adoptionFee}</Text>
               )}
+
+              <Text style={styles.question}>Enter adoption fee:</Text>
+                <TextInput
+                  placeholder="e.g., ₱0 - ₱500"
+                  value={adoptionFee}
+                  onChangeText={setAdoptionFee}
+                  style={[styles.input, errors.adoptionFee && styles.errorInput]}
+                  mode="outlined"
+                  outlineColor="transparent"
+                  activeOutlineColor="#68C2FF"
+                />
+                {errors.adoptionFee && (
+                  <Text style={styles.errorText}>{errors.adoptionFee}</Text>
+                )}
 
               {/* Image Upload */}
               <Text style={styles.question}>Upload picture(s):</Text>
