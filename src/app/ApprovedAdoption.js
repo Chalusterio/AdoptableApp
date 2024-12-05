@@ -44,11 +44,14 @@ export default function ApprovedAdoption({ route }) {
   const [selectedDeliveryType, setSelectedDeliveryType] = useState("Standard Delivery");
 
   useEffect(() => {
-    // Example: Fetch data dynamically here if needed
-    // setAdopterDetails(fetchAdopterDetails());
-    // setDeliveryDetails(fetchDeliveryDetails());
-    // setTransactionSummary(fetchTransactionSummary());
-  }, []);
+    // Example: Set dynamic values or prepare data here
+    // You can update deliveryDetails or other states dynamically
+    setDeliveryDetails((prev) => ({
+      ...prev,
+      type: selectedDeliveryType,
+      cost: calculateTotal(),
+    }));
+  }, [selectedDeliveryType, transactionSummary]);
 
   const calculateTotal = () => {
     return transactionSummary.reduce((total, item) => total + item.amount, 0);
