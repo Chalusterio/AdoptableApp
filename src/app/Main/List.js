@@ -15,7 +15,7 @@ import { TextInput, Dialog, Portal } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
 import Foundation from "@expo/vector-icons/Foundation";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import FontAwesome from '@expo/vector-icons/FontAwesome'; 
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
 import * as FileSystem from "expo-file-system";
 import { usePets } from "../../components/PetContext"; // Adjust the path as needed
@@ -34,6 +34,8 @@ const List = () => {
   const [petDescription, setPetDescription] = useState("");
   const [petIllnessHistory, setPetIllnessHistory] = useState("");
   const [petVaccinated, setPetVaccinated] = useState(null);
+  const [adoptionFee, setAdoptionFee] = useState("");
+
   const [selectedImages, setSelectedImages] = useState([]);
   const [dialogVisible, setDialogVisible] = useState(false); // Dialog visibility state
 
@@ -48,6 +50,7 @@ const List = () => {
     petDescription: "",
     petIllnessHistory: "",
     petVaccinated: "",
+    adoptionFee: "",
   });
 
   // Function to pick images
@@ -121,6 +124,7 @@ const List = () => {
       petDescription &&
       petIllnessHistory &&
       petVaccinated !== null &&
+      adoptionFee &&
       selectedImageURIs.length > 0
     ) {
       const newPet = {
@@ -133,6 +137,7 @@ const List = () => {
         petDescription,
         petIllnessHistory,
         petVaccinated,
+        adoptionFee,
         images: selectedImageURIs,
       };
 
@@ -145,6 +150,7 @@ const List = () => {
       setPetDescription("");
       setPetIllnessHistory("");
       setPetVaccinated(null);
+      setAdoptionFee("");
       setSelectedImages([]); // Reset selected images
 
       addPet(newPet); // Add the new pet to the context
@@ -179,12 +185,13 @@ const List = () => {
               <Text style={styles.question}>Pet's Name:</Text>
               <TextInput
                 placeholder="Pet's Name"
+                label="Pet's Name"
                 value={petName}
                 onChangeText={setPetName}
                 style={[styles.input, errors.petName && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
               />
               {errors.petName && (
                 <Text style={styles.errorText}>{errors.petName}</Text>
@@ -239,12 +246,14 @@ const List = () => {
               <Text style={styles.question}>Age:</Text>
               <TextInput
                 placeholder="e.g., 5 Years 3 Months"
+                label="e.g., 5 Years 3 Months"
                 value={petAge}
                 onChangeText={setPetAge}
                 style={[styles.input, errors.petAge && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
               />
               {errors.petAge && (
                 <Text style={styles.errorText}>{errors.petAge}</Text>
@@ -252,13 +261,25 @@ const List = () => {
 
               <Text style={styles.question}>Weight (kg):</Text>
               <TextInput
-                placeholder="e.g., 25 kg"
-                value={petWeight}
-                onChangeText={setPetWeight}
+                placeholder="e.g., 25"
+                label="e.g., 25"
+                value={petWeight} // 'petWeight' now includes the 'kg' suffix
+                keyboardType="number-pad"
+                onChangeText={(text) => {
+                  // Remove any non-numeric characters (to handle cases where users paste text)
+                  const numericInput = text.replace(/[^0-9]/g, "");
+
+                  // Limit the input to a maximum of two digits
+                  const limitedInput = numericInput.slice(0, 2);
+
+                  // Set the numeric value and append "kg"
+                  setPetWeight(limitedInput ? `${limitedInput} kg` : ""); // Append "kg" to the value
+                }}
                 style={[styles.input, errors.petWeight && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
+                maxLength={5} // Limit to a maximum of 5 characters (including "kg")
               />
               {errors.petWeight && (
                 <Text style={styles.errorText}>{errors.petWeight}</Text>
@@ -269,15 +290,34 @@ const List = () => {
               </Text>
               <TextInput
                 placeholder="e.g., Friendly, Playful, Loyal"
-                value={petPersonality}
-                onChangeText={setPetPersonality}
+                label="e.g., Friendly, Playful, Loyal"
+                value={petPersonality} // The value includes the formatted input
+                onChangeText={(text) => {
+                  // Remove spaces and trim the input
+                  const cleanedText = text.replace(/\s+/g, "").trim();
+                
+                  // Filter out any non-alphabetic characters except commas
+                  const validText = cleanedText.replace(/[^a-zA-Z,-]/g, "");
+                
+                  // Split the input by commas
+                  const words = validText.split(",");
+                
+                  // If there are more than 3 words, limit the input to the first 3 words
+                  if (words.length > 3) {
+                    setPetPersonality(words.slice(0, 3).join(", "));
+                  } else {
+                    // Update state with the valid input
+                    setPetPersonality(words.join(", "));
+                  }
+                }}
+                
                 style={[
                   styles.input,
                   errors.petPersonality && styles.errorInput,
                 ]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
               />
               {errors.petPersonality && (
                 <Text style={styles.errorText}>{errors.petPersonality}</Text>
@@ -286,6 +326,7 @@ const List = () => {
               <Text style={styles.question}>Briefly describe this pet:</Text>
               <TextInput
                 placeholder="Provide a brief description of this pet's characteristics"
+                label="Provide a brief description of this pet's characteristics"
                 value={petDescription}
                 onChangeText={setPetDescription}
                 style={[
@@ -295,7 +336,7 @@ const List = () => {
                 ]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
                 multiline={true}
                 numberOfLines={7}
                 textAlignVertical="top"
@@ -307,6 +348,7 @@ const List = () => {
               <Text style={styles.question}>Any history of illness?</Text>
               <TextInput
                 placeholder="Mention if the pet has any history of illness (or write None)"
+                label="Mention if the pet has any history of illness (or write None)"
                 value={petIllnessHistory}
                 onChangeText={setPetIllnessHistory}
                 style={[
@@ -316,7 +358,7 @@ const List = () => {
                 ]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
                 multiline={true}
                 numberOfLines={7}
                 textAlignVertical="top"
@@ -360,6 +402,44 @@ const List = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              <Text style={styles.question}>Enter adoption fee:</Text>
+              <TextInput
+                placeholder="e.g., ₱0 - ₱500"
+                label="e.g., ₱0 - ₱500"
+                value={adoptionFee}
+                keyboardType="number-pad"
+                onChangeText={(text) => {
+                  // Remove any non-numeric characters (except for the peso symbol)
+                  const cleanedText = text.replace(/[^0-9]/g, "");
+                
+                  // If the cleaned text is empty (i.e., user erased everything), set to "₱0"
+                  if (cleanedText === "") {
+                    setAdoptionFee("");
+                    return;
+                  }
+                
+                  // Convert to number
+                  let number = parseInt(cleanedText, 10);
+                
+                  // Ensure the number is between 0 and 500
+                  if (number > 500) {
+                    number = 500; // Set the number to 500 if it's greater than 500
+                  } else if (number < 0) {
+                    number = 0; // Set the number to 0 if it's less than 0
+                  }
+                
+                  // Update the state with the formatted value, prefixing with the peso symbol
+                  setAdoptionFee(number === 0 ? "₱0" : `₱${number}`);
+                }}                       
+                style={[styles.input, errors.adoptionFee && styles.errorInput]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+              />
+              {errors.adoptionFee && (
+                <Text style={styles.errorText}>{errors.adoptionFee}</Text>
+              )}
 
               {/* Image Upload */}
               <Text style={styles.question}>Upload picture(s):</Text>
@@ -476,12 +556,12 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   question: {
-    marginTop: 20,
+    marginTop: 35,
     fontFamily: "Lato",
     fontSize: 18,
   },
   input: {
-    marginTop: 5,
+    marginTop: 10,
     marginBottom: 5,
     backgroundColor: "#F5F5F5",
   },
@@ -609,35 +689,35 @@ const styles = StyleSheet.create({
   },
   //dialog
   dialogTitle: {
-    textAlign: "center",  // Center align the title
-    fontFamily: 'Lato',
+    textAlign: "center", // Center align the title
+    fontFamily: "Lato",
     fontSize: 30,
   },
   dialogContent: {
-    alignItems: "center",  // Center align the content
-    justifyContent: "center",  // Center vertically
+    alignItems: "center", // Center align the content
+    justifyContent: "center", // Center vertically
   },
   dialogText: {
-    textAlign: "center",  
+    textAlign: "center",
     fontSize: 15,
   },
   dialogActions: {
-    justifyContent: "center",  // Center align the actions (button)
-    alignItems: "center",  // Center horizontally
+    justifyContent: "center", // Center align the actions (button)
+    alignItems: "center", // Center horizontally
   },
   dialogButton: {
-    backgroundColor: '#68C2FF',  // Set the background color
-    width: 150,  // Set the width of the button
-    height: 50,  // Set the height of the button
-    borderRadius: 25,  // Set the border radius for rounded corners
-    justifyContent: 'center',  // Center align text inside button
-    alignItems: 'center',  // Center align text inside button
+    backgroundColor: "#68C2FF", // Set the background color
+    width: 150, // Set the width of the button
+    height: 50, // Set the height of the button
+    borderRadius: 25, // Set the border radius for rounded corners
+    justifyContent: "center", // Center align text inside button
+    alignItems: "center", // Center align text inside button
   },
   dialogButtonText: {
-    textAlign: "center",  
+    textAlign: "center",
     fontSize: 15,
-    color: 'white',
-    fontFamily: 'Lato',
+    color: "white",
+    fontFamily: "Lato",
   },
 });
 

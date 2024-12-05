@@ -14,7 +14,7 @@ const Notification = () => {
       name: "CDO Animal Welfare Society Inc",
       content: "Has approved your adoption request! Click Here to see the full payment information.",
       time: "1:25 PM",
-      action: () => router.push("/ApprovedAdoption"),
+      action: () => router.push("/ApproveAdoption"),
     },
     {
       id: 2,

@@ -101,16 +101,20 @@ const styles = StyleSheet.create({
   },
   row: {
     justifyContent: "space-between", // Evenly distribute the cards within a row
-    marginBottom: 16,
+    marginBottom: 10,
   },
   card: {
-    width: "48%", // Each card occupies 48% of the row width
+    width: "47%", // Each card occupies 48% of the row width
     marginBottom: 16, // Spacing between rows
     borderRadius: 20,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     height: 230,
-    elevation: 3, // For Android shadow
+    shadowColor: "#000", // Shadow color for iOS
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 3,
   },
   imageContainer: {
     flexDirection: "row",

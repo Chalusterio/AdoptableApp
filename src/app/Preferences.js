@@ -21,7 +21,7 @@ export default function Preferences() {
   const handleFindPet = () => {
     if (selectedPet && selectedGender !== null) {
       router.push({
-        pathname: "Main/Profile", 
+        pathname: "Main", 
         params: { userName, userEmail, userContactNumber, livingSpace, ownedPets }
       });
     } else {
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 60,
+    marginBottom: 70,
   },
   greetingText: {
     fontSize: 18,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 20,
     alignItems: 'center',
-    marginTop: 100,
+    marginTop: 90,
   },
   findPetButtonText: {
     color: '#fff',

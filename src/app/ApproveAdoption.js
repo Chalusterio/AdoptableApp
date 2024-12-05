@@ -15,7 +15,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 
-export default function ApprovedAdoption({ route }) {
+export default function ApproveAdoption({ route }) {
   const router = useRouter();
   
   // State for adopter and delivery details
@@ -44,11 +44,14 @@ export default function ApprovedAdoption({ route }) {
   const [selectedDeliveryType, setSelectedDeliveryType] = useState("Standard Delivery");
 
   useEffect(() => {
-    // Example: Fetch data dynamically here if needed
-    // setAdopterDetails(fetchAdopterDetails());
-    // setDeliveryDetails(fetchDeliveryDetails());
-    // setTransactionSummary(fetchTransactionSummary());
-  }, []);
+    // Example: Set dynamic values or prepare data here
+    // You can update deliveryDetails or other states dynamically
+    setDeliveryDetails((prev) => ({
+      ...prev,
+      type: selectedDeliveryType,
+      cost: calculateTotal(),
+    }));
+  }, [selectedDeliveryType, transactionSummary]);
 
   const calculateTotal = () => {
     return transactionSummary.reduce((total, item) => total + item.amount, 0);

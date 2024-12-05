@@ -20,7 +20,7 @@ export default function Lifestyle() {
     if (livingSpace && ownedPets !== null) {
       router.push({
       pathname: 'Preferences',
-      params: { userName, userEmail,userContactNumber, livingSpace, ownedPets }, // Pass 'userName' from Options to Preferences
+      params: { userName, userEmail, userContactNumber, livingSpace, ownedPets }, // Pass 'userName' from Options to Preferences
     });
     } else {
       alert('Please complete all selections.');

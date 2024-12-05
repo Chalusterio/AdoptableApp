@@ -12,6 +12,7 @@ const PetDetails = () => {
     petDescription,
     petIllnessHistory,
     petVaccinated,
+    adoptionFee,
     images,
   } = useLocalSearchParams(); // Retrieve params
   const parsedImages = JSON.parse(images || "[]"); // Parse the images string
@@ -27,6 +28,7 @@ const PetDetails = () => {
       <Text style={styles.subtitle}>Description: {petDescription}</Text>
       <Text style={styles.subtitle}>Illness History: {petIllnessHistory}</Text>
       <Text style={styles.subtitle}>Vaccinated: {petVaccinated}</Text>
+      <Text style={styles.subtitle}>Adoption Fee: {adoptionFee}</Text>
 
       <View style={styles.imageContainer}>
         {parsedImages.map((uri, index) => (

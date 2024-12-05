@@ -65,8 +65,8 @@ export default function RootLayout() {
               />
               <Stack.Screen name="Main" options={{ title: "Main" }} />
               <Stack.Screen
-                name="ApprovedAdoption"
-                options={{ title: "ApprovedAdoption" }}
+                name="ApproveAdoption"
+                options={{ title: "ApproveAdoption" }}
               />
             </Stack>
           </PetProvider>
