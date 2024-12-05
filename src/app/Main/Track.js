@@ -1,8 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons'; // Install icons via @expo/vector-icons
+import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router'; // To access passed params
 
 const Track = () => {
+  const {
+    petName,
+    petAge,
+    petWeight,
+    petImage,
+    deliveryType,
+    totalAmount,
+  } = useLocalSearchParams(); // Retrieve params
+
   const currentStep = 2; // Current step (0-based index). Update dynamically based on the tracking status.
 
   const steps = [
@@ -51,19 +61,19 @@ const Track = () => {
       {/* Pet Info Section */}
       <View style={styles.petInfoBox}>
         <Image
-          source={require('../../assets/Track/paw.jpg')} // Replace with your image
+          source={{ uri: petImage }} // Use dynamic image URI
           style={styles.petImage}
         />
         <View>
-          <Text style={styles.petName}>Shiro</Text>
-          <Text style={styles.petDetails}>7 Years 3 Months | 30 Kg</Text>
+          <Text style={styles.petName}>{petName}</Text>
+          <Text style={styles.petDetails}>{petAge} | {petWeight}</Text>
         </View>
       </View>
 
       {/* Delivery Info Section */}
       <View style={styles.deliveryBox}>
-        <Text style={styles.deliveryDetails}>Delivery Type: Car</Text>
-        <Text style={styles.deliveryDetails}>Amount: ₱ 560.40</Text>
+        <Text style={styles.deliveryDetails}>Delivery Type: {deliveryType}</Text>
+        <Text style={styles.deliveryDetails}>Amount: ₱ {totalAmount}</Text>
       </View>
 
       {/* Tracking Steps */}
@@ -115,8 +125,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'Lilita',
     color: '#68C2FF',
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: 50,
+    marginBottom: 20,
     textAlign: 'left',
   },
   petInfoBox: {
@@ -125,11 +135,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 15,
-    marginBottom: 10,
+    marginBottom: 15,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 0 },
     elevation: 3,
   },
   petImage: {
@@ -154,9 +164,9 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 20,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 0 },
     elevation: 3,
   },
   deliveryDetails: {
@@ -165,15 +175,16 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   trackingContainer: {
-    marginTop: 20,
+    marginTop: 30,
   },
   stepContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 50,
     position: 'relative',
   },
   iconContainer: {
+    marginTop: -2,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -186,9 +197,9 @@ const styles = StyleSheet.create({
   line: {
     position: 'absolute',
     width: 2,
-    height: 50,
+    height: 200,
     left: 20,
-    top: -50,
+    top: -90,
     zIndex: 0,
   },
   stepInfo: {

@@ -34,6 +34,8 @@ const List = () => {
   const [petDescription, setPetDescription] = useState("");
   const [petIllnessHistory, setPetIllnessHistory] = useState("");
   const [petVaccinated, setPetVaccinated] = useState(null);
+  const [adoptionFee, setAdoptionFee] = useState("");
+
   const [selectedImages, setSelectedImages] = useState([]);
   const [dialogVisible, setDialogVisible] = useState(false); // Dialog visibility state
 
@@ -48,6 +50,7 @@ const List = () => {
     petDescription: "",
     petIllnessHistory: "",
     petVaccinated: "",
+    adoptionFee: "",
   });
 
   // Function to pick images
@@ -121,6 +124,7 @@ const List = () => {
       petDescription &&
       petIllnessHistory &&
       petVaccinated !== null &&
+      adoptionFee &&
       selectedImageURIs.length > 0
     ) {
       const newPet = {
@@ -133,10 +137,12 @@ const List = () => {
         petDescription,
         petIllnessHistory,
         petVaccinated,
+        adoptionFee,
         images: selectedImageURIs,
       };
 
       // Reset the form fields
+      setAdoptionFee("");
       setPetName("");
       setSelectedPetGender(null);
       setPetAge("");
@@ -184,7 +190,7 @@ const List = () => {
                 style={[styles.input, errors.petName && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
               />
               {errors.petName && (
                 <Text style={styles.errorText}>{errors.petName}</Text>
@@ -244,7 +250,7 @@ const List = () => {
                 style={[styles.input, errors.petAge && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
               />
               {errors.petAge && (
                 <Text style={styles.errorText}>{errors.petAge}</Text>
@@ -258,7 +264,7 @@ const List = () => {
                 style={[styles.input, errors.petWeight && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
               />
               {errors.petWeight && (
                 <Text style={styles.errorText}>{errors.petWeight}</Text>
@@ -277,7 +283,7 @@ const List = () => {
                 ]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
               />
               {errors.petPersonality && (
                 <Text style={styles.errorText}>{errors.petPersonality}</Text>
@@ -295,7 +301,7 @@ const List = () => {
                 ]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
                 multiline={true}
                 numberOfLines={7}
                 textAlignVertical="top"
@@ -316,7 +322,7 @@ const List = () => {
                 ]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
                 multiline={true}
                 numberOfLines={7}
                 textAlignVertical="top"
@@ -360,6 +366,20 @@ const List = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              <Text style={styles.question}>Enter adoption fee:</Text>
+                <TextInput
+                  placeholder="e.g., ₱0 - ₱500"
+                  value={adoptionFee}
+                  onChangeText={setAdoptionFee}
+                  style={[styles.input, errors.adoptionFee && styles.errorInput]}
+                  mode="outlined"
+                  outlineColor="transparent"
+                  activeOutlineColor="#68C2FF"
+                />
+                {errors.adoptionFee && (
+                  <Text style={styles.errorText}>{errors.adoptionFee}</Text>
+                )}
 
               {/* Image Upload */}
               <Text style={styles.question}>Upload picture(s):</Text>
@@ -476,12 +496,12 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   question: {
-    marginTop: 20,
+    marginTop: 35,
     fontFamily: "Lato",
     fontSize: 18,
   },
   input: {
-    marginTop: 5,
+    marginTop: 10,
     marginBottom: 5,
     backgroundColor: "#F5F5F5",
   },
