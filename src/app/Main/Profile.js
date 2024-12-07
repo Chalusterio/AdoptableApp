@@ -4,8 +4,8 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { auth, signOut, db } from '../../../firebase'; // Make sure this imports your Firebase setup
-import { getDocs, collection, query, where } from "firebase/firestore";
+import { auth, signOut, db } from "../../../firebase"; // Ensure this imports your Firebase setup
+import { getDocs, collection, query, where, updateDoc, doc } from "firebase/firestore";
 
 const Profile = () => {
   const router = useRouter();
@@ -53,15 +53,32 @@ const Profile = () => {
         }
       }
     };
-    
-
     fetchUserData();
   }, []); // Empty dependency array, will run once when component mounts
 
-  const handleSave = () => {
-    setProfileInfo(editableInfo);
-    setEditConfirmVisible(false);
-    setModalVisible(false);
+  const handleSave = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        // Update the user's document in Firestore with the new data
+        const userRef = doc(db, "users", user.uid);  // Use 'user.uid' to get the correct document reference
+        await updateDoc(userRef, {
+          name: editableInfo.name,
+          email: editableInfo.email,
+          contactNumber: editableInfo.phone,
+          address: editableInfo.address,
+          houseType: editableInfo.houseType,
+          hasPet: editableInfo.hasPet,
+        });
+
+        // After successful update, set the state to reflect the saved data
+        setProfileInfo(editableInfo);
+        setEditConfirmVisible(false);
+        setModalVisible(false);
+      }
+    } catch (error) {
+      console.error("Error saving profile data: ", error);
+    }
   };
 
   const handleEditPress = () => {
@@ -267,6 +284,7 @@ const Profile = () => {
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
