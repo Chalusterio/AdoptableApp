@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { auth, signOut, db } from "../../../firebase"; // Ensure this imports your Firebase setup
 import { getDocs, collection, query, where, updateDoc, doc } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const Profile = () => {
   const router = useRouter();
@@ -24,25 +25,25 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const user = auth.currentUser; // Get current logged-in user
+      const user = auth.currentUser;
       if (user) {
         try {
-          // Reference to the "users" collection in Firestore
           const usersCollectionRef = collection(db, "users");
-          // Query to find the document where the email field matches
           const q = query(usersCollectionRef, where("email", "==", user.email));
           const querySnapshot = await getDocs(q);
-    
+
           if (!querySnapshot.empty) {
             querySnapshot.forEach((doc) => {
               const userData = doc.data();
               setProfileInfo({
                 ...userData,
-                phone: userData.contactNumber || "-",  // Ensure 'phone' uses 'contactNumber'
+                phone: userData.contactNumber || "-",
+                profilePicture: userData.profilePicture || null, // Fetch profile picture URL
               });
               setEditableInfo({
                 ...userData,
                 phone: userData.contactNumber || "-",
+                profilePicture: userData.profilePicture || null,
               });
             });
           } else {
@@ -55,31 +56,46 @@ const Profile = () => {
     };
     fetchUserData();
   }, []); // Empty dependency array, will run once when component mounts
-
   const handleSave = async () => {
     try {
       const user = auth.currentUser;
       if (user) {
-        // Update the user's document in Firestore with the new data
-        const userRef = doc(db, "users", user.uid);  // Use 'user.uid' to get the correct document reference
-        await updateDoc(userRef, {
-          name: editableInfo.name,
-          email: editableInfo.email,
+        const userRef = doc(db, "users", user.uid);
+        const updatedData = {
+          ...editableInfo,
           contactNumber: editableInfo.phone,
-          address: editableInfo.address,
-          houseType: editableInfo.houseType,
-          hasPet: editableInfo.hasPet,
-        });
+        };
 
-        // After successful update, set the state to reflect the saved data
-        setProfileInfo(editableInfo);
+        if (editableInfo.image?.uri) {
+          const fileName = `profilePictures/${user.uid}/profile.jpg`;
+          const storageRef = ref(storage, fileName);
+
+          try {
+            const response = await fetch(editableInfo.image.uri);
+            const blob = await response.blob();
+            await uploadBytes(storageRef, blob);
+            const downloadURL = await getDownloadURL(storageRef);
+
+            updatedData.profilePicture = downloadURL;
+            setProfileInfo((prev) => ({ ...prev, profilePicture: downloadURL }));
+          } catch (error) {
+            console.error("Error uploading image: ", error);
+            alert("Image upload failed. Please try again.");
+            return;
+          }
+        }
+
+        await updateDoc(userRef, updatedData);
+        setProfileInfo(updatedData);
         setEditConfirmVisible(false);
         setModalVisible(false);
       }
     } catch (error) {
       console.error("Error saving profile data: ", error);
+      alert("Failed to save. Please try again.");
     }
   };
+
 
   const handleEditPress = () => {
     setEditableInfo(profileInfo);
@@ -109,25 +125,32 @@ const Profile = () => {
     setEditConfirmVisible(false);
   };
 
+  const storage = getStorage(); // Initialize Firebase Storage
+
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permissionResult.granted === false) {
+    if (!permissionResult.granted) {
       alert("Permission to access camera roll is required!");
       return;
     }
-    let pickerResult = await ImagePicker.launchImageLibraryAsync({
+
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
+
     if (!pickerResult.canceled) {
-      setEditableInfo({
-        ...editableInfo,
-        image: pickerResult.assets[0],
-      });
+      const imageUri = pickerResult.assets[0].uri;
+      setEditableInfo((prevState) => ({
+        ...prevState,
+        image: { uri: imageUri },
+      }));
     }
   };
+
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -140,8 +163,13 @@ const Profile = () => {
           <View style={styles.header}>
             <Image
               style={styles.profileImage}
-              source={editableInfo.image ? { uri: editableInfo.image.uri } : require("../../assets/Profile/dp.png")}
+              source={
+                profileInfo.profilePicture
+                  ? { uri: profileInfo.profilePicture } // Firebase Storage URL
+                  : require("../../assets/Profile/dp.png") // Default image
+              }
             />
+
             <Text style={styles.profileName}>{profileInfo.name}</Text>
             <Text style={styles.profileStatus}>Active • Devoted Pet Owner</Text>
           </View>
@@ -190,7 +218,13 @@ const Profile = () => {
                   <TouchableOpacity style={styles.profileImageContainer} onPress={pickImage}>
                     <Image
                       style={styles.profileImage}
-                      source={editableInfo.image ? { uri: editableInfo.image.uri } : require("../../assets/Profile/dp.png")}
+                      source={
+                        editableInfo.image?.uri
+                          ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
+                          : profileInfo.profilePicture
+                            ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
+                            : require("../../assets/Profile/dp.png") // Default image if no profile picture
+                      }
                     />
                     <TouchableOpacity style={styles.editProfileImage} onPress={pickImage}>
                       <Icon name="edit" size={20} color="white" />
