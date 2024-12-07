@@ -1,23 +1,15 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ImageBackground,
-} from "react-native";
-import {
-  useTheme,
-  TextInput,
-  Checkbox,
-  Dialog,
-  Portal,
-} from "react-native-paper";
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground } from "react-native";
+import { useTheme, TextInput, Checkbox, Dialog, Portal } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Font from "expo-font";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from 'expo-router';
+import { auth, signInWithEmailAndPassword } from "../../firebase"; // Make sure to import Firebase auth methods
 
-export default function Login({ }) {
+export default function Login() {
   const theme = useTheme();
+  const [fontsLoaded, setFontsLoaded] = useState(false);
 
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -30,6 +22,30 @@ export default function Login({ }) {
     email: "",
     password: "",
   });
+
+  useEffect(() => {
+    const loadFonts = async () => {
+      await Font.loadAsync({
+        Lilita: require("../assets/fonts/LilitaOne-Regular.ttf"),
+      });
+      setFontsLoaded(true);
+    };
+    loadFonts();
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setErrors({ email: "", password: "" });
+    }, [])
+  );
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
 
   const validateInputs = () => {
     let valid = true;
@@ -61,16 +77,19 @@ export default function Login({ }) {
     setRememberMe(!rememberMe);
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!validateInputs()) return;
 
-    const userData = { email, password };
-    console.log("User data:", userData);
-
-    setDialogVisible(true);
-    setEmail("");
-    setPassword("");
-    router.push("Main");
+    try {
+      // Authenticate with Firebase
+      await signInWithEmailAndPassword(auth, email, password);
+      setDialogVisible(true);  // Show success dialog on successful login
+      setEmail("");
+      setPassword("");
+      router.push("Main");  // Redirect to Main screen after successful login
+    } catch (error) {
+      setErrors({ ...errors, password: "Invalid email or password" });
+    }
   };
 
   const hideDialog = () => setDialogVisible(false);
@@ -91,18 +110,8 @@ export default function Login({ }) {
           </ImageBackground>
         </View>
 
-        <View
-          style={[
-            styles.formContainer,
-            { backgroundColor: theme.colors.primary },
-          ]}
-        >
-          <View
-            style={[
-              styles.inputContainer,
-              { backgroundColor: theme.colors.primary },
-            ]}
-          >
+        <View style={[styles.formContainer, { backgroundColor: theme.colors.primary }]}>
+          <View style={[styles.inputContainer, { backgroundColor: theme.colors.primary }]}>
             <TextInput
               label="Email"
               value={email}
@@ -113,38 +122,25 @@ export default function Login({ }) {
               keyboardType="email-address"
               style={[styles.input, errors.email && styles.errorInput]}
             />
-            {errors.email && (
-              <Text style={styles.errorText}>{errors.email}</Text>
-            )}
+            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
             <TextInput
               label="Password"
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!passwordVisible}
-              right={
-                <TextInput.Icon
-                  icon={passwordVisible ? "eye" : "eye-off"}
-                  color="black"
-                  onPress={() => setPasswordVisible(!passwordVisible)}
-                />
-              }
+              right={<TextInput.Icon icon={passwordVisible ? "eye" : "eye-off"} onPress={() => setPasswordVisible(!passwordVisible)} />}
               left={<TextInput.Icon icon="lock" />}
               mode="flat"
               activeUnderlineColor="gray"
               style={[styles.input, errors.password && styles.errorInput]}
             />
-            {errors.password && (
-              <Text style={styles.errorText}>{errors.password}</Text>
-            )}
+            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
           </View>
 
           <View style={styles.rememberForgotContainer}>
             <View style={styles.checkboxContainer}>
-              <TouchableOpacity
-                style={styles.rememberCheck}
-                onPress={handleRememberMe}
-              >
+              <TouchableOpacity style={styles.rememberCheck} onPress={handleRememberMe}>
                 <Checkbox
                   status={rememberMe ? "checked" : "unchecked"}
                   onPress={handleRememberMe}
@@ -159,17 +155,14 @@ export default function Login({ }) {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.loginButton} onPress={(handleLogin)}>
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
             <Text style={styles.loginButtonText}>Login</Text>
           </TouchableOpacity>
 
           <View style={styles.noAccountContainer}>
             <Text style={styles.noAccountText}>Don't have an account?</Text>
             <TouchableOpacity>
-              <Text
-                style={styles.signupButtonText}
-                onPress={() => router.push("Signup")}
-              >
+              <Text style={styles.signupButtonText} onPress={() => router.push("Signup")}>
                 Sign Up
               </Text>
             </TouchableOpacity>

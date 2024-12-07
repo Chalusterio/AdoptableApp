@@ -1,28 +1,62 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { auth, signOut, db } from '../../../firebase'; // Make sure this imports your Firebase setup
+import { getDocs, collection, query, where } from "firebase/firestore";
 
 const Profile = () => {
   const router = useRouter();
-
-  const { userName, userEmail, userContactNumber, livingSpace, ownedPets } = useLocalSearchParams();
-
+  const [profileInfo, setProfileInfo] = useState({
+    name: "Loading...",
+    email: "-",
+    phone: "-",
+    address: "",
+    houseType: "Not Indicated",
+    hasPet: "Not Indicated",
+  });
+  const [editableInfo, setEditableInfo] = useState(profileInfo);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isLogoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
-  const [isEditConfirmVisible, setEditConfirmVisible] = useState(false); // Edit confirmation modal
-  const [profileInfo, setProfileInfo] = useState({
-    name: userName || "User",
-    email: userEmail || "-",
-    phone: userContactNumber || "-",
-    address: "",
-    houseType: livingSpace || "Not Indicated",
-    hasPet: ownedPets || "Not Indicated",
-  });
+  const [isEditConfirmVisible, setEditConfirmVisible] = useState(false);
 
-  const [editableInfo, setEditableInfo] = useState(profileInfo);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = auth.currentUser; // Get current logged-in user
+      if (user) {
+        try {
+          // Reference to the "users" collection in Firestore
+          const usersCollectionRef = collection(db, "users");
+          // Query to find the document where the email field matches
+          const q = query(usersCollectionRef, where("email", "==", user.email));
+          const querySnapshot = await getDocs(q);
+    
+          if (!querySnapshot.empty) {
+            querySnapshot.forEach((doc) => {
+              const userData = doc.data();
+              setProfileInfo({
+                ...userData,
+                phone: userData.contactNumber || "-",  // Ensure 'phone' uses 'contactNumber'
+              });
+              setEditableInfo({
+                ...userData,
+                phone: userData.contactNumber || "-",
+              });
+            });
+          } else {
+            console.log("No such user!");
+          }
+        } catch (error) {
+          console.error("Error fetching user data: ", error);
+        }
+      }
+    };
+    
+
+    fetchUserData();
+  }, []); // Empty dependency array, will run once when component mounts
 
   const handleSave = () => {
     setProfileInfo(editableInfo);
@@ -39,9 +73,15 @@ const Profile = () => {
     setLogoutConfirmVisible(true);
   };
 
-  const handleLogout = () => {
-    setLogoutConfirmVisible(false);
-    router.push("Login");
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // Sign out from Firebase
+      router.push("Login"); // Redirect to login page
+    } catch (error) {
+      console.error("Error logging out: ", error);
+    } finally {
+      setLogoutConfirmVisible(false); // Close logout confirmation modal
+    }
   };
 
   const handleCancelLogout = () => {
@@ -67,7 +107,7 @@ const Profile = () => {
     if (!pickerResult.canceled) {
       setEditableInfo({
         ...editableInfo,
-        image: pickerResult.assets[0], // Set the selected image to editableInfo
+        image: pickerResult.assets[0],
       });
     }
   };
@@ -83,11 +123,7 @@ const Profile = () => {
           <View style={styles.header}>
             <Image
               style={styles.profileImage}
-              source={
-                editableInfo.image
-                  ? { uri: editableInfo.image.uri }
-                  : require("../../assets/Profile/dp.png") // Default image if no image is set
-              }
+              source={editableInfo.image ? { uri: editableInfo.image.uri } : require("../../assets/Profile/dp.png")}
             />
             <Text style={styles.profileName}>{profileInfo.name}</Text>
             <Text style={styles.profileStatus}>Active • Devoted Pet Owner</Text>
@@ -108,128 +144,84 @@ const Profile = () => {
 
           <View style={styles.detailsContainer}>
             <Icon name="location-on" size={24} color="#444444" />
-            <Text style={styles.detailsText}>
-              {profileInfo.address || "No Address Provided"}
-            </Text>
+            <Text style={styles.detailsText}>{profileInfo.address || "No Address Provided"}</Text>
           </View>
           <View style={styles.horizontalLine}></View>
 
           <View style={styles.detailsContainer}>
             <Icon name="home" size={24} color="#444444" />
-            <Text style={styles.detailsText}>
-              House Type: {profileInfo.houseType}
-            </Text>
+            <Text style={styles.detailsText}>House Type: {profileInfo.houseType}</Text>
           </View>
           <View style={styles.horizontalLine}></View>
 
           <View style={styles.detailsContainer}>
             <Icon name="pets" size={24} color="#444444" />
-            <Text style={styles.detailsText}>
-              Pet Owner: {profileInfo.hasPet}
-            </Text>
+            <Text style={styles.detailsText}>Pet Owner: {profileInfo.hasPet}</Text>
           </View>
           <View style={styles.horizontalLine}></View>
 
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogoutConfirm}
-          >
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutConfirm}>
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
 
           {/* Edit Modal */}
-          <Modal
-            visible={isModalVisible}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setModalVisible(false)}
-          >
+          <Modal visible={isModalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
             <View style={styles.modalContainer}>
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>Edit Profile</Text>
-
-                {/* Image Upload Section */}
                 <View style={styles.uploadContainer}>
-                  <TouchableOpacity
-                    style={styles.profileImageContainer}
-                    onPress={pickImage} // When the image is clicked, it triggers the pickImage function
-                  >
+                  <TouchableOpacity style={styles.profileImageContainer} onPress={pickImage}>
                     <Image
                       style={styles.profileImage}
-                      source={
-                        editableInfo.image
-                          ? { uri: editableInfo.image.uri }
-                          : require("../../assets/Profile/dp.png") // Default image if no image is set
-                      }
+                      source={editableInfo.image ? { uri: editableInfo.image.uri } : require("../../assets/Profile/dp.png")}
                     />
                     <TouchableOpacity style={styles.editProfileImage} onPress={pickImage}>
                       <Icon name="edit" size={20} color="white" />
                     </TouchableOpacity>
                   </TouchableOpacity>
                 </View>
-
                 {/* Other Input Fields */}
                 <TextInput
                   style={styles.input}
                   placeholder="Name"
                   value={editableInfo.name}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, name: text })
-                  }
+                  onChangeText={(text) => setEditableInfo({ ...editableInfo, name: text })}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
                   value={editableInfo.email}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, email: text })
-                  }
+                  onChangeText={(text) => setEditableInfo({ ...editableInfo, email: text })}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Phone Number"
                   value={editableInfo.phone}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, phone: text })
-                  }
+                  onChangeText={(text) => setEditableInfo({ ...editableInfo, phone: text })}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Address"
                   value={editableInfo.address}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, address: text })
-                  }
+                  onChangeText={(text) => setEditableInfo({ ...editableInfo, address: text })}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="House Type"
                   value={editableInfo.houseType}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, houseType: text })
-                  }
+                  onChangeText={(text) => setEditableInfo({ ...editableInfo, houseType: text })}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Pet Owner"
                   value={editableInfo.hasPet}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, hasPet: text })
-                  }
+                  onChangeText={(text) => setEditableInfo({ ...editableInfo, hasPet: text })}
                 />
-
-                {/* Save and Cancel Buttons */}
                 <View style={styles.modalButtons}>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => setModalVisible(false)}
-                  >
+                  <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                     <Text style={styles.buttonText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.saveButton}
-                    onPress={() => setEditConfirmVisible(true)}
-                  >
+                  <TouchableOpacity style={styles.saveButton} onPress={() => setEditConfirmVisible(true)}>
                     <Text style={styles.buttonText}>Save</Text>
                   </TouchableOpacity>
                 </View>
@@ -238,28 +230,15 @@ const Profile = () => {
           </Modal>
 
           {/* Edit Confirmation Modal */}
-          <Modal
-            visible={isEditConfirmVisible}
-            animationType="fade"
-            transparent={true}
-            onRequestClose={handleCancelEdit}
-          >
+          <Modal visible={isEditConfirmVisible} animationType="fade" transparent={true} onRequestClose={handleCancelEdit}>
             <View style={styles.logoutModalContainer}>
               <View style={styles.logoutModalContent}>
-                <Text style={styles.logoutModalText}>
-                  Are you sure you want to save changes?
-                </Text>
+                <Text style={styles.logoutModalText}>Are you sure you want to save changes?</Text>
                 <View style={styles.logoutModalButtons}>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={handleCancelEdit}
-                  >
+                  <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
                     <Text style={styles.buttonText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.logoutButtonModal}
-                    onPress={handleSave}
-                  >
+                  <TouchableOpacity style={styles.logoutButtonModal} onPress={handleSave}>
                     <Text style={styles.buttonText}>Save</Text>
                   </TouchableOpacity>
                 </View>
@@ -268,28 +247,15 @@ const Profile = () => {
           </Modal>
 
           {/* Logout Confirmation Modal */}
-          <Modal
-            visible={isLogoutConfirmVisible}
-            animationType="fade"
-            transparent={true}
-            onRequestClose={handleCancelLogout}
-          >
+          <Modal visible={isLogoutConfirmVisible} animationType="fade" transparent={true} onRequestClose={handleCancelLogout}>
             <View style={styles.logoutModalContainer}>
               <View style={styles.logoutModalContent}>
-                <Text style={styles.logoutModalText}>
-                  Are you sure you want to log out?
-                </Text>
+                <Text style={styles.logoutModalText}>Are you sure you want to log out?</Text>
                 <View style={styles.logoutModalButtons}>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={handleCancelLogout}
-                  >
+                  <TouchableOpacity style={styles.cancelButton} onPress={handleCancelLogout}>
                     <Text style={styles.buttonText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.logoutButtonModal}
-                    onPress={handleLogout}
-                  >
+                  <TouchableOpacity style={styles.logoutButtonModal} onPress={handleLogout}>
                     <Text style={styles.buttonText}>Log out</Text>
                   </TouchableOpacity>
                 </View>
@@ -301,8 +267,6 @@ const Profile = () => {
     </SafeAreaView>
   );
 };
-
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
