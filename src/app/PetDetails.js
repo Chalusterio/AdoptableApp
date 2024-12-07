@@ -1,10 +1,10 @@
-// Adding a back button and "Adopt Me" button below the second container
 import React, { useState } from "react";
 import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useNavigation } from "expo-router"; // Import useNavigation
 import { FontAwesome } from "@expo/vector-icons";
 
 const PetDetails = () => {
+  const navigation = useNavigation(); // Initialize navigation
   const {
     petName,
     petGender,
@@ -103,7 +103,10 @@ const PetDetails = () => {
       {/* Back and Adopt Buttons */}
       <View style={styles.buttonOuterContainer}>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.backButton}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()} // Add navigation logic for the Back button
+          >
             <FontAwesome name="arrow-left" size={20} color="#FFF" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.adoptButton} onPress={handleAdopt}>
