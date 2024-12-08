@@ -438,14 +438,7 @@ const List = () => {
 
                   // Convert to number
                   let number = parseInt(cleanedText, 10);
-
-                  // Ensure the number is between 0 and 500
-                  if (number > 500) {
-                    number = 500; // Set the number to 500 if it's greater than 500
-                  } else if (number < 0) {
-                    number = 0; // Set the number to 0 if it's less than 0
-                  }
-
+                  
                   // Update the state with the formatted value, prefixing with the peso symbol
                   setAdoptionFee(number === 0 ? "₱0" : `₱${number}`);
                 }}

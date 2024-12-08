@@ -9,18 +9,22 @@ import {
 import { TextInput, useTheme, Dialog, Portal } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Font from "expo-font";
 import { useRouter } from "expo-router";
+import { registerUser } from "../../firebase"; // Use the registerUser function
 
-export default function Signup({}) {
+export default function Signup() {
   const theme = useTheme();
   const router = useRouter();
 
+  const [fontsLoaded, setFontsLoaded] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [contactNumber, setContactNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [dialogVisible, setDialogVisible] = useState(false);
+  const [isOrganization, setIsOrganization] = useState(false);
 
   const [errors, setErrors] = useState({
     name: "",
@@ -29,26 +33,49 @@ export default function Signup({}) {
     password: "",
   });
 
+  useEffect(() => {
+    const loadFonts = async () => {
+      await Font.loadAsync({
+        Lilita: require("../assets/fonts/LilitaOne-Regular.ttf"),
+      });
+      setFontsLoaded(true);
+    };
+    loadFonts();
+  }, []);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
   const validateInputs = () => {
     let valid = true;
     const newErrors = { name: "", email: "", contactNumber: "", password: "" };
 
-    if (!name) {
-      newErrors.name = "Name is required";
+    if (!name.trim()) {
+      newErrors.name = isOrganization
+        ? "Organization name is required"
+        : "Name is required";
       valid = false;
     }
-    if (!email) {
+    if (!email.trim()) {
       newErrors.email = "Email is required";
       valid = false;
     } else {
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zAZ]{2,}$/;
       if (!emailRegex.test(email)) {
         newErrors.email = "Please enter a valid email address";
         valid = false;
       }
     }
-    if (!contactNumber) {
+    if (!contactNumber.trim()) {
       newErrors.contactNumber = "Contact number is required";
+      valid = false;
+    } else if (!/^\d+$/.test(contactNumber)) {
+      newErrors.contactNumber = "Contact number must contain only numbers";
       valid = false;
     }
     if (!password) {
@@ -63,27 +90,37 @@ export default function Signup({}) {
     return valid;
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!validateInputs()) return;
 
-    const userData = { name, email, contactNumber, password };
-    console.log("User data:", userData);
+    try {
+      await registerUser(email, password, name, contactNumber); // Call registerUser
+      router.push({
+        pathname: "Options",
+        params: {
+          userName: name,
+          userEmail: email,
+          userContactNumber: contactNumber,
+        },
+      });
 
-    setDialogVisible(true);
-    setName("");
-    setEmail("");
-    setContactNumber("");
-    setPassword("");
+      setDialogVisible(true); // Show success dialog
+      setName(""); // Reset form
+      setEmail("");
+      setContactNumber("");
+      setPassword("");
+    } catch (error) {
+      console.log("Registration error:", error.message);
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        email: error.message,
+      }));
+    }
+  };
 
-    // Pass the name to the Options screen using query parameters
-    router.push({
-      pathname: "Options",
-      params: {
-        userName: name,
-        userEmail: email,
-        userContactNumber: contactNumber,
-      },
-    });
+  const handleToggleSignupMode = () => {
+    setIsOrganization((prev) => !prev); // Toggle between modes
+    setName(""); // Reset the name field
   };
 
   const hideDialog = () => setDialogVisible(false);
@@ -105,7 +142,7 @@ export default function Signup({}) {
           <Text style={styles.subtitle}>Create your account</Text>
 
           <TextInput
-            label="Name"
+            label={isOrganization ? "Organization Name" : "Name"}
             value={name}
             onChangeText={setName}
             style={[styles.input, errors.name && styles.errorInput]}
@@ -175,32 +212,32 @@ export default function Signup({}) {
           {/* Divider with "or" */}
           <View style={styles.dividerContainer}>
             <View style={styles.divider}></View>
-            <Text style={styles.orText}>or</Text>
+            <Text style={styles.orText}>OR</Text>
             <View style={styles.divider}></View>
           </View>
 
           <View style={styles.socialContainer}>
-            <TouchableOpacity>
-              <Text style={styles.signupOrganizationText}>Sign up as an organization</Text>
+            <TouchableOpacity onPress={handleToggleSignupMode}>
+              <Text style={styles.signupOrganizationText}>
+                {isOrganization
+                  ? "Sign up as an individual"
+                  : "Sign up as an organization"}
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Dialog */}
           <Portal>
             <Dialog visible={dialogVisible} onDismiss={hideDialog}>
               <Dialog.Icon icon="check-circle" color="#68C2FF" />
               <Dialog.Title style={styles.dialogTitle}>Success</Dialog.Title>
-              <Dialog.Content style={styles.dialogContent}>
+              <Dialog.Content>
                 <Text style={styles.dialogText}>
                   Account created successfully!
                 </Text>
               </Dialog.Content>
-              <Dialog.Actions style={styles.dialogActions}>
-                <TouchableOpacity
-                  onPress={hideDialog}
-                  style={styles.dialogButton}
-                >
-                  <Text style={styles.dialogButtonText}>Done</Text>
+              <Dialog.Actions>
+                <TouchableOpacity onPress={hideDialog}>
+                  <Text style={styles.dialogButton}>Ok</Text>
                 </TouchableOpacity>
               </Dialog.Actions>
             </Dialog>
@@ -347,3 +384,4 @@ const styles = StyleSheet.create({
     fontFamily: "Lato",
   },
 });
+
