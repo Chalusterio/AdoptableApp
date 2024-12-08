@@ -9,9 +9,9 @@ import {
 import { TextInput, useTheme, Dialog, Portal } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from 'expo-router';
+import { useRouter } from "expo-router";
 
-export default function Signup({ }) {
+export default function Signup({}) {
   const theme = useTheme();
   const router = useRouter();
 
@@ -74,11 +74,15 @@ export default function Signup({ }) {
     setEmail("");
     setContactNumber("");
     setPassword("");
-    
+
     // Pass the name to the Options screen using query parameters
     router.push({
-      pathname: 'Options', 
-      params: { userName: name, userEmail: email, userContactNumber: contactNumber },
+      pathname: "Options",
+      params: {
+        userName: name,
+        userEmail: email,
+        userContactNumber: contactNumber,
+      },
     });
   };
 
@@ -176,33 +180,31 @@ export default function Signup({ }) {
           </View>
 
           <View style={styles.socialContainer}>
-            <TouchableOpacity style={styles.iconButton}>
-              <MaterialCommunityIcons
-                name="facebook"
-                size={30}
-                color="#4267B2"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <MaterialCommunityIcons name="google" size={30} color="#DB4437" />
+            <TouchableOpacity>
+              <Text style={styles.signupOrganizationText}>Sign up as an organization</Text>
             </TouchableOpacity>
           </View>
 
           {/* Dialog */}
-        <Portal>
-          <Dialog visible={dialogVisible} onDismiss={hideDialog}>
-            <Dialog.Icon icon="check-circle" color="#68C2FF" />
-            <Dialog.Title style={styles.dialogTitle}>Success</Dialog.Title>
-            <Dialog.Content style={styles.dialogContent}>
-              <Text style={styles.dialogText}>Account created successfully!</Text>
-            </Dialog.Content>
-            <Dialog.Actions style={styles.dialogActions}>
-              <TouchableOpacity onPress={hideDialog} style={styles.dialogButton}>
-                <Text style={styles.dialogButtonText}>Done</Text>
-              </TouchableOpacity>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
+          <Portal>
+            <Dialog visible={dialogVisible} onDismiss={hideDialog}>
+              <Dialog.Icon icon="check-circle" color="#68C2FF" />
+              <Dialog.Title style={styles.dialogTitle}>Success</Dialog.Title>
+              <Dialog.Content style={styles.dialogContent}>
+                <Text style={styles.dialogText}>
+                  Account created successfully!
+                </Text>
+              </Dialog.Content>
+              <Dialog.Actions style={styles.dialogActions}>
+                <TouchableOpacity
+                  onPress={hideDialog}
+                  style={styles.dialogButton}
+                >
+                  <Text style={styles.dialogButtonText}>Done</Text>
+                </TouchableOpacity>
+              </Dialog.Actions>
+            </Dialog>
+          </Portal>
         </View>
       </ImageBackground>
     </SafeAreaView>
@@ -307,36 +309,41 @@ const styles = StyleSheet.create({
     color: "#888",
     fontSize: 14,
   },
+  signupOrganizationText: {
+    fontFamily: "Lato",
+    color: "gray",
+    marginLeft: 10,
+  },
   //dialog
   dialogTitle: {
-    textAlign: "center",  // Center align the title
-    fontFamily: 'Lato',
+    textAlign: "center", // Center align the title
+    fontFamily: "Lato",
     fontSize: 30,
   },
   dialogContent: {
-    alignItems: "center",  // Center align the content
-    justifyContent: "center",  // Center vertically
+    alignItems: "center", // Center align the content
+    justifyContent: "center", // Center vertically
   },
   dialogText: {
-    textAlign: "center",  
+    textAlign: "center",
     fontSize: 15,
   },
   dialogActions: {
-    justifyContent: "center",  // Center align the actions (button)
-    alignItems: "center",  // Center horizontally
+    justifyContent: "center", // Center align the actions (button)
+    alignItems: "center", // Center horizontally
   },
   dialogButton: {
-    backgroundColor: '#68C2FF',  // Set the background color
-    width: 150,  // Set the width of the button
-    height: 50,  // Set the height of the button
-    borderRadius: 25,  // Set the border radius for rounded corners
-    justifyContent: 'center',  // Center align text inside button
-    alignItems: 'center',  // Center align text inside button
+    backgroundColor: "#68C2FF", // Set the background color
+    width: 150, // Set the width of the button
+    height: 50, // Set the height of the button
+    borderRadius: 25, // Set the border radius for rounded corners
+    justifyContent: "center", // Center align text inside button
+    alignItems: "center", // Center align text inside button
   },
   dialogButtonText: {
-    textAlign: "center",  
+    textAlign: "center",
     fontSize: 15,
-    color: 'white',
-    fontFamily: 'Lato',
+    color: "white",
+    fontFamily: "Lato",
   },
 });

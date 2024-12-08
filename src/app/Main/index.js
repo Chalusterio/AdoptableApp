@@ -13,7 +13,7 @@ import { useRouter } from "expo-router"; // Import useRouter
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
 import FeedHeader from "../../components/FeedHeader"; // Import your Header component
-import { usePets } from "../../components/PetContext"; // Adjust the path as needed
+import { usePets } from "../../context/PetContext"; // Adjust the path as needed
 
 const Feed = () => {
   const params = useLocalSearchParams();

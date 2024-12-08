@@ -16,7 +16,7 @@ import Foundation from "@expo/vector-icons/Foundation";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import * as FileSystem from "expo-file-system";
-import { usePets } from "../../components/PetContext"; // Adjust the path as needed
+import { usePets } from "../../context/PetContext"; // Adjust the path as needed
 import { useNavigation } from '@react-navigation/native';
 
 const List = () => {
@@ -378,6 +378,7 @@ const List = () => {
                 multiline={true}
                 numberOfLines={7}
                 textAlignVertical="top"
+                autoCapitalize=""
               />
               {errors.petDescription && (
                 <Text style={styles.errorText}>{errors.petIllnessHistory}</Text>
