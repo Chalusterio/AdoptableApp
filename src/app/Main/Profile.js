@@ -109,14 +109,15 @@ const Profile = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth); // Sign out from Firebase
-      router.push("Login"); // Redirect to login page
+      console.log("User logged out");
+      router.push("/Login"); // Ensure the route is correct (if you use a different path for login, change this)
     } catch (error) {
-      console.error("Error logging out: ", error);
+      console.error("Error logging out: ", error.message);
     } finally {
       setLogoutConfirmVisible(false); // Close logout confirmation modal
     }
   };
-
+  
   const handleCancelLogout = () => {
     setLogoutConfirmVisible(false);
   };

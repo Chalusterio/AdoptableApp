@@ -1,34 +1,82 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import Slider from '@react-native-community/slider'; // paste sa terminal: npm install @react-native-community/slider
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Icon from "react-native-vector-icons/Ionicons";
+import { getFirestore, collection, query, where, getDocs, setDoc, doc, updateDoc } from 'firebase/firestore';  // Import Firestore methods
 
 export default function Lifestyle() {
   const router = useRouter();
-
-  // Use useLocalSearchParams to access local search params
   const { userName, userEmail, userContactNumber } = useLocalSearchParams();
-
   const [livingSpace, setLivingSpace] = useState(null);
   const [ownedPets, setOwnedPets] = useState(null);
-  const [dailyActivity, setDailyActivity] = useState(0.5); // Default slider value
-  const [dedicationHours, setDedicationHours] = useState(0.5); // Default slider value
+  const [dailyActivity, setDailyActivity] = useState(0.5);
+  const [dedicationHours, setDedicationHours] = useState(0.5);
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     if (livingSpace && ownedPets !== null) {
-      router.push({
-      pathname: 'Preferences',
-      params: { userName, userEmail, userContactNumber, livingSpace, ownedPets }, // Pass 'userName' from Options to Preferences
-    });
+      const getLabel = (value, labels) => {
+        if (value <= 0.2) return labels[0];
+        if (value <= 0.5) return labels[1];
+        return labels[2];
+      };
+
+      const activityLabel = getLabel(dailyActivity, ["Relaxed", "Moderately Active", "Very Active"]);
+      const dedicationLabel = getLabel(dedicationHours, ["1–2 Hours", "3–4 Hours", "5+ Hours"]);
+
+      try {
+        const db = getFirestore();  // Initialize Firestore
+        const lifestyleRef = collection(db, 'lifestyle');
+        const q = query(lifestyleRef, where("email", "==", userEmail));
+
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          await setDoc(doc(db, 'lifestyle', userEmail), {
+            email: userEmail,
+            livingSpace: livingSpace,
+            ownedPets: ownedPets,
+            dailyActivity: dailyActivity,
+            dailyActivityLabel: activityLabel,
+            dedicationHours: dedicationHours,
+            dedicationHoursLabel: dedicationLabel,
+            timestamp: new Date(),
+          });
+          console.log('Lifestyle data saved successfully!');
+        } else {
+          querySnapshot.forEach((docSnapshot) => {
+            updateDoc(doc(db, 'lifestyle', docSnapshot.id), {
+              livingSpace: livingSpace,
+              ownedPets: ownedPets,
+              dailyActivity: dailyActivity,
+              dailyActivityLabel: activityLabel,
+              dedicationHours: dedicationHours,
+              dedicationHoursLabel: dedicationLabel,
+              timestamp: new Date(),
+            });
+          });
+          console.log('Lifestyle data updated successfully!');
+        }
+
+        router.push({
+          pathname: 'Preferences',
+          params: { userName, userEmail, userContactNumber, livingSpace, ownedPets },
+        });
+
+      } catch (error) {
+        console.error('Error saving or updating lifestyle data:', error);
+        alert('Failed to save or update lifestyle data. Please try again.');
+      }
     } else {
       alert('Please complete all selections.');
     }
   };
 
+
   return (
     <SafeAreaView style={styles.safeArea}>
+      <ScrollView>
       <View
         style={styles.container}
       >
@@ -159,6 +207,7 @@ export default function Lifestyle() {
             <Text style={styles.proceedButtonText}>Proceed</Text>
           </TouchableOpacity>
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -174,6 +223,7 @@ const styles = StyleSheet.create({
     width: "100%",
     padding: 20,
     flexDirection: 'column',
+    paddingTop: 10, 
   },
   backButtonContainer: {
     backgroundColor: "gray",
@@ -246,7 +296,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 20,
     alignItems: 'center',
-    marginTop: 100,
+    marginVertical: 10, // Adjust this for spacing
   },
   proceedButtonText: {
     color: '#fff',
