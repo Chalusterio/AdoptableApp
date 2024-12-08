@@ -28,6 +28,7 @@ const Profile = () => {
       const user = auth.currentUser;
       if (user) {
         try {
+          // Fetch user data from the "users" collection
           const usersCollectionRef = collection(db, "users");
           const q = query(usersCollectionRef, where("email", "==", user.email));
           const querySnapshot = await getDocs(q);
@@ -35,6 +36,27 @@ const Profile = () => {
           if (!querySnapshot.empty) {
             querySnapshot.forEach((doc) => {
               const userData = doc.data();
+              // Fetch lifestyle data based on the user's email
+              const lifestyleCollectionRef = collection(db, "lifestyle");
+              const lifestyleQuery = query(lifestyleCollectionRef, where("email", "==", user.email));
+              getDocs(lifestyleQuery).then((lifestyleSnapshot) => {
+                if (!lifestyleSnapshot.empty) {
+                  lifestyleSnapshot.forEach((lifestyleDoc) => {
+                    const lifestyleData = lifestyleDoc.data();
+                    setProfileInfo((prevState) => ({
+                      ...prevState,
+                      houseType: lifestyleData.livingSpace || "Not Indicated",
+                      hasPet: lifestyleData.ownedPets || "Not Indicated",
+                    }));
+                    setEditableInfo((prevState) => ({
+                      ...prevState,
+                      houseType: lifestyleData.livingSpace || "Not Indicated",
+                      hasPet: lifestyleData.ownedPets || "Not Indicated",
+                    }));
+                  });
+                }
+              });
+
               setProfileInfo({
                 ...userData,
                 phone: userData.contactNumber || "-",
@@ -56,6 +78,7 @@ const Profile = () => {
     };
     fetchUserData();
   }, []); // Empty dependency array, will run once when component mounts
+
   const handleSave = async () => {
     try {
       const user = auth.currentUser;
@@ -96,7 +119,6 @@ const Profile = () => {
     }
   };
 
-
   const handleEditPress = () => {
     setEditableInfo(profileInfo);
     setModalVisible(true);
@@ -117,7 +139,7 @@ const Profile = () => {
       setLogoutConfirmVisible(false); // Close logout confirmation modal
     }
   };
-  
+
   const handleCancelLogout = () => {
     setLogoutConfirmVisible(false);
   };
@@ -150,8 +172,6 @@ const Profile = () => {
       }));
     }
   };
-
-
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -209,7 +229,6 @@ const Profile = () => {
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutConfirm}>
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
-
           {/* Edit Modal */}
           <Modal visible={isModalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
             <View style={styles.modalContainer}>

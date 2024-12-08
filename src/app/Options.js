@@ -18,7 +18,7 @@ export default function Options({ }) {
 
   const handleList = () => {
     router.push({
-      pathname:"/Main/Profile",
+      pathname:"/Main/List",
       params: { userName, userEmail, userContactNumber }, 
     });
   };
