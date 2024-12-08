@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ImageBackground } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ImageBackground,
+} from "react-native";
 import { TextInput, useTheme, Dialog, Portal } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Font from "expo-font";
-import { useRouter } from 'expo-router';
-import { registerUser } from '../../firebase'; // Use the registerUser function
+import { useRouter } from "expo-router";
+import { registerUser } from "../../firebase"; // Use the registerUser function
 
 export default function Signup() {
   const theme = useTheme();
@@ -18,6 +24,7 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [dialogVisible, setDialogVisible] = useState(false);
+  const [isOrganization, setIsOrganization] = useState(false);
 
   const [errors, setErrors] = useState({
     name: "",
@@ -49,7 +56,9 @@ export default function Signup() {
     const newErrors = { name: "", email: "", contactNumber: "", password: "" };
 
     if (!name.trim()) {
-      newErrors.name = "Name is required";
+      newErrors.name = isOrganization
+        ? "Organization name is required"
+        : "Name is required";
       valid = false;
     }
     if (!email.trim()) {
@@ -88,7 +97,11 @@ export default function Signup() {
       await registerUser(email, password, name, contactNumber); // Call registerUser
       router.push({
         pathname: "Options",
-        params: { userName: name, userEmail: email, userContactNumber: contactNumber },
+        params: {
+          userName: name,
+          userEmail: email,
+          userContactNumber: contactNumber,
+        },
       });
 
       setDialogVisible(true); // Show success dialog
@@ -103,6 +116,11 @@ export default function Signup() {
         email: error.message,
       }));
     }
+  };
+
+  const handleToggleSignupMode = () => {
+    setIsOrganization((prev) => !prev); // Toggle between modes
+    setName(""); // Reset the name field
   };
 
   const hideDialog = () => setDialogVisible(false);
@@ -124,7 +142,7 @@ export default function Signup() {
           <Text style={styles.subtitle}>Create your account</Text>
 
           <TextInput
-            label="Name"
+            label={isOrganization ? "Organization Name" : "Name"}
             value={name}
             onChangeText={setName}
             style={[styles.input, errors.name && styles.errorInput]}
@@ -184,12 +202,38 @@ export default function Signup() {
             <Text style={styles.signupButtonText}>Sign Up</Text>
           </TouchableOpacity>
 
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account?</Text>
+            <TouchableOpacity onPress={() => router.push("Login")}>
+              <Text style={styles.loginText}> Login</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Divider with "or" */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider}></View>
+            <Text style={styles.orText}>OR</Text>
+            <View style={styles.divider}></View>
+          </View>
+
+          <View style={styles.socialContainer}>
+            <TouchableOpacity onPress={handleToggleSignupMode}>
+              <Text style={styles.signupOrganizationText}>
+                {isOrganization
+                  ? "Sign up as an individual"
+                  : "Sign up as an organization"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <Portal>
             <Dialog visible={dialogVisible} onDismiss={hideDialog}>
               <Dialog.Icon icon="check-circle" color="#68C2FF" />
               <Dialog.Title style={styles.dialogTitle}>Success</Dialog.Title>
               <Dialog.Content>
-                <Text style={styles.dialogText}>Account created successfully!</Text>
+                <Text style={styles.dialogText}>
+                  Account created successfully!
+                </Text>
               </Dialog.Content>
               <Dialog.Actions>
                 <TouchableOpacity onPress={hideDialog}>
@@ -247,14 +291,15 @@ const styles = StyleSheet.create({
   signupButton: {
     backgroundColor: "#EF5B5B",
     marginTop: 30,
-    paddingVertical: 15,
-    borderRadius: 25,
-    justifyContent: "center",
+    height: 50,
     alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 30,
   },
   signupButtonText: {
-    color: "white",
+    fontFamily: "Lato",
     fontSize: 16,
+    color: "white",
   },
   footer: {
     flexDirection: "row",
@@ -262,62 +307,80 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   footerText: {
-    color: "#3B3B3B",
+    fontFamily: "Lato",
   },
   loginText: {
-    color: "#68C2FF",
-    fontWeight: "bold",
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  divider: {
-    height: 1,
-    flex: 1,
-    backgroundColor: "#3B3B3B",
-  },
-  orText: {
-    marginHorizontal: 10,
-    color: "#3B3B3B",
+    fontFamily: "Lato",
+    color: "gray",
+    marginLeft: 10,
   },
   socialContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 20,
+    marginVertical: 10,
   },
   iconButton: {
-    marginHorizontal: 15,
-  },
-  errorInput: {
-    borderColor: "red",
-    borderWidth: 1,
+    marginHorizontal: 10,
+    marginBottom: 15,
   },
   errorText: {
     color: "red",
     fontSize: 12,
+    marginTop: -10,
     marginBottom: 10,
   },
-  dialogTitle: {
-    color: "#68C2FF",
-    fontSize: 20,
-  },
-  dialogContent: {
-    marginBottom: 10,
-  },
-  dialogText: {
-    fontSize: 16,
-    color: "#3B3B3B",
-  },
-  dialogActions: {
+  // Divider styles
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 20,
     justifyContent: "center",
   },
+  divider: {
+    height: 1,
+    backgroundColor: "#E0E0E0",
+    flex: 1,
+  },
+  orText: {
+    marginHorizontal: 10,
+    color: "#888",
+    fontSize: 14,
+  },
+  signupOrganizationText: {
+    fontFamily: "Lato",
+    color: "gray",
+    marginLeft: 10,
+  },
+  //dialog
+  dialogTitle: {
+    textAlign: "center", // Center align the title
+    fontFamily: "Lato",
+    fontSize: 30,
+  },
+  dialogContent: {
+    alignItems: "center", // Center align the content
+    justifyContent: "center", // Center vertically
+  },
+  dialogText: {
+    textAlign: "center",
+    fontSize: 15,
+  },
+  dialogActions: {
+    justifyContent: "center", // Center align the actions (button)
+    alignItems: "center", // Center horizontally
+  },
   dialogButton: {
-    paddingVertical: 10,
+    backgroundColor: "#68C2FF", // Set the background color
+    width: 150, // Set the width of the button
+    height: 50, // Set the height of the button
+    borderRadius: 25, // Set the border radius for rounded corners
+    justifyContent: "center", // Center align text inside button
+    alignItems: "center", // Center align text inside button
   },
   dialogButtonText: {
-    fontSize: 16,
-    color: "#68C2FF",
+    textAlign: "center",
+    fontSize: 15,
+    color: "white",
+    fontFamily: "Lato",
   },
 });
