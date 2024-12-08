@@ -1,11 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  TextInput,
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { Picker } from "@react-native-picker/picker"; // Import the Picker
 import { auth, signOut, db } from "../../../firebase"; // Ensure this imports your Firebase setup
-import { getDocs, collection, query, where, updateDoc, doc } from "firebase/firestore";
+import {
+  getDocs,
+  collection,
+  query,
+  where,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const Profile = () => {
@@ -22,6 +39,8 @@ const Profile = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isLogoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [isEditConfirmVisible, setEditConfirmVisible] = useState(false);
+  const houseTypeOptions = ["Apartment/Condo", "House"];
+  const petOptions = ["Yes", "No"];
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -38,7 +57,10 @@ const Profile = () => {
               const userData = doc.data();
               // Fetch lifestyle data based on the user's email
               const lifestyleCollectionRef = collection(db, "lifestyle");
-              const lifestyleQuery = query(lifestyleCollectionRef, where("email", "==", user.email));
+              const lifestyleQuery = query(
+                lifestyleCollectionRef,
+                where("email", "==", user.email)
+              );
               getDocs(lifestyleQuery).then((lifestyleSnapshot) => {
                 if (!lifestyleSnapshot.empty) {
                   lifestyleSnapshot.forEach((lifestyleDoc) => {
@@ -100,7 +122,10 @@ const Profile = () => {
             const downloadURL = await getDownloadURL(storageRef);
 
             updatedData.profilePicture = downloadURL;
-            setProfileInfo((prev) => ({ ...prev, profilePicture: downloadURL }));
+            setProfileInfo((prev) => ({
+              ...prev,
+              profilePicture: downloadURL,
+            }));
           } catch (error) {
             console.error("Error uploading image: ", error);
             alert("Image upload failed. Please try again.");
@@ -151,7 +176,8 @@ const Profile = () => {
   const storage = getStorage(); // Initialize Firebase Storage
 
   const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       alert("Permission to access camera roll is required!");
       return;
@@ -210,44 +236,64 @@ const Profile = () => {
 
           <View style={styles.detailsContainer}>
             <Icon name="location-on" size={24} color="#444444" />
-            <Text style={styles.detailsText}>{profileInfo.address || "No Address Provided"}</Text>
+            <Text style={styles.detailsText}>
+              {profileInfo.address || "No Address Provided"}
+            </Text>
           </View>
           <View style={styles.horizontalLine}></View>
 
           <View style={styles.detailsContainer}>
             <Icon name="home" size={24} color="#444444" />
-            <Text style={styles.detailsText}>House Type: {profileInfo.houseType}</Text>
+            <Text style={styles.detailsText}>
+              House Type: {profileInfo.houseType}
+            </Text>
           </View>
           <View style={styles.horizontalLine}></View>
 
           <View style={styles.detailsContainer}>
             <Icon name="pets" size={24} color="#444444" />
-            <Text style={styles.detailsText}>Pet Owner: {profileInfo.hasPet}</Text>
+            <Text style={styles.detailsText}>
+              Pet Owner: {profileInfo.hasPet}
+            </Text>
           </View>
           <View style={styles.horizontalLine}></View>
 
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutConfirm}>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogoutConfirm}
+          >
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
-          
+
           {/* Edit Modal */}
-          <Modal visible={isModalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
+          <Modal
+            visible={isModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setModalVisible(false)}
+          >
             <View style={styles.modalContainer}>
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>Edit Profile</Text>
                 <View style={styles.uploadContainer}>
-                  <TouchableOpacity style={styles.profileImageContainer} onPress={pickImage}>
+                  <TouchableOpacity
+                    style={styles.profileImageContainer}
+                    onPress={pickImage}
+                  >
                     <Image
                       style={styles.profileImage}
                       source={
                         editableInfo.image?.uri
                           ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
                           : profileInfo.profilePicture
-                            ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
-                            : require("../../assets/Profile/dp.png") // Default image if no profile picture
+                          ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
+                          : require("../../assets/Profile/dp.png") // Default image if no profile picture
                       }
                     />
-                    <TouchableOpacity style={styles.editProfileImage} onPress={pickImage}>
+                    <TouchableOpacity
+                      style={styles.editProfileImage}
+                      onPress={pickImage}
+                    >
                       <Icon name="edit" size={20} color="white" />
                     </TouchableOpacity>
                   </TouchableOpacity>
@@ -257,43 +303,75 @@ const Profile = () => {
                   style={styles.input}
                   placeholder="Name"
                   value={editableInfo.name}
-                  onChangeText={(text) => setEditableInfo({ ...editableInfo, name: text })}
+                  onChangeText={(text) =>
+                    setEditableInfo({ ...editableInfo, name: text })
+                  }
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
                   value={editableInfo.email}
-                  onChangeText={(text) => setEditableInfo({ ...editableInfo, email: text })}
+                  onChangeText={(text) =>
+                    setEditableInfo({ ...editableInfo, email: text })
+                  }
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Phone Number"
                   value={editableInfo.phone}
-                  onChangeText={(text) => setEditableInfo({ ...editableInfo, phone: text })}
+                  onChangeText={(text) =>
+                    setEditableInfo({ ...editableInfo, phone: text })
+                  }
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Address"
                   value={editableInfo.address}
-                  onChangeText={(text) => setEditableInfo({ ...editableInfo, address: text })}
+                  onChangeText={(text) =>
+                    setEditableInfo({ ...editableInfo, address: text })
+                  }
                 />
-                <TextInput
-                  style={styles.input}
-                  placeholder="House Type"
-                  value={editableInfo.houseType}
-                  onChangeText={(text) => setEditableInfo({ ...editableInfo, houseType: text })}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Pet Owner"
-                  value={editableInfo.hasPet}
-                  onChangeText={(text) => setEditableInfo({ ...editableInfo, hasPet: text })}
-                />
+                <View style={styles.input2}>
+                  <Picker
+                    selectedValue={editableInfo.houseType}
+                    onValueChange={(value) =>
+                      setEditableInfo((prevState) => ({
+                        ...prevState,
+                        houseType: value,
+                      }))
+                    }
+                  >
+                    {houseTypeOptions.map((option) => (
+                      <Picker.Item key={option} label={option} value={option} style={styles.pickerItemText} />
+                    ))}
+                  </Picker>
+                </View>
+                <View style={styles.input2}>
+                  <Picker
+                    selectedValue={editableInfo.hasPet}
+                    onValueChange={(value) =>
+                      setEditableInfo((prevState) => ({
+                        ...prevState,
+                        hasPet: value,
+                      }))
+                    }
+                  >
+                    {petOptions.map((option) => (
+                      <Picker.Item key={option} label={option} value={option} style={styles.pickerItemText} />
+                    ))}
+                  </Picker>
+                </View>
                 <View style={styles.modalButtons}>
-                  <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => setModalVisible(false)}
+                  >
                     <Text style={styles.buttonText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.saveButton} onPress={() => setEditConfirmVisible(true)}>
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={() => setEditConfirmVisible(true)}
+                  >
                     <Text style={styles.buttonText}>Save</Text>
                   </TouchableOpacity>
                 </View>
@@ -302,15 +380,28 @@ const Profile = () => {
           </Modal>
 
           {/* Edit Confirmation Modal */}
-          <Modal visible={isEditConfirmVisible} animationType="fade" transparent={true} onRequestClose={handleCancelEdit}>
+          <Modal
+            visible={isEditConfirmVisible}
+            animationType="fade"
+            transparent={true}
+            onRequestClose={handleCancelEdit}
+          >
             <View style={styles.logoutModalContainer}>
               <View style={styles.logoutModalContent}>
-                <Text style={styles.logoutModalText}>Are you sure you want to save changes?</Text>
+                <Text style={styles.logoutModalText}>
+                  Are you sure you want to save changes?
+                </Text>
                 <View style={styles.logoutModalButtons}>
-                  <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit}>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={handleCancelEdit}
+                  >
                     <Text style={styles.buttonText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.logoutButtonModal} onPress={handleSave}>
+                  <TouchableOpacity
+                    style={styles.logoutButtonModal}
+                    onPress={handleSave}
+                  >
                     <Text style={styles.buttonText}>Save</Text>
                   </TouchableOpacity>
                 </View>
@@ -319,15 +410,28 @@ const Profile = () => {
           </Modal>
 
           {/* Logout Confirmation Modal */}
-          <Modal visible={isLogoutConfirmVisible} animationType="fade" transparent={true} onRequestClose={handleCancelLogout}>
+          <Modal
+            visible={isLogoutConfirmVisible}
+            animationType="fade"
+            transparent={true}
+            onRequestClose={handleCancelLogout}
+          >
             <View style={styles.logoutModalContainer}>
               <View style={styles.logoutModalContent}>
-                <Text style={styles.logoutModalText}>Are you sure you want to log out?</Text>
+                <Text style={styles.logoutModalText}>
+                  Are you sure you want to log out?
+                </Text>
                 <View style={styles.logoutModalButtons}>
-                  <TouchableOpacity style={styles.cancelButton} onPress={handleCancelLogout}>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={handleCancelLogout}
+                  >
                     <Text style={styles.buttonText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.logoutButtonModal} onPress={handleLogout}>
+                  <TouchableOpacity
+                    style={styles.logoutButtonModal}
+                    onPress={handleLogout}
+                  >
                     <Text style={styles.buttonText}>Log out</Text>
                   </TouchableOpacity>
                 </View>
@@ -408,16 +512,16 @@ const styles = StyleSheet.create({
     width: 150,
     height: 50,
     borderRadius: 30,
-    backgroundColor: '#EF5B5B',
-    alignSelf: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#EF5B5B",
+    alignSelf: "center",
+    justifyContent: "center",
     marginTop: 50,
   },
   logoutText: {
     fontFamily: "Lato",
     fontSize: 16,
     color: "white",
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   modalContainer: {
     flex: 1,
@@ -442,7 +546,28 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 8,
     padding: 10,
+    paddingLeft: 20,
     marginVertical: 10,
+    fontSize: 14,
+  },
+  input2: {
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 6,
+    marginVertical: 10,
+    fontSize: 14,
+    justifyContent: 'center',
+  },
+  picker: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    fontSize: 14,
+  },
+  pickerItemText: {
+    fontFamily: "Lato",
     fontSize: 14,
   },
   modalButtons: {
@@ -511,8 +636,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   uploadContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   profileImageContainer: {
     width: 244,
@@ -527,17 +652,17 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 240,
     height: 240,
-    borderRadius: 120,  // Ensures the image is circular
-    borderColor: '#68C2FF',
+    borderRadius: 120, // Ensures the image is circular
+    borderColor: "#68C2FF",
     borderWidth: 5,
   },
   editProfileImage: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#68C2FF',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#68C2FF",
     zIndex: 1,
     marginLeft: 150,
     marginTop: -50,

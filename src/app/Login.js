@@ -120,6 +120,7 @@ export default function Login() {
               mode="flat"
               activeUnderlineColor="gray"
               keyboardType="email-address"
+              autoCapitalize="none"
               style={[styles.input, errors.email && styles.errorInput]}
             />
             {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
@@ -132,6 +133,7 @@ export default function Login() {
               right={<TextInput.Icon icon={passwordVisible ? "eye" : "eye-off"} onPress={() => setPasswordVisible(!passwordVisible)} />}
               left={<TextInput.Icon icon="lock" />}
               mode="flat"
+              autoCapitalize="none"
               activeUnderlineColor="gray"
               style={[styles.input, errors.password && styles.errorInput]}
             />
