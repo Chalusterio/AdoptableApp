@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { useRouter } from "expo-router"; // Import useRouter
+import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
 import FeedHeader from "../../components/FeedHeader"; // Import your Header component
 import { usePets } from "../../components/PetContext"; // Adjust the path as needed
@@ -36,6 +37,12 @@ const Feed = () => {
     typeof params.petVaccinated !== "undefined" &&
     selectedImages.length > 0;
 
+  const [isFavorited, setIsFavorited] = useState(false);
+
+  const toggleFavorite = () => {
+    setIsFavorited(!isFavorited);
+  };
+
   // Render pet item
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -52,6 +59,13 @@ const Feed = () => {
       }}
     >
       <View style={styles.imageContainer}>
+        <TouchableOpacity style={styles.favoriteIconButton} onPress={toggleFavorite}>
+          <FontAwesome
+            name={isFavorited ? "heart" : "heart-o"}
+            size={20}
+            color={isFavorited ? "#FF6B6B" : "#FFFFFF"} // Red for heart, white for heart-o
+          />
+        </TouchableOpacity>
         <Image source={{ uri: item.images[0] }} style={styles.image} />
       </View>
       <View style={styles.petDetailsContainer}>
@@ -72,7 +86,7 @@ const Feed = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <FeedHeader/>
+      <FeedHeader />
       {pets.length > 0 ? (
         <FlatList
           data={pets}
@@ -84,7 +98,9 @@ const Feed = () => {
         />
       ) : (
         <View style={styles.noPetsContainer}>
-          <Text style={styles.noPetsText}>No pets available. Add a pet to display here!</Text>
+          <Text style={styles.noPetsText}>
+            No pets available. Add a pet to display here!
+          </Text>
         </View>
       )}
     </SafeAreaView>
@@ -120,6 +136,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap", // Allow images to wrap into new rows
   },
+  favoriteIconButton: {
+    width: 30,
+    height: 30,
+    backgroundColor: 'rgba(128, 128, 128, 0.7)', // Gray with 70% opacity
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+    position: 'absolute',
+    marginLeft: 140,
+    marginTop: 10,
+},
   image: {
     width: "100%",
     height: 160,
@@ -165,11 +193,10 @@ const styles = StyleSheet.create({
   },
   noPetsText: {
     textAlign: "center",
-    fontFamily: 'Lato',
+    fontFamily: "Lato",
     fontSize: 16,
     color: "#999",
   },
-  
 });
 
 export default Feed;

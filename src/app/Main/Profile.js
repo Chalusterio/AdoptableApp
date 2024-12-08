@@ -1,14 +1,26 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  TextInput,
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { useNavigation } from "@react-navigation/native";
 
 const Profile = () => {
   const router = useRouter();
+  const navigation = useNavigation();
 
-  const { userName, userEmail, userContactNumber, livingSpace, ownedPets } = useLocalSearchParams();
+  const { userName, userEmail, userContactNumber, livingSpace, ownedPets } =
+    useLocalSearchParams();
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [isLogoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
@@ -23,6 +35,20 @@ const Profile = () => {
   });
 
   const [editableInfo, setEditableInfo] = useState(profileInfo);
+
+  // Existing state and variables...
+  const scrollViewRef = useRef(null); // Ref for ScrollView
+  // Scroll to top when the screen is navigated to
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: true });
+      }
+    });
+
+    // Cleanup listener when the component unmounts
+    return unsubscribe;
+  }, [navigation]);
 
   const handleSave = () => {
     setProfileInfo(editableInfo);
@@ -53,7 +79,8 @@ const Profile = () => {
   };
 
   const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permissionResult.granted === false) {
       alert("Permission to access camera roll is required!");
       return;
@@ -74,7 +101,11 @@ const Profile = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={styles.scrollViewContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.container}>
           <TouchableOpacity style={styles.editButton} onPress={handleEditPress}>
             <Icon name="edit" size={24} color="#fff" />
@@ -162,7 +193,10 @@ const Profile = () => {
                           : require("../../assets/Profile/dp.png") // Default image if no image is set
                       }
                     />
-                    <TouchableOpacity style={styles.editProfileImage} onPress={pickImage}>
+                    <TouchableOpacity
+                      style={styles.editProfileImage}
+                      onPress={pickImage}
+                    >
                       <Icon name="edit" size={20} color="white" />
                     </TouchableOpacity>
                   </TouchableOpacity>
@@ -302,7 +336,6 @@ const Profile = () => {
   );
 };
 
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -327,7 +360,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginTop: 60,
+    marginTop: 100,
     marginBottom: 20,
   },
   profileImage: {
@@ -347,7 +380,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lilita",
     fontSize: 16,
     textAlign: "center",
-    marginVertical: 50,
+    marginVertical: 60,
     color: "#68C2FF",
   },
   detailsContainer: {
@@ -371,16 +404,16 @@ const styles = StyleSheet.create({
     width: 150,
     height: 50,
     borderRadius: 30,
-    backgroundColor: '#EF5B5B',
-    alignSelf: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#EF5B5B",
+    alignSelf: "center",
+    justifyContent: "center",
     marginTop: 50,
   },
   logoutText: {
     fontFamily: "Lato",
     fontSize: 16,
     color: "white",
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   modalContainer: {
     flex: 1,
@@ -474,8 +507,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   uploadContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   profileImageContainer: {
     width: 244,
@@ -490,17 +523,17 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 240,
     height: 240,
-    borderRadius: 120,  // Ensures the image is circular
-    borderColor: '#68C2FF',
+    borderRadius: 120, // Ensures the image is circular
+    borderColor: "#68C2FF",
     borderWidth: 5,
   },
   editProfileImage: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#68C2FF',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#68C2FF",
     zIndex: 1,
     marginLeft: 150,
     marginTop: -50,

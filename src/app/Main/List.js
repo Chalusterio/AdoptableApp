@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,21 +8,20 @@ import {
   ScrollView,
   Platform,
   Image,
-  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TextInput, Dialog, Portal } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
 import Foundation from "@expo/vector-icons/Foundation";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
 import * as FileSystem from "expo-file-system";
 import { usePets } from "../../components/PetContext"; // Adjust the path as needed
-const { width } = Dimensions.get("window");
+import { useNavigation } from '@react-navigation/native';
 
 const List = () => {
   const router = useRouter();
+  const navigation = useNavigation();
 
   const { addPet } = usePets(); // Access the context
 
@@ -35,9 +34,23 @@ const List = () => {
   const [petIllnessHistory, setPetIllnessHistory] = useState("");
   const [petVaccinated, setPetVaccinated] = useState(null);
   const [adoptionFee, setAdoptionFee] = useState("");
-
   const [selectedImages, setSelectedImages] = useState([]);
+
   const [dialogVisible, setDialogVisible] = useState(false); // Dialog visibility state
+
+  // Existing state and variables...
+  const scrollViewRef = useRef(null); // Ref for ScrollView
+  // Scroll to top when the screen is navigated to
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: true });
+      }
+    });
+
+    // Cleanup listener when the component unmounts
+    return unsubscribe;
+  }, [navigation]);
 
   const MAX_IMAGES = 5; // Limit for images
 
@@ -172,6 +185,7 @@ const List = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={styles.scrollViewContent}
           keyboardShouldPersistTaps="handled"
         >
@@ -193,6 +207,7 @@ const List = () => {
                 mode="outlined"
                 outlineColor="transparent"
                 activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
               />
               {errors.petName && (
                 <Text style={styles.errorText}>{errors.petName}</Text>
@@ -253,7 +268,8 @@ const List = () => {
                 style={[styles.input, errors.petAge && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
               />
               {errors.petAge && (
                 <Text style={styles.errorText}>{errors.petAge}</Text>
@@ -278,7 +294,7 @@ const List = () => {
                 style={[styles.input, errors.petWeight && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
-                activeOutlineColor="gray"
+                activeOutlineColor="#68C2FF"
               />
               {errors.petWeight && (
                 <Text style={styles.errorText}>{errors.petWeight}</Text>
@@ -294,13 +310,13 @@ const List = () => {
                 onChangeText={(text) => {
                   // Remove spaces and trim the input
                   const cleanedText = text.replace(/\s+/g, "").trim();
-                
+
                   // Filter out any non-alphabetic characters except commas
                   const validText = cleanedText.replace(/[^a-zA-Z,-]/g, "");
-                
+
                   // Split the input by commas
                   const words = validText.split(",");
-                
+
                   // If there are more than 3 words, limit the input to the first 3 words
                   if (words.length > 3) {
                     setPetPersonality(words.slice(0, 3).join(", "));
@@ -309,7 +325,6 @@ const List = () => {
                     setPetPersonality(words.join(", "));
                   }
                 }}
-                
                 style={[
                   styles.input,
                   errors.petPersonality && styles.errorInput,
@@ -317,6 +332,7 @@ const List = () => {
                 mode="outlined"
                 outlineColor="transparent"
                 activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
               />
               {errors.petPersonality && (
                 <Text style={styles.errorText}>{errors.petPersonality}</Text>
@@ -339,6 +355,7 @@ const List = () => {
                 multiline={true}
                 numberOfLines={7}
                 textAlignVertical="top"
+                autoCapitalize="sentences"
               />
               {errors.petDescription && (
                 <Text style={styles.errorText}>{errors.petDescription}</Text>
@@ -411,26 +428,26 @@ const List = () => {
                 onChangeText={(text) => {
                   // Remove any non-numeric characters (except for the peso symbol)
                   const cleanedText = text.replace(/[^0-9]/g, "");
-                
+
                   // If the cleaned text is empty (i.e., user erased everything), set to "₱0"
                   if (cleanedText === "") {
                     setAdoptionFee("");
                     return;
                   }
-                
+
                   // Convert to number
                   let number = parseInt(cleanedText, 10);
-                
+
                   // Ensure the number is between 0 and 500
                   if (number > 500) {
                     number = 500; // Set the number to 500 if it's greater than 500
                   } else if (number < 0) {
                     number = 0; // Set the number to 0 if it's less than 0
                   }
-                
+
                   // Update the state with the formatted value, prefixing with the peso symbol
                   setAdoptionFee(number === 0 ? "₱0" : `₱${number}`);
-                }}                       
+                }}
                 style={[styles.input, errors.adoptionFee && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
@@ -439,20 +456,6 @@ const List = () => {
               {errors.adoptionFee && (
                 <Text style={styles.errorText}>{errors.adoptionFee}</Text>
               )}
-
-              <Text style={styles.question}>Enter adoption fee:</Text>
-                <TextInput
-                  placeholder="e.g., ₱0 - ₱500"
-                  value={adoptionFee}
-                  onChangeText={setAdoptionFee}
-                  style={[styles.input, errors.adoptionFee && styles.errorInput]}
-                  mode="outlined"
-                  outlineColor="transparent"
-                  activeOutlineColor="#68C2FF"
-                />
-                {errors.adoptionFee && (
-                  <Text style={styles.errorText}>{errors.adoptionFee}</Text>
-                )}
 
               {/* Image Upload */}
               <Text style={styles.question}>Upload picture(s):</Text>

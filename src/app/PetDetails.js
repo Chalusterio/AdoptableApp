@@ -1,10 +1,21 @@
-import React, { useState } from "react";
-import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import { useLocalSearchParams, useNavigation } from "expo-router"; // Import useNavigation
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions, // Import Dimensions
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
+import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
+
+const screenWidth = Dimensions.get("window").width;
 
 const PetDetails = () => {
-  const navigation = useNavigation(); // Initialize navigation
+  const router = useRouter(); // Initialize navigation
   const {
     petName,
     petGender,
@@ -21,6 +32,9 @@ const PetDetails = () => {
   const parsedImages = JSON.parse(images || "[]");
 
   const [isFavorited, setIsFavorited] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0); // Track current image index
+
+  const scrollViewRef = useRef(null); // ScrollView reference
 
   const toggleFavorite = () => {
     setIsFavorited(!isFavorited);
@@ -31,26 +45,76 @@ const PetDetails = () => {
     console.log(`${petName} adopted!`);
   };
 
+  const onScroll = (event) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const imageWidth = Dimensions.get("window").width; // Use screen width for calculations
+    const index = Math.round(contentOffsetX / imageWidth); // Use Math.round for accurate snapping
+    setCurrentIndex(index); // Update the current index state
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Top Image */}
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {/* Horizontal Image Scroll */}
         {parsedImages.length > 0 && (
-          <Image source={{ uri: parsedImages[0] }} style={styles.petImage} />
+          <View>
+            <ScrollView
+              horizontal={true}
+              style={styles.imageScrollContainer}
+              ref={scrollViewRef}
+              onScroll={onScroll}
+              scrollEventThrottle={16} // For smooth scroll tracking
+              showsHorizontalScrollIndicator={false}
+              pagingEnabled={true}
+            >
+              <View style={styles.petImageContainer}>
+                {parsedImages.map((image, index) => (
+                  <Image
+                    key={index}
+                    source={{ uri: image }}
+                    style={styles.petImage}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+
+            {/* Pagination Dots */}
+            <View style={styles.paginationContainer}>
+              {parsedImages.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.paginationDot,
+                    index === currentIndex && styles.activeDot, // Highlight the active dot
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
         )}
 
         {/* Pet Details Container */}
         <View style={styles.card}>
           <View style={styles.header}>
             <Text style={styles.petName}>
-              {petName}{" "}
+              {petName}
+              {"   "}
               <Text
                 style={[
                   styles.petGender,
-                  { color: petGender === "Male" ? "#68C2FF" : "#EF5B5B" },
+                  {
+                    color: petGender === "Male" ? "#68C2FF" : "#EF5B5B",
+                  },
                 ]}
               >
-                {petGender === "Male" ? "♂" : "♀"}
+                {petGender === "Male" ? (
+                  <Foundation name="male-symbol" size={24} color="#68C2FF" />
+                ) : (
+                  <Foundation name="female-symbol" size={24} color="#EF5B5B" />
+                )}
               </Text>
             </Text>
             <TouchableOpacity onPress={toggleFavorite}>
@@ -61,12 +125,12 @@ const PetDetails = () => {
               />
             </TouchableOpacity>
           </View>
-          <Text style={styles.subText}>{`${petAge} | ${petWeight} Kg`}</Text>
+          <Text style={styles.subText}>{`${petAge} | ${petWeight}`}</Text>
           <Text style={styles.personalityText}>
             {petPersonality
               .split(",")
               .map((trait) => trait.trim())
-              .join(" • ")}
+              .join("     ●     ")}
           </Text>
           <Text style={styles.description}>{petDescription}</Text>
           <Text style={styles.sectionTitle}>Health History:</Text>
@@ -87,10 +151,7 @@ const PetDetails = () => {
 
         {/* "Posted By" Container */}
         <View style={styles.postedByContainer}>
-          <Image
-            source={{ uri: profileImage }}
-            style={styles.profileImage}
-          />
+          <Image source={{ uri: profileImage }} style={styles.profileImage} />
           <View style={styles.organizationContainer}>
             <Text style={styles.organizationName}>{username}</Text>
           </View>
@@ -105,7 +166,7 @@ const PetDetails = () => {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()} // Add navigation logic for the Back button
+            onPress={() => router.back()} // Add navigation logic for the Back button
           >
             <FontAwesome name="arrow-left" size={20} color="#FFF" />
           </TouchableOpacity>
@@ -126,16 +187,36 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
   },
+  imageScrollContainer: {},
+  petImageContainer: {
+    flexDirection: "row", // Arrange images horizontally
+  },
   petImage: {
-    width: "100%",
-    height: undefined,
-    aspectRatio: 4 / 5,
-    resizeMode: "cover",
+    width: screenWidth, // Set each image to the width of the screen
+    height: 500, // Maintain the height or adjust as needed
+    resizeMode: "cover", // Ensure the image scales correctly
+  },
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: -20,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#fff",
+    margin: 4,
+  },
+  activeDot: {
+    backgroundColor: "#68C2FF", // Active dot color
   },
   card: {
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    margin: 16,
-    padding: 16,
+    backgroundColor: "#FFFFFF",
+    marginTop: 30,
+    margin: 20,
+    padding: 30,
     borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -150,7 +231,7 @@ const styles = StyleSheet.create({
   },
   petName: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontFamily: "Lilita",
     color: "#333",
   },
   petGender: {
@@ -158,36 +239,38 @@ const styles = StyleSheet.create({
   },
   subText: {
     fontSize: 16,
+    fontFamily: "Lato",
     color: "#666",
     marginTop: 4,
   },
   personalityText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: "Lilita",
     color: "#68C2FF",
     textAlign: "center",
-    marginVertical: 10,
+    marginVertical: 30,
   },
   description: {
     fontSize: 16,
+    fontFamily: "Lato",
     color: "#333",
-    marginVertical: 10,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontFamily: "LatoBold",
     color: "#333",
-    marginTop: 16,
+    marginTop: 30,
   },
   bulletText: {
     fontSize: 16,
+    fontFamily: "Lato",
     color: "#000",
     marginVertical: 2,
   },
   postedByLabel: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 16,
+    fontFamily: "LatoBold",
+    color: "white",
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
@@ -201,7 +284,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#CCC",
+    borderColor: "white",
     paddingVertical: 8,
   },
   profileImage: {
