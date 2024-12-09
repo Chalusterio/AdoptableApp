@@ -19,7 +19,7 @@ import * as FileSystem from "expo-file-system";
 import { usePets } from "../../context/PetContext"; // Adjust the path as needed
 import { useNavigation } from '@react-navigation/native';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc,  updateDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const List = () => {
@@ -29,6 +29,7 @@ const List = () => {
   const { addPet } = usePets(); // Access the context
 
   const [petName, setPetName] = useState("");
+  const [petType, setPetType] = useState(null); // New state for pet type
   const [petGender, setSelectedPetGender] = useState(null);
   const [petAge, setPetAge] = useState("");
   const [petWeight, setPetWeight] = useState("");
@@ -131,6 +132,7 @@ const List = () => {
   const handleListPet = async () => {
     if (
       !petName ||
+      petType === null ||
       petGender === null ||
       !petAge ||
       !petWeight ||
@@ -144,33 +146,23 @@ const List = () => {
       setDialogVisible(true);
       return;
     }
-  
+
     try {
       const auth = getAuth();
       const user = auth.currentUser;
-  
+
       if (!user) {
         alert("Please log in to list a pet.");
         return;
       }
-  
+
       const storage = getStorage();
       const db = getFirestore();
-  
-      // Upload images to Firebase Storage
-      const imageUploadPromises = selectedImages.map(async (image, index) => {
-        const response = await fetch(image.uri);
-        const blob = await response.blob();
-        const imageRef = ref(storage, `pets/${Date.now()}_${index}.jpg`);
-        await uploadBytes(imageRef, blob);
-        return await getDownloadURL(imageRef);
-      });
-  
-      const uploadedImages = await Promise.all(imageUploadPromises);
-  
-      // Save pet details to Firestore
+
+      // Save pet details to Firestore first
       const newPet = {
         petName,
+        petType,
         petGender,
         petAge,
         petWeight,
@@ -179,24 +171,44 @@ const List = () => {
         petIllnessHistory,
         petVaccinated,
         adoptionFee,
-        images: uploadedImages,
+        images: [], // We'll fill this with image URLs after uploading
         createdAt: new Date().toISOString(),
         listedBy: user.email,
       };
-  
+
+      // Add pet to Firestore and get the generated document ID
       const petCollection = collection(db, "listed_pets");
-      await addDoc(petCollection, newPet);
-  
+      const docRef = await addDoc(petCollection, newPet);
+      const petId = docRef.id; // Use the document ID for the folder name in Firebase Storage
+
+      // Upload images to Firebase Storage under the pet's ID folder
+      const imageUploadPromises = selectedImages.map(async (image, index) => {
+        const response = await fetch(image.uri);
+        const blob = await response.blob();
+        const imageRef = ref(storage, `pets/${petId}/${Date.now()}_${index}.jpg`);
+        await uploadBytes(imageRef, blob);
+        const downloadURL = await getDownloadURL(imageRef);
+        return downloadURL; // Return the download URL for each image
+      });
+
+      const uploadedImages = await Promise.all(imageUploadPromises);
+
+      // Now update Firestore with the uploaded images
+      await updateDoc(docRef, {
+        images: uploadedImages,
+      });
+
       alert("Pet listed successfully!");
       resetForm();
-      
+
       router.push("/Main"); // Navigate to home page
     } catch (error) {
       console.error("Error listing pet:", error);
       alert(`Failed to list pet: ${error.message}`);
     }
   };
-  
+
+
   const resetForm = () => {
     setAdoptionFee("");
     setPetName("");
@@ -209,7 +221,7 @@ const List = () => {
     setPetVaccinated(null);
     setSelectedImages([]);
   };
-  
+
 
   const hideDialog = () => setDialogVisible(false); // Function to hide the dialog
 
@@ -247,6 +259,36 @@ const List = () => {
               {errors.petName && (
                 <Text style={styles.errorText}>{errors.petName}</Text>
               )}
+              <Text style={styles.question}>Pet Type:</Text>
+              <View style={styles.optionsContainer}>
+                <TouchableOpacity
+                  style={[styles.optionButton, petType === "Cat" && styles.selectedOptionButton]}
+                  onPress={() => setPetType("Cat")}
+                >
+                  <Foundation
+                    name="paw"
+                    size={24}
+                    color={petType === "Cat" ? "#68C2FF" : "#C2C2C2"} // Color for selected/unselected
+                  />
+                  <Text style={[styles.optionText, petType === "Cat" && styles.selectedOptionText]}>
+                    Cat
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionButton, petType === "Dog" && styles.selectedOptionButton]}
+                  onPress={() => setPetType("Dog")}
+                >
+                  <Foundation
+                    name="guide-dog"
+                    size={24}
+                    color={petType === "Dog" ? "#68C2FF" : "#C2C2C2"} // Color for selected/unselected
+                  />
+                  <Text style={[styles.optionText, petType === "Dog" && styles.selectedOptionText]}>
+                    Dog
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
               <Text style={styles.question}>Gender:</Text>
               <View style={styles.optionsContainer}>
@@ -473,7 +515,7 @@ const List = () => {
 
                   // Convert to number
                   let number = parseInt(cleanedText, 10);
-                  
+
                   // Update the state with the formatted value, prefixing with the peso symbol
                   setAdoptionFee(number === 0 ? "₱0" : `₱${number}`);
                 }}
