@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,77 +8,94 @@ import {
   Modal,
   Alert,
   Animated,
-  Easing,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { Picker } from "@react-native-picker/picker";
 import * as Location from "expo-location";
+import { usePets } from "../context/PetContext"; // Import the context
+import Feather from "@expo/vector-icons/Feather";
 
-const FeedHeader = () => {
-  const [location, setLocation] = useState("Fetching location...");
-  const [error, setError] = useState(null);
+const FeedHeader = ({ setFilteredPets }) => {
+  // State for dropdown and filter options
   const [modalVisible, setModalVisible] = useState(false);
-  const [filterByLocation, setFilterByLocation] = useState(false);
-  const [drawerAnimation] = useState(new Animated.Value(300)); // Start off-screen
+  const [selectedGender, setSelectedGender] = useState("");
+  const [selectedAge, setSelectedAge] = useState("");
+  const [selectedWeight, setSelectedWeight] = useState("");
+  const [selectedPersonality, setSelectedPersonality] = useState([]);
+  const [vaccinated, setVaccinated] = useState(null);
+  const [location, setLocation] = useState(null);
 
+  // Animation values
+  const slideAnim = useState(new Animated.Value(300))[0]; // Start position is off-screen (300px to the right)
+
+  // Get pet context values
+  const { pets, applyFilters } = usePets(); // Get applyFilters from context
+
+  // Function to fetch the user's current location
   useEffect(() => {
-    const fetchLocation = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          setError("Permission to access location was denied.");
-          setLocation("Location unavailable.");
-          return;
-        }
+    const getLocation = async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission to access location was denied");
+        return;
+      }
 
-        const { coords } = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = coords;
+      // Get coordinates
+      let locationData = await Location.getCurrentPositionAsync({});
+      setLocation(locationData);
 
-        const [address] = await Location.reverseGeocodeAsync({
-          latitude,
-          longitude,
+      // Reverse geocode to get human-readable address
+      let address = await Location.reverseGeocodeAsync({
+        latitude: locationData.coords.latitude,
+        longitude: locationData.coords.longitude,
+      });
+
+      if (address.length > 0) {
+        setLocation({
+          city: address[0].city,
+          region: address[0].region,
+          country: address[0].country,
         });
-
-        if (address) {
-          setLocation(
-            `${address.city || address.region}, ${
-              address.subregion || address.country
-            }`
-          );
-        } else {
-          setLocation("Location unavailable.");
-        }
-      } catch (err) {
-        setError(err.message || "An error occurred while fetching location.");
-        setLocation("Location unavailable.");
       }
     };
 
-    fetchLocation();
+    getLocation();
   }, []);
 
-  const toggleFilter = () => setFilterByLocation(!filterByLocation);
-
-  const handleSeeResults = () => {
-    closeDrawer();
-  };
-
-  const openDrawer = () => {
+  // Handle filter button click
+  const handleFilterClick = () => {
     setModalVisible(true);
-    Animated.timing(drawerAnimation, {
-      toValue: 0,
+
+    // Animate the modal sliding in from the right
+    Animated.timing(slideAnim, {
+      toValue: 0, // End position (visible on screen)
       duration: 300,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: false,
+      useNativeDriver: true, // Use native driver for better performance
     }).start();
   };
 
-  const closeDrawer = () => {
-    Animated.timing(drawerAnimation, {
-      toValue: 300, // Off-screen
+  // Handle modal close
+  const closeModal = () => {
+    // Animate the modal sliding out to the right
+    Animated.timing(slideAnim, {
+      toValue: 300, // Start position (off the screen)
       duration: 300,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: false,
-    }).start(() => setModalVisible(false));
+      useNativeDriver: true,
+    }).start(() => setModalVisible(false)); // After the animation completes, hide the modal
+  };
+
+  // Apply filters using the context function
+  const applyFiltersToPets = () => {
+    const filters = {
+      gender: selectedGender,
+      age: selectedAge,
+      weight: selectedWeight,
+      personality: selectedPersonality,
+      vaccinated: vaccinated,
+    };
+
+    applyFilters(filters); // Call applyFilters from context
+    closeModal(); // Close the modal after applying filters
   };
 
   return (
@@ -86,7 +103,11 @@ const FeedHeader = () => {
       {/* Location Info */}
       <View style={styles.locationContainer}>
         <Icon name="location-on" size={20} color="#EF5B5B" />
-        <Text style={styles.locationText}>{location}</Text>
+        <Text style={styles.locationText}>
+          {location
+            ? `${location.city}, ${location.region}, ${location.country}`
+            : "Loading location..."}
+        </Text>
       </View>
 
       {/* Title */}
@@ -105,50 +126,102 @@ const FeedHeader = () => {
           placeholder="Search"
           placeholderTextColor="#C2C2C2"
         />
-        <TouchableOpacity style={styles.filterButton} onPress={openDrawer}>
+        <TouchableOpacity
+          onPress={handleFilterClick}
+          style={styles.filterButton}
+        >
           <Icon name="filter-list" size={24} color="#444" />
         </TouchableOpacity>
       </View>
 
-      {/* Drawer Modal */}
-      <Modal
-        transparent={true}
-        visible={modalVisible}
-        animationType="none"
-        onRequestClose={closeDrawer}
-      >
+      {/* Modal for Filter Options */}
+      <Modal visible={modalVisible} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
-          {/* Animated Drawer */}
           <Animated.View
             style={[
-              styles.drawerContent,
-              { transform: [{ translateX: drawerAnimation }] },
+              styles.modalContainer,
+              { transform: [{ translateX: slideAnim }] }, // Apply sliding animation
             ]}
           >
-            <Text style={styles.modalTitle}>Filter Pets</Text>
+            <View style={styles.modalHeaderContainer}>
+              <Text style={styles.modalTitle}>Filter Pets</Text>
+              <TouchableOpacity
+                style={styles.buttonStyle2}
+                onPress={closeModal}
+              >
+                <Feather name="x" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
 
-            {/* Filter by Location */}
-            <TouchableOpacity
-              style={styles.filterOption}
-              onPress={toggleFilter}
-            >
-              <Icon
-                name={
-                  filterByLocation ? "check-box" : "check-box-outline-blank"
-                }
-                size={24}
-                color="black"
-              />
-              <Text style={styles.filterText}>Filter by my location</Text>
-            </TouchableOpacity>
+            <View style={styles.horizontalLine}></View>
 
-            {/* See Results Button */}
-            <TouchableOpacity
-              style={styles.applyButton}
-              onPress={handleSeeResults}
-            >
-              <Text style={styles.buttonText}>See Results</Text>
-            </TouchableOpacity>
+            {/* Gender Filter */}
+            <Text style={styles.modalText}>Gender</Text>
+            <View style={styles.input2}>
+              <Picker
+                selectedValue={selectedGender}
+                onValueChange={(itemValue) => setSelectedGender(itemValue)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Select Gender" value="" />
+                <Picker.Item label="Male" value="Male" />
+                <Picker.Item label="Female" value="Female" />
+              </Picker>
+            </View>
+
+            {/* Other Filters (Age, Weight, Personality, Vaccinated) */}
+            <Text style={styles.modalText}>Age (years)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Age"
+              keyboardType="numeric"
+              value={selectedAge}
+              onChangeText={(text) => setSelectedAge(text)}
+            />
+
+            <Text style={styles.modalText}>Weight (kg)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Weight"
+              keyboardType="numeric"
+              value={selectedWeight}
+              onChangeText={(text) => setSelectedWeight(text)}
+            />
+
+            <Text style={styles.modalText}>Personality</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Personality Traits"
+              value={selectedPersonality.join(", ")}
+              onChangeText={(text) =>
+                setSelectedPersonality(
+                  text.split(",").map((item) => item.trim())
+                )
+              }
+            />
+
+            <Text style={styles.modalText}>Vaccinated</Text>
+            <View style={styles.input2}>
+              <Picker
+                selectedValue={vaccinated}
+                onValueChange={(itemValue) => setVaccinated(itemValue)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Select Vaccinated Status" value={null} />
+                <Picker.Item label="Yes" value={true} />
+                <Picker.Item label="No" value={false} />
+              </Picker>
+            </View>
+
+            {/* Apply and Close Buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.buttonStyle}
+                onPress={applyFiltersToPets}
+              >
+                <Text style={styles.buttonText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
           </Animated.View>
         </View>
       </Modal>
@@ -177,7 +250,7 @@ const styles = StyleSheet.create({
     color: "#C2C2C2",
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontFamily: "Lilita",
     color: "#68C2FF",
     marginBottom: 20,
@@ -204,48 +277,98 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Dim the background
+    justifyContent: "flex-start",
+    alignItems: "flex-end", // Align the modal to the right
   },
-  drawerContent: {
-    position: "absolute",
-    right: 0,
-    width: 300,
-    height: "100%",
+  modalContainer: {
+    width: "70%", // Width of the modal
+    height: "100%", // Full height
     backgroundColor: "#fff",
     padding: 20,
-    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 10,
+  },
+  modalHeaderContainer: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   modalTitle: {
     fontSize: 24,
-    color: '#68C2FF',
-    fontFamily: 'Lilita',
     marginBottom: 20,
+    fontFamily: "Lilita",
+    color: "#68C2FF",
+    marginTop: 5,
   },
-  filterOption: {
-    flexDirection: "row",
+  buttonStyle2: {
     alignItems: "center",
+    justifyContent: "center",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#EF5B5B",
+  },
+  modalText: {
+    fontFamily: "LatoBold",
     marginVertical: 10,
   },
-  filterText: {
-    fontSize: 16,
-    marginLeft: 10,
-    fontFamily: 'Lato',
-    fontSize: 16,
+  horizontalLine: {
+    width: "100%",
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "gray",
+    alignSelf: "center",
   },
-  applyButton: {
-    backgroundColor: "#68C2FF",
-    padding: 10,
+  input2: {
     height: 40,
-    borderRadius: 30,
-    marginTop: 20,
-    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 6,
+    marginVertical: 10,
+    fontSize: 14,
     justifyContent: 'center',
   },
+  picker: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    fontSize: 14,
+  },
+  input: {
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 6,
+    paddingLeft: 20,
+    marginVertical: 10,
+    fontSize: 14,
+    justifyContent: 'center',
+  },
+  buttonContainer: {
+    justifyContent: "center", // Center vertically
+    alignItems: "center",     // Center horizontally
+    marginTop: 20,
+  },
+  buttonStyle: {
+    justifyContent: "center",  // Center vertically
+    alignItems: "center",      // Center horizontally
+    width: "50%",
+    borderWidth: 1,
+    borderRadius: 30,
+    borderColor: "white",
+    height: 50,
+    backgroundColor: "#68C2FF",
+  },
   buttonText: {
-    color: "#fff",
-    fontFamily: 'Lato',
+    textAlign: "center",
+    color: "white",
+    fontFamily: "LatoBold",
     fontSize: 16,
-    textAlign: 'center',
   },
 });
 

@@ -1,31 +1,61 @@
-// Import necessary hooks and components from React
 import React, { createContext, useContext, useState } from "react";
 
-// Create a new context to hold pet-related data and functions
 const PetContext = createContext();
 
-// PetProvider component that wraps the app and provides the pet data
 export const PetProvider = ({ children }) => {
-  // State to hold the array of pets
   const [pets, setPets] = useState([]);
+  const [filteredPets, setFilteredPets] = useState([]);
 
-  // Function to add a new pet to the state
   const addPet = (pet) => {
-    setPets((prevPets) => [...prevPets, pet]); // Adds a new pet to the list of pets
+    setPets((prevPets) => {
+      const updatedPets = [...prevPets, pet];
+      setFilteredPets(updatedPets); // Update filteredPets with new pet
+      return updatedPets;
+    });
   };
 
-  // The PetContext.Provider is used to pass down the pets, setPets, and addPet function
+  // Apply filters to the pets list
+  const applyFilters = (filters) => {
+    let filtered = pets;
+
+    if (filters.gender) {
+      filtered = filtered.filter((pet) => pet.petGender === filters.gender);
+    }
+
+    if (filters.age) {
+      filtered = filtered.filter((pet) => Number(pet.petAge) === Number(filters.age));
+    }
+
+    if (filters.weight) {
+      filtered = filtered.filter((pet) => pet.petWeight === filters.weight);
+    }
+
+    if (filters.personality.length > 0) {
+      filtered = filtered.filter((pet) =>
+        filters.personality.some((trait) =>
+          pet.petPersonality.includes(trait)
+        )
+      );
+    }
+
+    if (filters.vaccinated !== null) {
+      filtered = filtered.filter(
+        (pet) => pet.petVaccinated === filters.vaccinated
+      );
+    }
+
+    setFilteredPets(filtered); // Update filtered pets list
+  };
+
   return (
-    <PetContext.Provider value={{ pets, setPets, addPet }}>
+    <PetContext.Provider value={{ pets, filteredPets, setPets, addPet, applyFilters }}>
       {children}
     </PetContext.Provider>
   );
 };
 
-// Custom hook to access the PetContext values in any component
 export const usePets = () => {
-  return useContext(PetContext); // Returns the value of the context (pets, setPets, addPet)
+  return useContext(PetContext);
 };
 
-// Export the PetProvider as default for easier use
 export default PetProvider;
