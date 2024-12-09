@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,9 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
+import { collection, query, where, getDocs } from "firebase/firestore"; // Import Firestore methods
+import { db } from '../../firebase'; // Import the initialized Firestore instance
+
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -28,14 +31,48 @@ const PetDetails = () => {
     images,
     username,
     profileImage,
+    listedBy, // We assume 'listedBy' contains the email of the user who posted the pet
   } = useLocalSearchParams();
   const parsedImages = JSON.parse(images || "[]");
 
   const [isFavorited, setIsFavorited] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0); // Track current image index
+  const [userName, setUserName] = useState(username); // Default to passed 'username'
+  const [userProfileImage, setUserProfileImage] = useState(profileImage); // Default to passed 'profileImage'
 
   const scrollViewRef = useRef(null); // ScrollView reference
 
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (listedBy) {
+        // Query 'users' collection to find document where email matches listedBy
+        try {
+          const usersQuery = query(
+            collection(db, "users"),
+            where("email", "==", listedBy)
+          );
+          const querySnapshot = await getDocs(usersQuery);
+          if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0].data();
+            setUserName(userDoc.name); // Set user name
+
+            // If there's no profile picture, set a default icon instead
+            if (userDoc.profilePicture) {
+              setUserProfileImage(userDoc.profilePicture); // Set user profile picture
+            } else {
+              setUserProfileImage(null); // Set to null to use default icon
+            }
+          } else {
+            console.log("User not found");
+          }
+        } catch (error) {
+          console.error("Error fetching user details: ", error);
+        }
+      }
+    };
+
+    fetchUserName();
+  }, [listedBy]);
   const toggleFavorite = () => {
     setIsFavorited(!isFavorited);
   };
@@ -86,10 +123,7 @@ const PetDetails = () => {
               {parsedImages.map((_, index) => (
                 <View
                   key={index}
-                  style={[
-                    styles.paginationDot,
-                    index === currentIndex && styles.activeDot, // Highlight the active dot
-                  ]}
+                  style={[styles.paginationDot, index === currentIndex && styles.activeDot]} // Highlight the active dot
                 />
               ))}
             </View>
@@ -151,9 +185,13 @@ const PetDetails = () => {
 
         {/* "Posted By" Container */}
         <View style={styles.postedByContainer}>
-          <Image source={{ uri: profileImage }} style={styles.profileImage} />
-          <View style={styles.organizationContainer}>
-            <Text style={styles.organizationName}>{username}</Text>
+          {userProfileImage ? (
+            <Image source={{ uri: userProfileImage }} style={styles.profileImage} />
+          ) : (
+            <FontAwesome name="user-circle" size={40} color="#fff" /> // Default profile icon
+          )}
+          <View style={styles.usernameContainer}>
+            <Text style={styles.usernameText}>{userName}</Text>
           </View>
           <TouchableOpacity style={styles.donateButton}>
             <Text style={styles.donateButtonText}>Donate</Text>
@@ -293,16 +331,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 8,
   },
-  organizationContainer: {
+  usernameContainer: {
     flex: 1,
     justifyContent: "center",
   },
-  organizationName: {
-    fontSize: 16,
-    color: "#333",
-    flexWrap: "wrap",
-    flexShrink: 1,
-    maxWidth: "80%",
+  usernameText: {
+    fontSize: 20,
+    fontFamily: "Lato",
+    color: "#fff",
+    marginVertical: 5,
+    fontWeight: "bold",
+    marginLeft: 10,
   },
   donateButton: {
     backgroundColor: "#FFF",

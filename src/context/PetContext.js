@@ -1,20 +1,42 @@
-// Import necessary hooks and components from React
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { getFirestore, collection, getDocs, onSnapshot } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
-// Create a new context to hold pet-related data and functions
 const PetContext = createContext();
 
-// PetProvider component that wraps the app and provides the pet data
 export const PetProvider = ({ children }) => {
-  // State to hold the array of pets
-  const [pets, setPets] = useState([]);
+  const [pets, setPets] = useState([]); // State for pets
+  const db = getFirestore(); // Firestore instance
 
-  // Function to add a new pet to the state
+  // Fetch pets from Firestore when the provider is mounted
+  useEffect(() => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+      console.log("User not logged in. Skipping pet fetch.");
+      return; // Skip fetching if user is not authenticated
+    }
+
+    // Real-time listener for pets collection
+    const petCollection = collection(db, "listed_pets");
+    const unsubscribe = onSnapshot(petCollection, (snapshot) => {
+      const petList = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setPets(petList); // Set fetched pets to state
+    });
+
+    // Cleanup the listener on component unmount
+    return () => unsubscribe();
+  }, [db]);
+
+  // Function to add a new pet locally (optional)
   const addPet = (pet) => {
-    setPets((prevPets) => [...prevPets, pet]); // Adds a new pet to the list of pets
+    setPets((prevPets) => [...prevPets, pet]);
   };
 
-  // The PetContext.Provider is used to pass down the pets, setPets, and addPet function
   return (
     <PetContext.Provider value={{ pets, setPets, addPet }}>
       {children}
@@ -22,10 +44,7 @@ export const PetProvider = ({ children }) => {
   );
 };
 
-// Custom hook to access the PetContext values in any component
-export const usePets = () => {
-  return useContext(PetContext); // Returns the value of the context (pets, setPets, addPet)
-};
+// Hook for accessing pet data and functions
+export const usePets = () => useContext(PetContext);
 
-// Export the PetProvider as default for easier use
 export default PetProvider;

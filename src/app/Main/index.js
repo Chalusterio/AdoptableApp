@@ -37,52 +37,64 @@ const Feed = () => {
     typeof params.petVaccinated !== "undefined" &&
     selectedImages.length > 0;
 
-  const [isFavorited, setIsFavorited] = useState(false);
+  // State to track favorited pets by their IDs
+  const [favoritedPets, setFavoritedPets] = useState({});
 
-  const toggleFavorite = () => {
-    setIsFavorited(!isFavorited);
+  // Function to toggle favorite status of a pet
+  const toggleFavorite = (petId) => {
+    setFavoritedPets((prevState) => ({
+      ...prevState,
+      [petId]: !prevState[petId],
+    }));
   };
 
   // Render pet item
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.7}
-      onPress={() => {
-        router.push({
-          pathname: "/PetDetails",
-          params: {
-            ...item,
-            images: JSON.stringify(item.images),
-          },
-        });
-      }}
-    >
-      <View style={styles.imageContainer}>
-        <TouchableOpacity style={styles.favoriteIconButton} onPress={toggleFavorite}>
-          <FontAwesome
-            name={isFavorited ? "heart" : "heart-o"}
-            size={20}
-            color={isFavorited ? "#FF6B6B" : "#FFFFFF"} // Red for heart, white for heart-o
-          />
-        </TouchableOpacity>
-        <Image source={{ uri: item.images[0] }} style={styles.image} />
-      </View>
-      <View style={styles.petDetailsContainer}>
-        <View style={styles.nameGenderContainer}>
-          <Text style={styles.name}>{item.petName}</Text>
-          <View style={styles.genderContainer}>
-            {item.petGender === "Female" ? (
-              <Foundation name="female-symbol" size={24} color="#EF5B5B" />
-            ) : (
-              <Foundation name="male-symbol" size={24} color="#68C2FF" />
-            )}
-          </View>
+  const renderItem = ({ item }) => {
+    const isFavorited = favoritedPets[item.id]; // Check if this pet is favorited
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.7}
+        onPress={() => {
+          router.push({
+            pathname: "/PetDetails",
+            params: {
+              ...item,
+              images: JSON.stringify(item.images),
+            },
+          });
+        }}
+      >
+        <View style={styles.imageContainer}>
+          <TouchableOpacity
+            style={styles.favoriteIconButton}
+            onPress={() => toggleFavorite(item.id)} // Toggle the favorite for this pet
+          >
+            <FontAwesome
+              name={isFavorited ? "heart" : "heart-o"}
+              size={20}
+              color={isFavorited ? "#FF6B6B" : "#FFFFFF"} // Red for heart, white for heart-o
+            />
+          </TouchableOpacity>
+          <Image source={{ uri: item.images[0] }} style={styles.image} />
         </View>
-        <Text style={styles.age}>{item.petAge}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.petDetailsContainer}>
+          <View style={styles.nameGenderContainer}>
+            <Text style={styles.name}>{item.petName}</Text>
+            <View style={styles.genderContainer}>
+              {item.petGender === "Female" ? (
+                <Foundation name="female-symbol" size={24} color="#EF5B5B" />
+              ) : (
+                <Foundation name="male-symbol" size={24} color="#68C2FF" />
+              )}
+            </View>
+          </View>
+          <Text style={styles.age}>{item.petAge}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -147,7 +159,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     marginLeft: 140,
     marginTop: 10,
-},
+  },
   image: {
     width: "100%",
     height: 160,

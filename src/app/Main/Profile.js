@@ -229,7 +229,6 @@ const Profile = () => {
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogoutConfirm}>
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
-          
           {/* Edit Modal */}
           <Modal visible={isModalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
             <View style={styles.modalContainer}>

@@ -18,6 +18,9 @@ import { useRouter } from "expo-router";
 import * as FileSystem from "expo-file-system";
 import { usePets } from "../../context/PetContext"; // Adjust the path as needed
 import { useNavigation } from '@react-navigation/native';
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const List = () => {
   const router = useRouter();
@@ -125,23 +128,48 @@ const List = () => {
     setSelectedImages(updatedImages);
   };
 
-  const handleListPet = () => {
-    const selectedImageURIs = selectedImages.map((image) => image.uri);
-
+  const handleListPet = async () => {
     if (
-      petName &&
-      petGender !== null &&
-      petAge &&
-      petWeight &&
-      petPersonality &&
-      petDescription &&
-      petIllnessHistory &&
-      petVaccinated !== null &&
-      adoptionFee &&
-      selectedImageURIs.length > 0
+      !petName ||
+      petGender === null ||
+      !petAge ||
+      !petWeight ||
+      !petPersonality ||
+      !petDescription ||
+      !petIllnessHistory ||
+      petVaccinated === null ||
+      !adoptionFee ||
+      selectedImages.length === 0
     ) {
+      setDialogVisible(true);
+      return;
+    }
+  
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+  
+      if (!user) {
+        alert("Please log in to list a pet.");
+        return;
+      }
+  
+      const storage = getStorage();
+      const db = getFirestore();
+  
+      // Upload images to Firebase Storage
+      const imageUploadPromises = selectedImages.map(async (image, index) => {
+        const response = await fetch(image.uri);
+        const blob = await response.blob();
+        const imageRef = ref(storage, `pets/${Date.now()}_${index}.jpg`);
+        await uploadBytes(imageRef, blob);
+        return await getDownloadURL(imageRef);
+      });
+  
+      const uploadedImages = await Promise.all(imageUploadPromises);
+  
+      // Save pet details to Firestore
       const newPet = {
-        id: Date.now().toString(), // Unique ID
         petName,
         petGender,
         petAge,
@@ -151,30 +179,37 @@ const List = () => {
         petIllnessHistory,
         petVaccinated,
         adoptionFee,
-        images: selectedImageURIs,
+        images: uploadedImages,
+        createdAt: new Date().toISOString(),
+        listedBy: user.email,
       };
-
-      // Reset the form fields
-      setAdoptionFee("");
-      setPetName("");
-      setSelectedPetGender(null);
-      setPetAge("");
-      setPetWeight("");
-      setPetPersonality("");
-      setPetDescription("");
-      setPetIllnessHistory("");
-      setPetVaccinated(null);
-      setAdoptionFee("");
-      setSelectedImages([]); // Reset selected images
-
-      addPet(newPet); // Add the new pet to the context
-
-      // Navigate to Feed or another page
-      router.push("/Main"); // Adjust the path
-    } else {
-      setDialogVisible(true); // Show the dialog when fields are incomplete
+  
+      const petCollection = collection(db, "listed_pets");
+      await addDoc(petCollection, newPet);
+  
+      alert("Pet listed successfully!");
+      resetForm();
+      
+      router.push("/Main"); // Navigate to home page
+    } catch (error) {
+      console.error("Error listing pet:", error);
+      alert(`Failed to list pet: ${error.message}`);
     }
   };
+  
+  const resetForm = () => {
+    setAdoptionFee("");
+    setPetName("");
+    setSelectedPetGender(null);
+    setPetAge("");
+    setPetWeight("");
+    setPetPersonality("");
+    setPetDescription("");
+    setPetIllnessHistory("");
+    setPetVaccinated(null);
+    setSelectedImages([]);
+  };
+  
 
   const hideDialog = () => setDialogVisible(false); // Function to hide the dialog
 
