@@ -128,23 +128,37 @@ export default function Signup() {
   const handleSignup = async () => {
     if (!validateInputs()) return;
 
-    setIsSigningUp(true); // Set loading state
+    setIsSigningUp(true); // Set loading state to true
 
     const name = isOrganization ? organizationName : `${firstName} ${lastName}`;
 
     try {
       await registerUser(email, password, name, contactNumber);
-      setDialogVisible(true);
-      // Clear form fields
+      router.push({
+        pathname: "Options",
+        params: {
+          userName: name,
+          userEmail: email,
+          userContactNumber: contactNumber,
+        },
+      });
+
+      setDialogVisible(true); // Show success dialog
+      setFirstName("");
+      setLastName("");
+      setOrganizationName("");
       setEmail("");
       setContactNumber("");
       setPassword("");
       setConfirmPassword("");
-      router.push("Options");
     } catch (error) {
-      setErrors((prevErrors) => ({ ...prevErrors, email: error.message }));
+      console.log("Registration error:", error.message);
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        email: error.message,
+      }));
     } finally {
-      setIsSigningUp(false); // Clear loading state
+      setIsSigningUp(false); // Reset loading state after process
     }
   };
 
@@ -305,10 +319,7 @@ export default function Signup() {
             )}
 
             <TouchableOpacity
-              style={[
-                styles.signupButton,
-                isSigningUp && { opacity: 0.5 },
-              ]}
+              style={[styles.signupButton, isSigningUp && { opacity: 0.5 }]}
               onPress={handleSignup}
               disabled={isSigningUp} // Disable button during loading
             >
