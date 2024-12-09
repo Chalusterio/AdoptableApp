@@ -1,51 +1,43 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions, // Import Dimensions
-} from "react-native";
+import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
-import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
-import { collection, query, where, getDocs } from "firebase/firestore"; // Import Firestore methods
-import { db } from '../../firebase'; // Import the initialized Firestore instance
-
+import { Foundation } from "@expo/vector-icons";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { getStorage, ref, getDownloadURL } from "firebase/storage";
+import { db, auth } from '../../firebase';  // Ensure `auth` is imported from Firebase
 
 const screenWidth = Dimensions.get("window").width;
 
 const PetDetails = () => {
-  const router = useRouter(); // Initialize navigation
-  const {
-    petName,
-    petGender,
-    petAge,
-    petWeight,
-    petPersonality,
-    petDescription,
-    petIllnessHistory,
-    petVaccinated,
-    images,
-    username,
-    profileImage,
-    listedBy, // We assume 'listedBy' contains the email of the user who posted the pet
-  } = useLocalSearchParams();
+  const router = useRouter();
+  const { petName, petType, petGender, petAge, petWeight, petPersonality, petDescription, petIllnessHistory, petVaccinated, images, username, profileImage, listedBy } = useLocalSearchParams();
   const parsedImages = JSON.parse(images || "[]");
 
   const [isFavorited, setIsFavorited] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0); // Track current image index
-  const [userName, setUserName] = useState(username); // Default to passed 'username'
-  const [userProfileImage, setUserProfileImage] = useState(profileImage); // Default to passed 'profileImage'
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [userName, setUserName] = useState(username);
+  const [userProfileImage, setUserProfileImage] = useState(profileImage);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // State to track login status
+  const scrollViewRef = useRef(null);
+  const [imageURLs, setImageURLs] = useState([]);
 
-  const scrollViewRef = useRef(null); // ScrollView reference
+  useEffect(() => {
+    // Check if the user is logged in
+    const unsubscribe = auth.onAuthStateChanged(user => {
+      if (user) {
+        setIsLoggedIn(true);  // Set login status to true if the user is logged in
+      } else {
+        setIsLoggedIn(false); // Set login status to false if the user is not logged in
+      }
+    });
+
+    return unsubscribe;  // Cleanup on unmount
+  }, []);
 
   useEffect(() => {
     const fetchUserName = async () => {
-      if (listedBy) {
-        // Query 'users' collection to find document where email matches listedBy
+      if (listedBy && isLoggedIn) {  // Only fetch user details if logged in
         try {
           const usersQuery = query(
             collection(db, "users"),
@@ -54,13 +46,11 @@ const PetDetails = () => {
           const querySnapshot = await getDocs(usersQuery);
           if (!querySnapshot.empty) {
             const userDoc = querySnapshot.docs[0].data();
-            setUserName(userDoc.name); // Set user name
-
-            // If there's no profile picture, set a default icon instead
+            setUserName(userDoc.name);
             if (userDoc.profilePicture) {
-              setUserProfileImage(userDoc.profilePicture); // Set user profile picture
+              setUserProfileImage(userDoc.profilePicture);
             } else {
-              setUserProfileImage(null); // Set to null to use default icon
+              setUserProfileImage(null);
             }
           } else {
             console.log("User not found");
@@ -72,78 +62,95 @@ const PetDetails = () => {
     };
 
     fetchUserName();
-  }, [listedBy]);
+  }, [listedBy, isLoggedIn]);  // Dependency on `isLoggedIn` ensures fetch happens only if logged in
+
   const toggleFavorite = () => {
     setIsFavorited(!isFavorited);
   };
 
   const handleAdopt = () => {
-    // Add adoption logic here
     console.log(`${petName} adopted!`);
   };
 
   const onScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const imageWidth = Dimensions.get("window").width; // Use screen width for calculations
-    const index = Math.round(contentOffsetX / imageWidth); // Use Math.round for accurate snapping
-    setCurrentIndex(index); // Update the current index state
+    const imageWidth = Dimensions.get("window").width;
+    const index = Math.round(contentOffsetX / imageWidth);
+    setCurrentIndex(index);
   };
+
+  const fetchImageURLs = async (imagePaths) => {
+    const storage = getStorage();
+    try {
+      const imageURLs = await Promise.all(
+        imagePaths.map(async (imagePath) => {
+          const imageRef = ref(storage, imagePath);  // Correct path from Firestore
+          const url = await getDownloadURL(imageRef);
+          return url;  // return the URL of the image
+        })
+      );
+      setImageURLs(imageURLs);  // Save URLs to state
+    } catch (error) {
+      console.error("Error fetching image URLs: ", error);
+      setImageURLs([]); // In case of error, set an empty array
+    }
+  };
+
+  useEffect(() => {
+    if (parsedImages.length > 0) {
+      fetchImageURLs(parsedImages);
+    }
+  }, [parsedImages]);
+
+  // Conditional rendering based on login status
+  if (!isLoggedIn) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loginMessage}>You must be logged in to view this page.</Text>
+        <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/login')}>
+          <Text style={styles.loginButtonText}>Go to Login</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      >
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Horizontal Image Scroll */}
-        {parsedImages.length > 0 && (
+        {imageURLs.length > 0 && (
           <View>
-            <ScrollView
-              horizontal={true}
-              style={styles.imageScrollContainer}
-              ref={scrollViewRef}
-              onScroll={onScroll}
-              scrollEventThrottle={16} // For smooth scroll tracking
-              showsHorizontalScrollIndicator={false}
-              pagingEnabled={true}
-            >
-              <View style={styles.petImageContainer}>
-                {parsedImages.map((image, index) => (
-                  <Image
-                    key={index}
-                    source={{ uri: image }}
-                    style={styles.petImage}
-                  />
-                ))}
-              </View>
+            <ScrollView horizontal={true} style={styles.imageScrollContainer} ref={scrollViewRef} onScroll={onScroll} scrollEventThrottle={16} showsHorizontalScrollIndicator={false} pagingEnabled={true}>
+              {imageURLs.map((imageURL, index) => (
+                <View key={index} style={styles.petImageContainer}>
+                  <Image source={{ uri: imageURL }} style={styles.petImage} />
+                </View>
+              ))}
             </ScrollView>
 
             {/* Pagination Dots */}
             <View style={styles.paginationContainer}>
-              {parsedImages.map((_, index) => (
-                <View
-                  key={index}
-                  style={[styles.paginationDot, index === currentIndex && styles.activeDot]} // Highlight the active dot
-                />
+              {imageURLs.map((_, index) => (
+                <View key={index} style={[styles.paginationDot, index === currentIndex && styles.activeDot]} />
               ))}
             </View>
           </View>
         )}
 
-        {/* Pet Details Container */}
+        {/* Pet Details */}
         <View style={styles.card}>
           <View style={styles.header}>
             <Text style={styles.petName}>
-              {petName}
-              {"   "}
-              <Text
-                style={[
-                  styles.petGender,
-                  {
-                    color: petGender === "Male" ? "#68C2FF" : "#EF5B5B",
-                  },
-                ]}
-              >
+              {petName}{" "}
+              {/* Pet Type Icon */}
+              <Text style={styles.petTypeIcon}>
+                {petType === "Cat" ? (
+                  <Foundation name="paw" size={24} color="#333" />
+                ) : (
+                  <Foundation name="guide-dog" size={24} color="#333" />
+                )}
+              </Text>
+              <Text style={[styles.petGender, { color: petGender === "Male" ? "#68C2FF" : "#EF5B5B" }]}>
                 {petGender === "Male" ? (
                   <Foundation name="male-symbol" size={24} color="#68C2FF" />
                 ) : (
@@ -152,43 +159,30 @@ const PetDetails = () => {
               </Text>
             </Text>
             <TouchableOpacity onPress={toggleFavorite}>
-              <FontAwesome
-                name={isFavorited ? "heart" : "heart-o"}
-                size={24}
-                color="#FF6B6B"
-              />
+              <FontAwesome name={isFavorited ? "heart" : "heart-o"} size={24} color="#FF6B6B" />
             </TouchableOpacity>
           </View>
           <Text style={styles.subText}>{`${petAge} | ${petWeight}`}</Text>
           <Text style={styles.personalityText}>
-            {petPersonality
-              .split(",")
-              .map((trait) => trait.trim())
-              .join("     ●     ")}
+            {petPersonality.split(",").map((trait) => trait.trim()).join("     ●     ")}
           </Text>
           <Text style={styles.description}>{petDescription}</Text>
           <Text style={styles.sectionTitle}>Health History:</Text>
           <View>
-            <Text style={styles.bulletText}>
-              {petVaccinated === "Yes" ? "• Vaccinated" : "• Not Vaccinated"}
-            </Text>
+            <Text style={styles.bulletText}>{petVaccinated === "Yes" ? "• Vaccinated" : "• Not Vaccinated"}</Text>
             {petIllnessHistory.split(",").map((illness, index) => (
-              <Text key={index} style={styles.bulletText}>
-                • {illness.trim()}
-              </Text>
+              <Text key={index} style={styles.bulletText}>• {illness.trim()}</Text>
             ))}
           </View>
         </View>
 
-        {/* "Posted By" Label */}
+        {/* "Posted By" */}
         <Text style={styles.postedByLabel}>Posted By:</Text>
-
-        {/* "Posted By" Container */}
         <View style={styles.postedByContainer}>
           {userProfileImage ? (
             <Image source={{ uri: userProfileImage }} style={styles.profileImage} />
           ) : (
-            <FontAwesome name="user-circle" size={40} color="#fff" /> // Default profile icon
+            <FontAwesome name="user-circle" size={40} color="#fff" />
           )}
           <View style={styles.usernameContainer}>
             <Text style={styles.usernameText}>{userName}</Text>
@@ -202,10 +196,7 @@ const PetDetails = () => {
       {/* Back and Adopt Buttons */}
       <View style={styles.buttonOuterContainer}>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()} // Add navigation logic for the Back button
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <FontAwesome name="arrow-left" size={20} color="#FFF" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.adoptButton} onPress={handleAdopt}>
@@ -216,6 +207,7 @@ const PetDetails = () => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -271,9 +263,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: "Lilita",
     color: "#333",
+paddingHorizontal: 15,
   },
   petGender: {
     fontSize: 24,
+    marginLeft: 10, // Space between type and gender
+  },
+  petTypeIcon: {
+    marginLeft: 10, // Space between pet name and pet type icon
   },
   subText: {
     fontSize: 16,

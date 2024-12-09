@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getFirestore, collection, getDocs, onSnapshot } from "firebase/firestore";
+import { getFirestore, collection, onSnapshot } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const PetContext = createContext();
@@ -23,7 +23,7 @@ export const PetProvider = ({ children }) => {
     const unsubscribe = onSnapshot(petCollection, (snapshot) => {
       const petList = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data(),
+        ...doc.data(), // Fetches all fields including petType
       }));
       setPets(petList); // Set fetched pets to state
     });
