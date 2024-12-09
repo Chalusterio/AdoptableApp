@@ -8,18 +8,25 @@ import {
   ScrollView,
   Platform,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TextInput, Dialog, Portal } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
 import Foundation from "@expo/vector-icons/Foundation";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import * as FileSystem from "expo-file-system";
 import { usePets } from "../../context/PetContext"; // Adjust the path as needed
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from "@react-navigation/native";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getFirestore, collection, addDoc,  updateDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const List = () => {
@@ -41,12 +48,13 @@ const List = () => {
   const [selectedImages, setSelectedImages] = useState([]);
 
   const [dialogVisible, setDialogVisible] = useState(false); // Dialog visibility state
+  const [isLoading, setIsLoading] = useState(false); // Add this state
 
   // Existing state and variables...
   const scrollViewRef = useRef(null); // Ref for ScrollView
   // Scroll to top when the screen is navigated to
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribe = navigation.addListener("focus", () => {
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: true });
       }
@@ -147,19 +155,21 @@ const List = () => {
       return;
     }
 
+    setIsLoading(true); // Start loading
+
     try {
       const auth = getAuth();
       const user = auth.currentUser;
 
       if (!user) {
         alert("Please log in to list a pet.");
+        setIsLoading(false);
         return;
       }
 
       const storage = getStorage();
       const db = getFirestore();
 
-      // Save pet details to Firestore first
       const newPet = {
         petName,
         petType,
@@ -171,43 +181,40 @@ const List = () => {
         petIllnessHistory,
         petVaccinated,
         adoptionFee,
-        images: [], // We'll fill this with image URLs after uploading
+        images: [],
         createdAt: new Date().toISOString(),
         listedBy: user.email,
       };
 
-      // Add pet to Firestore and get the generated document ID
       const petCollection = collection(db, "listed_pets");
       const docRef = await addDoc(petCollection, newPet);
-      const petId = docRef.id; // Use the document ID for the folder name in Firebase Storage
+      const petId = docRef.id;
 
-      // Upload images to Firebase Storage under the pet's ID folder
       const imageUploadPromises = selectedImages.map(async (image, index) => {
         const response = await fetch(image.uri);
         const blob = await response.blob();
-        const imageRef = ref(storage, `pets/${petId}/${Date.now()}_${index}.jpg`);
+        const imageRef = ref(
+          storage,
+          `pets/${petId}/${Date.now()}_${index}.jpg`
+        );
         await uploadBytes(imageRef, blob);
-        const downloadURL = await getDownloadURL(imageRef);
-        return downloadURL; // Return the download URL for each image
+        return getDownloadURL(imageRef);
       });
 
       const uploadedImages = await Promise.all(imageUploadPromises);
 
-      // Now update Firestore with the uploaded images
-      await updateDoc(docRef, {
-        images: uploadedImages,
-      });
+      await updateDoc(docRef, { images: uploadedImages });
 
       alert("Pet listed successfully!");
       resetForm();
-
-      router.push("/Main"); // Navigate to home page
+      router.push("/Main");
     } catch (error) {
       console.error("Error listing pet:", error);
       alert(`Failed to list pet: ${error.message}`);
+    } finally {
+      setIsLoading(false); // Stop loading
     }
   };
-
 
   const resetForm = () => {
     setAdoptionFee("");
@@ -221,7 +228,6 @@ const List = () => {
     setPetVaccinated(null);
     setSelectedImages([]);
   };
-
 
   const hideDialog = () => setDialogVisible(false); // Function to hide the dialog
 
@@ -262,29 +268,45 @@ const List = () => {
               <Text style={styles.question}>Pet Type:</Text>
               <View style={styles.optionsContainer}>
                 <TouchableOpacity
-                  style={[styles.optionButton, petType === "Cat" && styles.selectedOptionButton]}
+                  style={[
+                    styles.optionButton,
+                    petType === "Cat" && styles.selectedOptionButton,
+                  ]}
                   onPress={() => setPetType("Cat")}
                 >
-                  <Foundation
-                    name="paw"
+                  <MaterialCommunityIcons
+                    name="cat"
                     size={24}
                     color={petType === "Cat" ? "#68C2FF" : "#C2C2C2"} // Color for selected/unselected
                   />
-                  <Text style={[styles.optionText, petType === "Cat" && styles.selectedOptionText]}>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      petType === "Cat" && styles.selectedOptionText,
+                    ]}
+                  >
                     Cat
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.optionButton, petType === "Dog" && styles.selectedOptionButton]}
+                  style={[
+                    styles.optionButton,
+                    petType === "Dog" && styles.selectedOptionButton,
+                  ]}
                   onPress={() => setPetType("Dog")}
                 >
-                  <Foundation
-                    name="guide-dog"
+                  <MaterialCommunityIcons
+                    name="dog"
                     size={24}
                     color={petType === "Dog" ? "#68C2FF" : "#C2C2C2"} // Color for selected/unselected
                   />
-                  <Text style={[styles.optionText, petType === "Dog" && styles.selectedOptionText]}>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      petType === "Dog" && styles.selectedOptionText,
+                    ]}
+                  >
                     Dog
                   </Text>
                 </TouchableOpacity>
@@ -579,10 +601,18 @@ const List = () => {
               </View>
 
               <TouchableOpacity
-                style={styles.listPetButton}
-                onPress={handleListPet}
+                style={[
+                  styles.listPetButton,
+                  isLoading && { opacity: 0.5 }, // Add disabled style
+                ]}
+                onPress={isLoading ? null : handleListPet} // Disable interaction if loading
+                disabled={isLoading} // Prevent multiple clicks
               >
-                <Text style={styles.listPetButtonText}>List this pet</Text>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#fff" /> // Show loading spinner
+                ) : (
+                  <Text style={styles.listPetButtonText}>List this pet</Text>
+                )}
               </TouchableOpacity>
             </View>
 

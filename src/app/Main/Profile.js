@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
-  TextInput,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -41,6 +42,7 @@ const Profile = () => {
   const [isEditConfirmVisible, setEditConfirmVisible] = useState(false);
   const houseTypeOptions = ["Apartment/Condo", "House"];
   const petOptions = ["Yes", "No"];
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -102,6 +104,9 @@ const Profile = () => {
   }, []); // Empty dependency array, will run once when component mounts
 
   const handleSave = async () => {
+    if (isSaving) return; // Prevent multiple clicks
+
+    setIsSaving(true); // Start the loading state
     try {
       const user = auth.currentUser;
       if (user) {
@@ -129,6 +134,7 @@ const Profile = () => {
           } catch (error) {
             console.error("Error uploading image: ", error);
             alert("Image upload failed. Please try again.");
+            setIsSaving(false);
             return;
           }
         }
@@ -141,6 +147,8 @@ const Profile = () => {
     } catch (error) {
       console.error("Error saving profile data: ", error);
       alert("Failed to save. Please try again.");
+    } finally {
+      setIsSaving(false); // End the loading state
     }
   };
 
@@ -264,7 +272,7 @@ const Profile = () => {
           >
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
-          
+
           {/* Edit Modal */}
           <Modal
             visible={isModalVisible}
@@ -275,92 +283,123 @@ const Profile = () => {
             <View style={styles.modalContainer}>
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>Edit Profile</Text>
-                <View style={styles.uploadContainer}>
-                  <TouchableOpacity
-                    style={styles.profileImageContainer}
-                    onPress={pickImage}
-                  >
-                    <Image
-                      style={styles.profileImage}
-                      source={
-                        editableInfo.image?.uri
-                          ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
-                          : profileInfo.profilePicture
-                          ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
-                          : require("../../assets/Profile/dp.png") // Default image if no profile picture
-                      }
-                    />
+
+                <ScrollView contentContainerStyle={styles.scrollViewContent2}>
+                  <View style={styles.uploadContainer}>
                     <TouchableOpacity
-                      style={styles.editProfileImage}
+                      style={styles.profileImageContainer}
                       onPress={pickImage}
                     >
-                      <Icon name="edit" size={20} color="white" />
+                      <Image
+                        style={styles.profileImage}
+                        source={
+                          editableInfo.image?.uri
+                            ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
+                            : profileInfo.profilePicture
+                            ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
+                            : require("../../assets/Profile/dp.png") // Default image if no profile picture
+                        }
+                      />
+                      <TouchableOpacity
+                        style={styles.editProfileImage}
+                        onPress={pickImage}
+                      >
+                        <Icon name="edit" size={20} color="white" />
+                      </TouchableOpacity>
                     </TouchableOpacity>
-                  </TouchableOpacity>
-                </View>
-                {/* Other Input Fields */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Name"
-                  value={editableInfo.name}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, name: text })
-                  }
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  value={editableInfo.email}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, email: text })
-                  }
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Phone Number"
-                  value={editableInfo.phone}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, phone: text })
-                  }
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Address"
-                  value={editableInfo.address}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, address: text })
-                  }
-                />
-                <View style={styles.input2}>
-                  <Picker
-                    selectedValue={editableInfo.houseType}
-                    onValueChange={(value) =>
-                      setEditableInfo((prevState) => ({
-                        ...prevState,
-                        houseType: value,
-                      }))
+                  </View>
+                  {/* Other Input Fields */}
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Name"
+                    value={editableInfo.name}
+                    onChangeText={(text) =>
+                      setEditableInfo({ ...editableInfo, name: text })
                     }
-                  >
-                    {houseTypeOptions.map((option) => (
-                      <Picker.Item key={option} label={option} value={option} style={styles.pickerItemText} />
-                    ))}
-                  </Picker>
-                </View>
-                <View style={styles.input2}>
-                  <Picker
-                    selectedValue={editableInfo.hasPet}
-                    onValueChange={(value) =>
-                      setEditableInfo((prevState) => ({
-                        ...prevState,
-                        hasPet: value,
-                      }))
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="words"
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    value={editableInfo.email}
+                    onChangeText={(text) =>
+                      setEditableInfo({ ...editableInfo, email: text })
                     }
-                  >
-                    {petOptions.map((option) => (
-                      <Picker.Item key={option} label={option} value={option} style={styles.pickerItemText} />
-                    ))}
-                  </Picker>
-                </View>
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="none"
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Phone Number"
+                    value={editableInfo.phone}
+                    onChangeText={(text) =>
+                      setEditableInfo({ ...editableInfo, phone: text })
+                    }
+                    keyboardType="number-pad"
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="sentences"
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Address"
+                    value={editableInfo.address}
+                    onChangeText={(text) =>
+                      setEditableInfo({ ...editableInfo, address: text })
+                    }
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="sentences"
+                  />
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={editableInfo.houseType}
+                      onValueChange={(value) =>
+                        setEditableInfo((prevState) => ({
+                          ...prevState,
+                          houseType: value,
+                        }))
+                      }
+                    >
+                      {houseTypeOptions.map((option) => (
+                        <Picker.Item
+                          key={option}
+                          label={option}
+                          value={option}
+                          style={styles.pickerItemText}
+                        />
+                      ))}
+                    </Picker>
+                  </View>
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={editableInfo.hasPet}
+                      onValueChange={(value) =>
+                        setEditableInfo((prevState) => ({
+                          ...prevState,
+                          hasPet: value,
+                        }))
+                      }
+                    >
+                      {petOptions.map((option) => (
+                        <Picker.Item
+                          key={option}
+                          label={option}
+                          value={option}
+                          style={styles.pickerItemText}
+                        />
+                      ))}
+                    </Picker>
+                  </View>
+                </ScrollView>
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
                     style={styles.cancelButton}
@@ -399,10 +438,18 @@ const Profile = () => {
                     <Text style={styles.buttonText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.logoutButtonModal}
+                    style={[
+                      styles.logoutButtonModal,
+                      isSaving && { opacity: 0.5 },
+                    ]} // Add opacity for visual feedback
                     onPress={handleSave}
+                    disabled={isSaving} // Disable button during loading
                   >
-                    <Text style={styles.buttonText}>Save</Text>
+                    {isSaving ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.buttonText}>Save</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -523,17 +570,21 @@ const styles = StyleSheet.create({
     color: "white",
     alignSelf: "center",
   },
+  scrollViewContent2: {
+    paddingBottom: 0,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    backgroundColor: "#fff",
-    marginHorizontal: 20,
+    width: "90%", // Adjust the width as needed
+    maxHeight: "90%", // Restrict height of the modal content
+    backgroundColor: "white",
     borderRadius: 10,
     padding: 20,
-    elevation: 5,
   },
   modalTitle: {
     fontSize: 20,
@@ -542,23 +593,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    paddingLeft: 20,
-    marginVertical: 10,
-    fontSize: 14,
+    marginTop: 10,
+    marginBottom: 5,
+    backgroundColor: "#F5F5F5",
   },
   input2: {
-    height: 40,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 6,
-    marginVertical: 10,
-    fontSize: 14,
-    justifyContent: 'center',
+    marginTop: 10,
+    marginBottom: 5,
+    paddingVertical: 5,
+    backgroundColor: "#F5F5F5",
+    fontSize: 16,
+    borderRadius: 5,
   },
   picker: {
     borderWidth: 1,
@@ -568,7 +613,7 @@ const styles = StyleSheet.create({
   },
   pickerItemText: {
     fontFamily: "Lato",
-    fontSize: 14,
+    fontSize: 16,
   },
   modalButtons: {
     flexDirection: "row",

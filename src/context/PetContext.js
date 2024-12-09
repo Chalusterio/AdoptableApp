@@ -6,6 +6,7 @@ const PetContext = createContext();
 
 export const PetProvider = ({ children }) => {
   const [pets, setPets] = useState([]); // State for pets
+  const [filteredPets, setFilteredPets] = useState([]);
   const db = getFirestore(); // Firestore instance
 
   // Fetch pets from Firestore when the provider is mounted

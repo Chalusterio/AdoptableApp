@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ImageBackground,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { TextInput, useTheme, Dialog, Portal } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -30,6 +31,7 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [dialogVisible, setDialogVisible] = useState(false);
   const [isOrganization, setIsOrganization] = useState(false);
+  const [isSigningUp, setIsSigningUp] = useState(false); // Loading state
 
   const [errors, setErrors] = useState({
     firstName: "",
@@ -61,7 +63,15 @@ export default function Signup() {
 
   const validateInputs = () => {
     let valid = true;
-    const newErrors = { name: "", email: "", contactNumber: "", password: "" };
+    const newErrors = {
+      firstName: "",
+      lastName: "",
+      organizationName: "",
+      email: "",
+      contactNumber: "",
+      password: "",
+      confirmPassword: "",
+    };
 
     if (isOrganization) {
       if (!organizationName.trim()) {
@@ -118,33 +128,23 @@ export default function Signup() {
   const handleSignup = async () => {
     if (!validateInputs()) return;
 
+    setIsSigningUp(true); // Set loading state
+
     const name = isOrganization ? organizationName : `${firstName} ${lastName}`;
 
     try {
       await registerUser(email, password, name, contactNumber);
-      router.push({
-        pathname: "Options",
-        params: {
-          userName: name,
-          userEmail: email,
-          userContactNumber: contactNumber,
-        },
-      });
-
-      setDialogVisible(true); // Show success dialog
-      setFirstName("");
-      setLastName("");
-      setOrganizationName("");
+      setDialogVisible(true);
+      // Clear form fields
       setEmail("");
       setContactNumber("");
       setPassword("");
       setConfirmPassword("");
+      router.push("Options");
     } catch (error) {
-      console.log("Registration error:", error.message);
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        email: error.message,
-      }));
+      setErrors((prevErrors) => ({ ...prevErrors, email: error.message }));
+    } finally {
+      setIsSigningUp(false); // Clear loading state
     }
   };
 
@@ -174,16 +174,61 @@ export default function Signup() {
             />
             <Text style={styles.subtitle}>Create your account</Text>
 
-            <TextInput
-              label={isOrganization ? "Organization Name" : "Name"}
-              value={name}
-              onChangeText={setName}
-              style={[styles.input, errors.name && styles.errorInput]}
-              left={<TextInput.Icon icon="account" />}
-              mode="flat"
-              activeUnderlineColor="gray"
-            />
-            {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+            {isOrganization ? (
+              <TextInput
+                label="Organization Name"
+                value={organizationName}
+                onChangeText={setOrganizationName}
+                style={[
+                  styles.input,
+                  errors.organizationName && styles.errorInput,
+                ]}
+                left={<TextInput.Icon icon="account" />}
+                mode="flat"
+                activeUnderlineColor="gray"
+              />
+            ) : (
+              <>
+                <View style={styles.nameContainer}>
+                  <TextInput
+                    label="First Name"
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    style={[
+                      styles.nameInput,
+                      errors.firstName && styles.errorInput,
+                    ]}
+                    left={<TextInput.Icon icon="account" />}
+                    mode="flat"
+                    activeUnderlineColor="gray"
+                    autoCapitalize="words"
+                  />
+                  <TextInput
+                    label="Last Name"
+                    value={lastName}
+                    onChangeText={setLastName}
+                    style={[
+                      styles.nameInput,
+                      errors.lastName && styles.errorInput,
+                    ]}
+                    left={<TextInput.Icon icon="account" />}
+                    mode="flat"
+                    activeUnderlineColor="gray"
+                    autoCapitalize="words"
+                  />
+                </View>
+                {errors.firstName && (
+                  <Text style={styles.errorText}>{errors.firstName}</Text>
+                )}
+                {errors.lastName && (
+                  <Text style={styles.errorText}>{errors.lastName}</Text>
+                )}
+              </>
+            )}
+
+            {errors.organizationName && (
+              <Text style={styles.errorText}>{errors.organizationName}</Text>
+            )}
 
             <TextInput
               label="Email"
@@ -191,6 +236,7 @@ export default function Signup() {
               onChangeText={setEmail}
               left={<TextInput.Icon icon="email" />}
               mode="flat"
+              autoCapitalize="none"
               activeUnderlineColor="gray"
               keyboardType="email-address"
               style={[styles.input, errors.email && styles.errorInput]}
@@ -220,6 +266,7 @@ export default function Signup() {
               style={[styles.input, errors.password && styles.errorInput]}
               left={<TextInput.Icon icon="lock" />}
               mode="flat"
+              autoCapitalize="none"
               activeUnderlineColor="gray"
               right={
                 <TextInput.Icon
@@ -233,11 +280,43 @@ export default function Signup() {
               <Text style={styles.errorText}>{errors.password}</Text>
             )}
 
+            <TextInput
+              label="Confirm Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              style={[
+                styles.input,
+                errors.confirmPassword && styles.errorInput,
+              ]}
+              left={<TextInput.Icon icon="lock-check" />}
+              mode="flat"
+              autoCapitalize="none"
+              activeUnderlineColor="gray"
+              right={
+                <TextInput.Icon
+                  icon={showConfirmPassword ? "eye" : "eye-off"}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                />
+              }
+              secureTextEntry={!showConfirmPassword}
+            />
+            {errors.confirmPassword && (
+              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+            )}
+
             <TouchableOpacity
-              style={styles.signupButton}
+              style={[
+                styles.signupButton,
+                isSigningUp && { opacity: 0.5 },
+              ]}
               onPress={handleSignup}
+              disabled={isSigningUp} // Disable button during loading
             >
-              <Text style={styles.signupButtonText}>Sign Up</Text>
+              {isSigningUp ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.signupButtonText}>Sign Up</Text>
+              )}
             </TouchableOpacity>
 
             <View style={styles.footer}>
@@ -264,18 +343,22 @@ export default function Signup() {
               </TouchableOpacity>
             </View>
 
+            {/* Dialog */}
             <Portal>
               <Dialog visible={dialogVisible} onDismiss={hideDialog}>
                 <Dialog.Icon icon="check-circle" color="#68C2FF" />
                 <Dialog.Title style={styles.dialogTitle}>Success</Dialog.Title>
-                <Dialog.Content>
+                <Dialog.Content style={styles.dialogContent}>
                   <Text style={styles.dialogText}>
                     Account created successfully!
                   </Text>
                 </Dialog.Content>
-                <Dialog.Actions>
-                  <TouchableOpacity onPress={hideDialog}>
-                    <Text style={styles.dialogButton}>Ok</Text>
+                <Dialog.Actions style={styles.dialogActions}>
+                  <TouchableOpacity
+                    onPress={hideDialog}
+                    style={styles.dialogButton}
+                  >
+                    <Text style={styles.dialogButtonText}>Done</Text>
                   </TouchableOpacity>
                 </Dialog.Actions>
               </Dialog>

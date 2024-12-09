@@ -163,7 +163,7 @@ const FeedHeader = ({ setFilteredPets }) => {
                 onValueChange={(itemValue) => setSelectedGender(itemValue)}
                 style={styles.picker}
               >
-                <Picker.Item label="Select Gender" value="" />
+                <Picker.Item label="Select Gender" value="" color="gray"/>
                 <Picker.Item label="Male" value="Male" />
                 <Picker.Item label="Female" value="Female" />
               </Picker>
@@ -174,6 +174,8 @@ const FeedHeader = ({ setFilteredPets }) => {
             <TextInput
               style={styles.input}
               placeholder="Enter Age"
+              placeholderTextColor={'gray'}
+              fontFamily={'Lato'}
               keyboardType="numeric"
               value={selectedAge}
               onChangeText={(text) => setSelectedAge(text)}
@@ -183,6 +185,8 @@ const FeedHeader = ({ setFilteredPets }) => {
             <TextInput
               style={styles.input}
               placeholder="Enter Weight"
+              placeholderTextColor={'gray'}
+              fontFamily={'Lato'}
               keyboardType="numeric"
               value={selectedWeight}
               onChangeText={(text) => setSelectedWeight(text)}
@@ -192,6 +196,8 @@ const FeedHeader = ({ setFilteredPets }) => {
             <TextInput
               style={styles.input}
               placeholder="Enter Personality Traits"
+              placeholderTextColor={'gray'}
+              fontFamily={'Lato'}
               value={selectedPersonality.join(", ")}
               onChangeText={(text) =>
                 setSelectedPersonality(
@@ -205,11 +211,11 @@ const FeedHeader = ({ setFilteredPets }) => {
               <Picker
                 selectedValue={vaccinated}
                 onValueChange={(itemValue) => setVaccinated(itemValue)}
-                style={styles.picker}
+                style={[styles.picker, { fontFamily: 'Lato' }]}
               >
-                <Picker.Item label="Select Vaccinated Status" value={null} />
-                <Picker.Item label="Yes" value={true} />
-                <Picker.Item label="No" value={false} />
+                <Picker.Item label="Select Vaccinated Status" value={null} color="gray" style={{ fontFamily: 'Lato' }} />
+                <Picker.Item label="Yes" value={true} style={{ fontFamily: 'Lato' }} />
+                <Picker.Item label="No" value={false} style={{ fontFamily: 'Lato' }} />
               </Picker>
             </View>
 
