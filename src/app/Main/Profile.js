@@ -264,7 +264,7 @@ const Profile = () => {
           >
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
-
+          
           {/* Edit Modal */}
           <Modal
             visible={isModalVisible}
