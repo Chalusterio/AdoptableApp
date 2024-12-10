@@ -19,7 +19,7 @@ import * as Font from "expo-font";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { getUserData } from "../../firebase";
-import { auth, signInWithEmailAndPassword} from "../../firebase"; // Make sure to import Firebase auth methods
+import { auth, signInWithEmailAndPassword } from "../../firebase"; // Make sure to import Firebase auth methods
 
 export default function Login() {
   const theme = useTheme();
@@ -97,32 +97,41 @@ export default function Login() {
 
     setIsLoading(true); // Start loading
     try {
-        // Log in the user
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+      // Log in the user
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
 
-        // Fetch user data from Firestore
-        const userData = await getUserData(user.uid); // Using getUserData from your firebase.js
+      // Fetch user data from Firestore
+      const userData = await getUserData(user.uid); // Using getUserData from your firebase.js
 
-        if (userData) {
-            // Check the role and redirect
-            if (userData.role !== "admin") {
-                router.push("Main"); // Redirect to Main screen for non-admin users
-            } else {
-                router.push("ManageTrack"); // Redirect to Manage track for admins
-            }
+      if (userData) {
+        // Check the role and redirect
+        if (userData.role !== "admin") {
+          router.push("Main"); // Redirect to Main screen for non-admin users
         } else {
-            console.error("User data not found in Firestore");
-            setErrors({ ...errors, email: "User data not found. Contact support." });
+          router.push("ManageTrack"); // Redirect to Manage track for admins
         }
+        // Clear the input fields after successful login
+        setEmail("");
+        setPassword("");
+      } else {
+        console.error("User data not found in Firestore");
+        setErrors({
+          ...errors,
+          email: "User data not found. Contact support.",
+        });
+      }
     } catch (error) {
-        console.error("Error logging in:", error);
-        setErrors({ ...errors, password: "Invalid email or password" });
+      console.error("Error logging in:", error);
+      setErrors({ ...errors, password: "Invalid email or password" });
     } finally {
-        setIsLoading(false); // Stop loading
+      setIsLoading(false); // Stop loading
     }
-};
-
+  };
 
   const hideDialog = () => setDialogVisible(false);
 
@@ -281,8 +290,8 @@ const styles = StyleSheet.create({
     width: "130%",
   },
   textOverlayContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: -180,
   },
   welcomeBackText: {
