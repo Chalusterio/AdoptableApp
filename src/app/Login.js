@@ -18,7 +18,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Font from "expo-font";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { auth, signInWithEmailAndPassword } from "../../firebase"; // Make sure to import Firebase auth methods
+import { getUserData } from "../../firebase";
+import { auth, signInWithEmailAndPassword} from "../../firebase"; // Make sure to import Firebase auth methods
 
 export default function Login() {
   const theme = useTheme();
@@ -96,17 +97,32 @@ export default function Login() {
 
     setIsLoading(true); // Start loading
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      setDialogVisible(true); // Show success dialog
-      setEmail("");
-      setPassword("");
-      router.push("Main"); // Redirect to Main screen
+        // Log in the user
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Fetch user data from Firestore
+        const userData = await getUserData(user.uid); // Using getUserData from your firebase.js
+
+        if (userData) {
+            // Check the role and redirect
+            if (userData.role !== "admin") {
+                router.push("Main"); // Redirect to Main screen for non-admin users
+            } else {
+                router.push("ManageTrack"); // Redirect to Manage track for admins
+            }
+        } else {
+            console.error("User data not found in Firestore");
+            setErrors({ ...errors, email: "User data not found. Contact support." });
+        }
     } catch (error) {
-      setErrors({ ...errors, password: "Invalid email or password" });
+        console.error("Error logging in:", error);
+        setErrors({ ...errors, password: "Invalid email or password" });
     } finally {
-      setIsLoading(false); // Stop loading
+        setIsLoading(false); // Stop loading
     }
-  };
+};
+
 
   const hideDialog = () => setDialogVisible(false);
 
