@@ -256,9 +256,6 @@ const PetDetails = () => {
           <View style={styles.usernameContainer}>
             <Text style={styles.usernameText}>{userName}</Text>
           </View>
-          <TouchableOpacity style={styles.donateButton}>
-            <Text style={styles.donateButtonText}>Donate</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -478,3 +475,5 @@ const styles = StyleSheet.create({
 });
 
 export default PetDetails;
+
+
