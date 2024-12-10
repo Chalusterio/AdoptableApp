@@ -2,68 +2,147 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db, auth } from "../../../firebase"; // Ensure db is properly initialized
+import { FontAwesome } from '@expo/vector-icons';
+import moment from 'moment'; // Import moment.js for time formatting
 
 const Notification = () => {
   const router = useRouter();
+  const [notifications, setNotifications] = useState([]);
+  const [adopters, setAdopters] = useState({}); // Store adopter details
+  const [currentUser, setCurrentUser] = useState(null); // Store current logged-in user
 
-  // Example dynamic notifications
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      image: require("../../assets/Notification/notifLogo.png"),
-      name: "CDO Animal Welfare Society Inc",
-      content: "Has approved your adoption request! Click Here to see the full payment information.",
-      time: "1:25 PM",
-      action: () => router.push("/ApproveAdoption"),
-    },
-    {
-      id: 2,
-      image: require("../../assets/Notification/notifLogo.png"),
-      name: "CDO Animal Welfare Society Inc",
-      content: "We are preparing Shiro for departure.",
-      time: "9:55 PM",
-      action: () => router.push("/Main/Track"),
-    },
-    {
-      id: 3,
-      image: require("../../assets/Profile/dp.png"),
-      name: "Mary Jane",
-      content: "A wild Mary Jane has requested to adopt your pet.",
-      time: "6:40 PM",
-      action: () => router.push("/Screening"), //Ezra, ilisda lang ning route kung makabuhat nakag file
-    },
-  ]);
-
-  // Example: Fetch notifications (optional)
+  // Get current user
   useEffect(() => {
-    // Simulate fetching notifications from an API
-    // fetch('https://example.com/api/notifications')
-    //   .then(response => response.json())
-    //   .then(data => setNotifications(data));
+    const user = auth.currentUser; // Get the current authenticated user
+    setCurrentUser(user); // Set the logged-in user
   }, []);
+
+  useEffect(() => {
+    if (!currentUser) return; // Skip fetching notifications if user is not logged in
+  
+    const fetchNotifications = async () => {
+      console.log('Fetching pet requests...'); // Debugging log
+      const petRequestsQuery = query(
+        collection(db, "pet_request"),
+        where("status", "==", "Pending"),
+        where("listedBy", "==", currentUser.email) // Filter pet requests by the logged-in user's email
+      );
+      const querySnapshot = await getDocs(petRequestsQuery);
+  
+      const notificationsList = [];
+  
+      // Loop through each request
+      for (const doc of querySnapshot.docs) {
+        const petRequest = doc.data();
+   
+        // Fetch adopter details for each request if not already fetched
+        if (!adopters[petRequest.adopterEmail]) {
+          const adopterDetails = await fetchAdopterDetails(petRequest.adopterEmail);
+          if (adopterDetails) {
+            setAdopters((prev) => ({
+              ...prev,
+              [petRequest.adopterEmail]: adopterDetails
+            }));
+          }
+        }
+  
+        const adopter = adopters[petRequest.adopterEmail] || {}; // Get adopter details if available
+        const formattedTime = moment(petRequest.requestDate.seconds * 1000).fromNow(); // Format time using moment.js
+  
+        // Add notification if adopter details are available
+        if (adopter.name && adopter.profilePicture) {
+          // Generate random adjective only once per notification
+          const randomAdjective = getRandomAdjective();
+  
+          notificationsList.push({
+            id: doc.id,
+            image: adopter.profilePicture ? { uri: adopter.profilePicture } : null,
+            name: adopter.name || "Adopter", // Default name if not loaded
+            content: `A ${randomAdjective} ${adopter.name || "Adopter"} has requested to adopt your pet.`,
+            time: formattedTime, // Add the formatted time
+            action: () => router.push({ pathname: "/Screening", params: { adopterEmail: petRequest.adopterEmail, petRequestId: doc.id } })
+          });
+        } else {
+          console.log('Skipping notification due to missing name or profile image'); // Log if missing data
+        }
+      }
+  
+      setNotifications(notificationsList);
+    };
+  
+    fetchNotifications();
+  }, [currentUser, adopters]); // Re-run when currentUser or adopters data changes
+  
+
+  const fetchAdopterDetails = async (adopterEmail) => {
+    try {
+      const usersQuery = query(
+        collection(db, "users"),
+        where("email", "==", adopterEmail)
+      );
+      const querySnapshot = await getDocs(usersQuery);
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0].data();
+       
+        return {
+          name: userDoc.name,
+          profilePicture: userDoc.profilePicture || null
+        };
+      } else {
+        console.log("Adopter not found for email:", adopterEmail);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching adopter details: ", error);
+      return null;
+    }
+  };
+
+
+  const adjectives = ["wild", "curious", "bold", "determined", "passionate", "clever", "warm", "generous", "fearless", "playful", "mighty", "vigilant", "wise", "noble", "humble",
+    "lively", "radiant", "gracious","charming",];
+
+  const getRandomAdjective = () => {
+    // Filter adjectives that start with consonants (excluding vowels)
+    const consonantAdjectives = adjectives.filter(adj => !/^[aeiou]/i.test(adj));
+
+    const randomIndex = Math.floor(Math.random() * consonantAdjectives.length); // Random index from filtered adjectives array
+    return consonantAdjectives[randomIndex]; // Return the selected adjective
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {notifications.map((notif) => (
-          <View key={notif.id}>
-            <TouchableOpacity
-              style={styles.notifButton}
-              onPress={notif.action}
-              disabled={!notif.action} // Disable click if no action
-            >
-              <Image style={styles.notifImage} source={notif.image} />
-              <View style={styles.notifTextContainer}>
-                <Text style={styles.notifName}>{notif.name}</Text>
-                <Text style={styles.notifContent}>{notif.content}</Text>
-              </View>
-              <Text style={styles.notifTime}>{notif.time}</Text>
-            </TouchableOpacity>
+        {notifications.length === 0 ? (
+          <Text>No notifications available</Text>
+        ) : (
+          notifications.map((notif) => (
+            <View key={notif.id}>
+              <TouchableOpacity
+                style={styles.notifButton}
+                onPress={notif.action}
+                disabled={!notif.action} // Disable click if no action
+              >
+                {notif.image ? (
+                  <Image style={styles.notifImage} source={notif.image} />
+                ) : (
+                  <View style={styles.iconContainer}>
+                    <FontAwesome name="user-circle" size={40} color="#fff" />
+                  </View>
+                )}
+                <View style={styles.notifTextContainer}>
+                  <Text style={styles.notifName}>{notif.name}</Text>
+                  <Text style={styles.notifContent}>{notif.content}</Text>
+                </View>
+                <Text style={styles.notifTime}>{notif.time}</Text>
+              </TouchableOpacity>
 
-            {/* horizontal line */}
-            <View style={styles.horizontalLine}></View>
-          </View>
-        ))}
+              <View style={styles.horizontalLine}></View>
+            </View>
+          ))
+        )}
       </View>
     </SafeAreaView>
   );
@@ -90,7 +169,7 @@ const styles = StyleSheet.create({
   notifTextContainer: {
     flexDirection: "column",
     width: "60%",
-    marginHorizontal: 10,
+    marginLeft: 10,
   },
   notifName: {
     fontFamily: "LatoBold",
@@ -98,11 +177,13 @@ const styles = StyleSheet.create({
   },
   notifContent: {
     fontFamily: "Lato",
-    fontSize: 16,
+    fontSize: 14,
   },
   notifTime: {
     fontFamily: "Lato",
-    fontSize: 16,
+    fontSize: 12,
+    marginRight: 15,
+    color: '#68C2FF',
   },
   horizontalLine: {
     width: "100%",

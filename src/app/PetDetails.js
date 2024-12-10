@@ -6,13 +6,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
+  Dimensions, Modal, modalVisible
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { db, auth } from "../../firebase"; // Ensure `auth` is imported from Firebase
 
@@ -44,6 +44,8 @@ const PetDetails = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false); // State to track login status
   const scrollViewRef = useRef(null);
   const [imageURLs, setImageURLs] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+
 
   useEffect(() => {
     // Check if the user is logged in
@@ -93,9 +95,39 @@ const PetDetails = () => {
   };
 
   const handleAdopt = () => {
-    console.log(`${petName} adopted!`);
+    setModalVisible(true);
   };
 
+  const handleAdoptConfirmation = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("User not logged in");
+  
+      const adoptionRequest = {
+        petName,
+        adopterEmail: user.email,
+        listedBy,
+        requestDate: new Date(),
+        status: "Pending",
+      };
+  
+      await addDoc(collection(db, "pet_request"), adoptionRequest);
+  
+      // Show success message using alert
+      alert("Success: We've notified the pet lister about your request!");
+  
+      // Close the modal
+      setModalVisible(false);
+    } catch (error) {
+      alert("Error: Failed to submit adoption request. Please try again.");
+  
+      // Close the modal in case of error
+      setModalVisible(false);
+    }
+  };
+  
+  
+  
   const onScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const imageWidth = Dimensions.get("window").width;
@@ -271,6 +303,37 @@ const PetDetails = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Modal for confirmation */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>
+              Would you like to adopt {petName}?
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleAdoptConfirmation}
+            >
+                <Text style={styles.confirmButtonText}>Yes</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 };
@@ -468,6 +531,52 @@ const styles = StyleSheet.create({
   adoptButtonText: {
     fontSize: 16,
     fontWeight: "bold",
+    color: "#FFF",
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContainer: {
+    width: "80%",
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    color: "#333",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: "#DDD",
+    padding: 10,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+  cancelButtonText: {
+    textAlign: "center",
+    color: "#555",
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: "#68C2FF",
+    padding: 10,
+    borderRadius: 5,
+  },
+  confirmButtonText: {
+    textAlign: "center",
     color: "#FFF",
   },
 });

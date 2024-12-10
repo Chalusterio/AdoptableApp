@@ -16,7 +16,7 @@ export default function AcceptAdoption({ }) {
     const timer = setTimeout(() => {
       setIsLoading(false);
       router.push('/Main/Notification'); // Navigate to Notification tab
-    }, 5000); // Delay for 5 seconds
+    }, 3000); // Delay for 5 seconds
 
     return () => clearTimeout(timer); // Clean up the timer
   }, [navigation]);
