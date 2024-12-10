@@ -2,7 +2,6 @@ import { Tabs } from "expo-router";
 import TabBar from "../../components/TabBar";
 import PetProvider from "../../context/PetContext";
 import UserProvider from "../../context/UserContext";
-import SideBar from "../../components/SideBar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const Main = () => {
@@ -10,7 +9,6 @@ const Main = () => {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserProvider>
         <PetProvider>
-          <SideBar>
             {/* Wrap the Tabs within the SideBar */}
             <Tabs tabBar={(props) => <TabBar {...props} />}>
               <Tabs.Screen
@@ -49,7 +47,6 @@ const Main = () => {
                 }}
               />
             </Tabs>
-          </SideBar>
         </PetProvider>
       </UserProvider>
     </GestureHandlerRootView>

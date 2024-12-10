@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import SideBar from "../components/SideBar";
 
-const Donate = () => {
-  const [selectedItem, setSelectedItem] = useState("Donate");
+const Uploads = () => {
+  const [selectedItem, setSelectedItem] = useState("Uploads");
 
   return (
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
       <View style={styles.container}>
-        <Text style={styles.title}>This is the Donate Drawer</Text>
+        <Text style={styles.title}>This is the Uploads Drawer</Text>
         <Text style={styles.subtitle}>Freely navigate through the app!</Text>
       </View>
     </SideBar>
@@ -38,4 +38,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Donate;
+export default Uploads;

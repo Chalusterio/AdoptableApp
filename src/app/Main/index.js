@@ -13,6 +13,7 @@ import { useRouter } from "expo-router"; // Import useRouter
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
 import FeedHeader from "../../components/FeedHeader"; // Import your Header component
+import SideBar from "../../components/SideBar";
 import { usePets } from "../../context/PetContext"; // Adjust the path as needed
 
 const Feed = () => {
@@ -20,6 +21,7 @@ const Feed = () => {
   const { pets } = usePets(); // Access shared pets state
   const router = useRouter(); // For navigation
   const { filteredPets, setFilteredPets } = usePets(); // Added
+  const [selectedItem, setSelectedItem] = useState("Main");
 
   // Parse the selectedImages string back into an array
   const selectedImages = params.selectedImages
@@ -98,25 +100,27 @@ const Feed = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <FeedHeader setFilteredPets={setFilteredPets} />
-      {pets.length > 0 ? (
-        <FlatList
-          data={filteredPets}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.container}
-        />
-      ) : (
-        <View style={styles.noPetsContainer}>
-          <Text style={styles.noPetsText}>
-            No pets available. Add a pet to display here!
-          </Text>
-        </View>
-      )}
-    </SafeAreaView>
+    <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
+      <SafeAreaView style={styles.safeArea}>
+        <FeedHeader setFilteredPets={setFilteredPets} />
+        {pets.length > 0 ? (
+          <FlatList
+            data={filteredPets}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={styles.container}
+          />
+        ) : (
+          <View style={styles.noPetsContainer}>
+            <Text style={styles.noPetsText}>
+              No pets available. Add a pet to display here!
+            </Text>
+          </View>
+        )}
+      </SafeAreaView>
+    </SideBar>
   );
 };
 
@@ -152,12 +156,12 @@ const styles = StyleSheet.create({
   favoriteIconButton: {
     width: 30,
     height: 30,
-    backgroundColor: 'rgba(128, 128, 128, 0.7)', // Gray with 70% opacity
+    backgroundColor: "rgba(128, 128, 128, 0.7)", // Gray with 70% opacity
     borderRadius: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 1,
-    position: 'absolute',
+    position: "absolute",
     marginLeft: 140,
     marginTop: 10,
   },
