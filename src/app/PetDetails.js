@@ -41,13 +41,13 @@ const PetDetails = () => {
   };
 
   const handleAdopt = () => {
-    console.log(`${petName} adopted!`);
-    router.push({
-      pathname: "/AdoptMe", // The route to navigate to
-      params: { petName, username }, // Pass parameters if needed
-    });
-  };
-  
+  console.log(`${petName} adopted!`);
+  router.push({
+    pathname: "/AdoptMe", // The route to navigate to
+    params: { petName, username }, // Pass parameters if needed
+  });
+};
+
 
   const onScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
