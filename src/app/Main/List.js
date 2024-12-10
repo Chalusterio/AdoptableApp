@@ -8,16 +8,26 @@ import {
   ScrollView,
   Platform,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TextInput, Dialog, Portal } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
 import Foundation from "@expo/vector-icons/Foundation";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import * as FileSystem from "expo-file-system";
 import { usePets } from "../../context/PetContext"; // Adjust the path as needed
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from "@react-navigation/native";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const List = () => {
   const router = useRouter();
@@ -26,6 +36,7 @@ const List = () => {
   const { addPet } = usePets(); // Access the context
 
   const [petName, setPetName] = useState("");
+  const [petType, setPetType] = useState(null); // New state for pet type
   const [petGender, setSelectedPetGender] = useState(null);
   const [petAge, setPetAge] = useState("");
   const [petWeight, setPetWeight] = useState("");
@@ -37,12 +48,13 @@ const List = () => {
   const [selectedImages, setSelectedImages] = useState([]);
 
   const [dialogVisible, setDialogVisible] = useState(false); // Dialog visibility state
+  const [isLoading, setIsLoading] = useState(false); // Add this state
 
   // Existing state and variables...
   const scrollViewRef = useRef(null); // Ref for ScrollView
   // Scroll to top when the screen is navigated to
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribe = navigation.addListener("focus", () => {
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: true });
       }
@@ -125,24 +137,42 @@ const List = () => {
     setSelectedImages(updatedImages);
   };
 
-  const handleListPet = () => {
-    const selectedImageURIs = selectedImages.map((image) => image.uri);
-
+  const handleListPet = async () => {
     if (
-      petName &&
-      petGender !== null &&
-      petAge &&
-      petWeight &&
-      petPersonality &&
-      petDescription &&
-      petIllnessHistory &&
-      petVaccinated !== null &&
-      adoptionFee &&
-      selectedImageURIs.length > 0
+      !petName ||
+      petType === null ||
+      petGender === null ||
+      !petAge ||
+      !petWeight ||
+      !petPersonality ||
+      !petDescription ||
+      !petIllnessHistory ||
+      petVaccinated === null ||
+      !adoptionFee ||
+      selectedImages.length === 0
     ) {
+      setDialogVisible(true);
+      return;
+    }
+
+    setIsLoading(true); // Start loading
+
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        alert("Please log in to list a pet.");
+        setIsLoading(false);
+        return;
+      }
+
+      const storage = getStorage();
+      const db = getFirestore();
+
       const newPet = {
-        id: Date.now().toString(), // Unique ID
         petName,
+        petType,
         petGender,
         petAge,
         petWeight,
@@ -151,29 +181,52 @@ const List = () => {
         petIllnessHistory,
         petVaccinated,
         adoptionFee,
-        images: selectedImageURIs,
+        images: [],
+        createdAt: new Date().toISOString(),
+        listedBy: user.email,
       };
 
-      // Reset the form fields
-      setAdoptionFee("");
-      setPetName("");
-      setSelectedPetGender(null);
-      setPetAge("");
-      setPetWeight("");
-      setPetPersonality("");
-      setPetDescription("");
-      setPetIllnessHistory("");
-      setPetVaccinated(null);
-      setAdoptionFee("");
-      setSelectedImages([]); // Reset selected images
+      const petCollection = collection(db, "listed_pets");
+      const docRef = await addDoc(petCollection, newPet);
+      const petId = docRef.id;
 
-      addPet(newPet); // Add the new pet to the context
+      const imageUploadPromises = selectedImages.map(async (image, index) => {
+        const response = await fetch(image.uri);
+        const blob = await response.blob();
+        const imageRef = ref(
+          storage,
+          `pets/${petId}/${Date.now()}_${index}.jpg`
+        );
+        await uploadBytes(imageRef, blob);
+        return getDownloadURL(imageRef);
+      });
 
-      // Navigate to Feed or another page
-      router.push("/Main"); // Adjust the path
-    } else {
-      setDialogVisible(true); // Show the dialog when fields are incomplete
+      const uploadedImages = await Promise.all(imageUploadPromises);
+
+      await updateDoc(docRef, { images: uploadedImages });
+
+      alert("Pet listed successfully!");
+      resetForm();
+      router.push("/Main");
+    } catch (error) {
+      console.error("Error listing pet:", error);
+      alert(`Failed to list pet: ${error.message}`);
+    } finally {
+      setIsLoading(false); // Stop loading
     }
+  };
+
+  const resetForm = () => {
+    setAdoptionFee("");
+    setPetName("");
+    setSelectedPetGender(null);
+    setPetAge("");
+    setPetWeight("");
+    setPetPersonality("");
+    setPetDescription("");
+    setPetIllnessHistory("");
+    setPetVaccinated(null);
+    setSelectedImages([]);
   };
 
   const hideDialog = () => setDialogVisible(false); // Function to hide the dialog
@@ -212,6 +265,52 @@ const List = () => {
               {errors.petName && (
                 <Text style={styles.errorText}>{errors.petName}</Text>
               )}
+              <Text style={styles.question}>Pet Type:</Text>
+              <View style={styles.optionsContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.optionButton,
+                    petType === "Cat" && styles.selectedOptionButton,
+                  ]}
+                  onPress={() => setPetType("Cat")}
+                >
+                  <MaterialCommunityIcons
+                    name="cat"
+                    size={24}
+                    color={petType === "Cat" ? "#68C2FF" : "#C2C2C2"} // Color for selected/unselected
+                  />
+                  <Text
+                    style={[
+                      styles.optionText,
+                      petType === "Cat" && styles.selectedOptionText,
+                    ]}
+                  >
+                    Cat
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.optionButton,
+                    petType === "Dog" && styles.selectedOptionButton,
+                  ]}
+                  onPress={() => setPetType("Dog")}
+                >
+                  <MaterialCommunityIcons
+                    name="dog"
+                    size={24}
+                    color={petType === "Dog" ? "#68C2FF" : "#C2C2C2"} // Color for selected/unselected
+                  />
+                  <Text
+                    style={[
+                      styles.optionText,
+                      petType === "Dog" && styles.selectedOptionText,
+                    ]}
+                  >
+                    Dog
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
               <Text style={styles.question}>Gender:</Text>
               <View style={styles.optionsContainer}>
@@ -439,13 +538,6 @@ const List = () => {
                   // Convert to number
                   let number = parseInt(cleanedText, 10);
 
-                  // Ensure the number is between 0 and 500
-                  if (number > 500) {
-                    number = 500; // Set the number to 500 if it's greater than 500
-                  } else if (number < 0) {
-                    number = 0; // Set the number to 0 if it's less than 0
-                  }
-
                   // Update the state with the formatted value, prefixing with the peso symbol
                   setAdoptionFee(number === 0 ? "₱0" : `₱${number}`);
                 }}
@@ -509,10 +601,18 @@ const List = () => {
               </View>
 
               <TouchableOpacity
-                style={styles.listPetButton}
-                onPress={handleListPet}
+                style={[
+                  styles.listPetButton,
+                  isLoading && { opacity: 0.5 }, // Add disabled style
+                ]}
+                onPress={isLoading ? null : handleListPet} // Disable interaction if loading
+                disabled={isLoading} // Prevent multiple clicks
               >
-                <Text style={styles.listPetButtonText}>List this pet</Text>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#fff" /> // Show loading spinner
+                ) : (
+                  <Text style={styles.listPetButtonText}>List this pet</Text>
+                )}
               </TouchableOpacity>
             </View>
 

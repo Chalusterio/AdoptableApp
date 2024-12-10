@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,53 +7,149 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
-  TextInput,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { useNavigation } from "@react-navigation/native";
+import { Picker } from "@react-native-picker/picker"; // Import the Picker
+import { auth, signOut, db } from "../../../firebase"; // Ensure this imports your Firebase setup
+import {
+  getDocs,
+  collection,
+  query,
+  where,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const Profile = () => {
   const router = useRouter();
-  const navigation = useNavigation();
-
-  const { userName, userEmail, userContactNumber, livingSpace, ownedPets } =
-    useLocalSearchParams();
-
+  const [profileInfo, setProfileInfo] = useState({
+    name: "Loading...",
+    email: "-",
+    phone: "-",
+    address: "",
+    houseType: "Not Indicated",
+    hasPet: "Not Indicated",
+  });
+  const [editableInfo, setEditableInfo] = useState(profileInfo);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isLogoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
-  const [isEditConfirmVisible, setEditConfirmVisible] = useState(false); // Edit confirmation modal
-  const [profileInfo, setProfileInfo] = useState({
-    name: userName || "User",
-    email: userEmail || "-",
-    phone: userContactNumber || "-",
-    address: "",
-    houseType: livingSpace || "Not Indicated",
-    hasPet: ownedPets || "Not Indicated",
-  });
+  const [isEditConfirmVisible, setEditConfirmVisible] = useState(false);
+  const houseTypeOptions = ["Apartment/Condo", "House"];
+  const petOptions = ["Yes", "No"];
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [editableInfo, setEditableInfo] = useState(profileInfo);
-
-  // Existing state and variables...
-  const scrollViewRef = useRef(null); // Ref for ScrollView
-  // Scroll to top when the screen is navigated to
   useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: true });
+    const fetchUserData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          // Fetch user data from the "users" collection
+          const usersCollectionRef = collection(db, "users");
+          const q = query(usersCollectionRef, where("email", "==", user.email));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            querySnapshot.forEach((doc) => {
+              const userData = doc.data();
+              // Fetch lifestyle data based on the user's email
+              const lifestyleCollectionRef = collection(db, "lifestyle");
+              const lifestyleQuery = query(
+                lifestyleCollectionRef,
+                where("email", "==", user.email)
+              );
+              getDocs(lifestyleQuery).then((lifestyleSnapshot) => {
+                if (!lifestyleSnapshot.empty) {
+                  lifestyleSnapshot.forEach((lifestyleDoc) => {
+                    const lifestyleData = lifestyleDoc.data();
+                    setProfileInfo((prevState) => ({
+                      ...prevState,
+                      houseType: lifestyleData.livingSpace || "Not Indicated",
+                      hasPet: lifestyleData.ownedPets || "Not Indicated",
+                    }));
+                    setEditableInfo((prevState) => ({
+                      ...prevState,
+                      houseType: lifestyleData.livingSpace || "Not Indicated",
+                      hasPet: lifestyleData.ownedPets || "Not Indicated",
+                    }));
+                  });
+                }
+              });
+
+              setProfileInfo({
+                ...userData,
+                phone: userData.contactNumber || "-",
+                profilePicture: userData.profilePicture || null, // Fetch profile picture URL
+              });
+              setEditableInfo({
+                ...userData,
+                phone: userData.contactNumber || "-",
+                profilePicture: userData.profilePicture || null,
+              });
+            });
+          } else {
+            console.log("No such user!");
+          }
+        } catch (error) {
+          console.error("Error fetching user data: ", error);
+        }
       }
-    });
+    };
+    fetchUserData();
+  }, []); // Empty dependency array, will run once when component mounts
 
-    // Cleanup listener when the component unmounts
-    return unsubscribe;
-  }, [navigation]);
+  const handleSave = async () => {
+    if (isSaving) return; // Prevent multiple clicks
 
-  const handleSave = () => {
-    setProfileInfo(editableInfo);
-    setEditConfirmVisible(false);
-    setModalVisible(false);
+    setIsSaving(true); // Start the loading state
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const userRef = doc(db, "users", user.uid);
+        const updatedData = {
+          ...editableInfo,
+          contactNumber: editableInfo.phone,
+        };
+
+        if (editableInfo.image?.uri) {
+          const fileName = `profilePictures/${user.uid}/profile.jpg`;
+          const storageRef = ref(storage, fileName);
+
+          try {
+            const response = await fetch(editableInfo.image.uri);
+            const blob = await response.blob();
+            await uploadBytes(storageRef, blob);
+            const downloadURL = await getDownloadURL(storageRef);
+
+            updatedData.profilePicture = downloadURL;
+            setProfileInfo((prev) => ({
+              ...prev,
+              profilePicture: downloadURL,
+            }));
+          } catch (error) {
+            console.error("Error uploading image: ", error);
+            alert("Image upload failed. Please try again.");
+            setIsSaving(false);
+            return;
+          }
+        }
+
+        await updateDoc(userRef, updatedData);
+        setProfileInfo(updatedData);
+        setEditConfirmVisible(false);
+        setModalVisible(false);
+      }
+    } catch (error) {
+      console.error("Error saving profile data: ", error);
+      alert("Failed to save. Please try again.");
+    } finally {
+      setIsSaving(false); // End the loading state
+    }
   };
 
   const handleEditPress = () => {
@@ -65,9 +161,16 @@ const Profile = () => {
     setLogoutConfirmVisible(true);
   };
 
-  const handleLogout = () => {
-    setLogoutConfirmVisible(false);
-    router.push("Login");
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // Sign out from Firebase
+      console.log("User logged out");
+      router.push("/Login"); // Ensure the route is correct (if you use a different path for login, change this)
+    } catch (error) {
+      console.error("Error logging out: ", error.message);
+    } finally {
+      setLogoutConfirmVisible(false); // Close logout confirmation modal
+    }
   };
 
   const handleCancelLogout = () => {
@@ -78,34 +181,35 @@ const Profile = () => {
     setEditConfirmVisible(false);
   };
 
+  const storage = getStorage(); // Initialize Firebase Storage
+
   const pickImage = async () => {
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permissionResult.granted === false) {
+    if (!permissionResult.granted) {
       alert("Permission to access camera roll is required!");
       return;
     }
-    let pickerResult = await ImagePicker.launchImageLibraryAsync({
+
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
+
     if (!pickerResult.canceled) {
-      setEditableInfo({
-        ...editableInfo,
-        image: pickerResult.assets[0], // Set the selected image to editableInfo
-      });
+      const imageUri = pickerResult.assets[0].uri;
+      setEditableInfo((prevState) => ({
+        ...prevState,
+        image: { uri: imageUri },
+      }));
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        ref={scrollViewRef}
-        contentContainerStyle={styles.scrollViewContent}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <View style={styles.container}>
           <TouchableOpacity style={styles.editButton} onPress={handleEditPress}>
             <Icon name="edit" size={24} color="#fff" />
@@ -115,11 +219,12 @@ const Profile = () => {
             <Image
               style={styles.profileImage}
               source={
-                editableInfo.image
-                  ? { uri: editableInfo.image.uri }
-                  : require("../../assets/Profile/dp.png") // Default image if no image is set
+                profileInfo.profilePicture
+                  ? { uri: profileInfo.profilePicture } // Firebase Storage URL
+                  : require("../../assets/Profile/dp.png") // Default image
               }
             />
+
             <Text style={styles.profileName}>{profileInfo.name}</Text>
             <Text style={styles.profileStatus}>Active • Devoted Pet Owner</Text>
           </View>
@@ -179,80 +284,122 @@ const Profile = () => {
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>Edit Profile</Text>
 
-                {/* Image Upload Section */}
-                <View style={styles.uploadContainer}>
-                  <TouchableOpacity
-                    style={styles.profileImageContainer}
-                    onPress={pickImage} // When the image is clicked, it triggers the pickImage function
-                  >
-                    <Image
-                      style={styles.profileImage}
-                      source={
-                        editableInfo.image
-                          ? { uri: editableInfo.image.uri }
-                          : require("../../assets/Profile/dp.png") // Default image if no image is set
-                      }
-                    />
+                <ScrollView contentContainerStyle={styles.scrollViewContent2}>
+                  <View style={styles.uploadContainer}>
                     <TouchableOpacity
-                      style={styles.editProfileImage}
+                      style={styles.profileImageContainer}
                       onPress={pickImage}
                     >
-                      <Icon name="edit" size={20} color="white" />
+                      <Image
+                        style={styles.profileImage}
+                        source={
+                          editableInfo.image?.uri
+                            ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
+                            : profileInfo.profilePicture
+                            ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
+                            : require("../../assets/Profile/dp.png") // Default image if no profile picture
+                        }
+                      />
+                      <TouchableOpacity
+                        style={styles.editProfileImage}
+                        onPress={pickImage}
+                      >
+                        <Icon name="edit" size={20} color="white" />
+                      </TouchableOpacity>
                     </TouchableOpacity>
-                  </TouchableOpacity>
-                </View>
+                  </View>
+                  {/* Other Input Fields */}
 
-                {/* Other Input Fields */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Name"
-                  value={editableInfo.name}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, name: text })
-                  }
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  value={editableInfo.email}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, email: text })
-                  }
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Phone Number"
-                  value={editableInfo.phone}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, phone: text })
-                  }
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Address"
-                  value={editableInfo.address}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, address: text })
-                  }
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="House Type"
-                  value={editableInfo.houseType}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, houseType: text })
-                  }
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Pet Owner"
-                  value={editableInfo.hasPet}
-                  onChangeText={(text) =>
-                    setEditableInfo({ ...editableInfo, hasPet: text })
-                  }
-                />
-
-                {/* Save and Cancel Buttons */}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Name"
+                    value={editableInfo.name}
+                    onChangeText={(text) =>
+                      setEditableInfo({ ...editableInfo, name: text })
+                    }
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="words"
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    value={editableInfo.email}
+                    onChangeText={(text) =>
+                      setEditableInfo({ ...editableInfo, email: text })
+                    }
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="none"
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Phone Number"
+                    value={editableInfo.phone}
+                    onChangeText={(text) =>
+                      setEditableInfo({ ...editableInfo, phone: text })
+                    }
+                    keyboardType="number-pad"
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="sentences"
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Address"
+                    value={editableInfo.address}
+                    onChangeText={(text) =>
+                      setEditableInfo({ ...editableInfo, address: text })
+                    }
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="sentences"
+                  />
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={editableInfo.houseType}
+                      onValueChange={(value) =>
+                        setEditableInfo((prevState) => ({
+                          ...prevState,
+                          houseType: value,
+                        }))
+                      }
+                    >
+                      {houseTypeOptions.map((option) => (
+                        <Picker.Item
+                          key={option}
+                          label={option}
+                          value={option}
+                          style={styles.pickerItemText}
+                        />
+                      ))}
+                    </Picker>
+                  </View>
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={editableInfo.hasPet}
+                      onValueChange={(value) =>
+                        setEditableInfo((prevState) => ({
+                          ...prevState,
+                          hasPet: value,
+                        }))
+                      }
+                    >
+                      {petOptions.map((option) => (
+                        <Picker.Item
+                          key={option}
+                          label={option}
+                          value={option}
+                          style={styles.pickerItemText}
+                        />
+                      ))}
+                    </Picker>
+                  </View>
+                </ScrollView>
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
                     style={styles.cancelButton}
@@ -291,10 +438,18 @@ const Profile = () => {
                     <Text style={styles.buttonText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.logoutButtonModal}
+                    style={[
+                      styles.logoutButtonModal,
+                      isSaving && { opacity: 0.5 },
+                    ]} // Add opacity for visual feedback
                     onPress={handleSave}
+                    disabled={isSaving} // Disable button during loading
                   >
-                    <Text style={styles.buttonText}>Save</Text>
+                    {isSaving ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.buttonText}>Save</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -360,7 +515,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginTop: 100,
+    marginTop: 60,
     marginBottom: 20,
   },
   profileImage: {
@@ -380,7 +535,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lilita",
     fontSize: 16,
     textAlign: "center",
-    marginVertical: 60,
+    marginVertical: 50,
     color: "#68C2FF",
   },
   detailsContainer: {
@@ -415,17 +570,21 @@ const styles = StyleSheet.create({
     color: "white",
     alignSelf: "center",
   },
+  scrollViewContent2: {
+    paddingBottom: 0,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    backgroundColor: "#fff",
-    marginHorizontal: 20,
+    width: "90%", // Adjust the width as needed
+    maxHeight: "90%", // Restrict height of the modal content
+    backgroundColor: "white",
     borderRadius: 10,
     padding: 20,
-    elevation: 5,
   },
   modalTitle: {
     fontSize: 20,
@@ -434,12 +593,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   input: {
+    marginTop: 10,
+    marginBottom: 5,
+    backgroundColor: "#F5F5F5",
+  },
+  input2: {
+    marginTop: 10,
+    marginBottom: 5,
+    paddingVertical: 5,
+    backgroundColor: "#F5F5F5",
+    fontSize: 16,
+    borderRadius: 5,
+  },
+  picker: {
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
-    padding: 10,
-    marginVertical: 10,
     fontSize: 14,
+  },
+  pickerItemText: {
+    fontFamily: "Lato",
+    fontSize: 16,
   },
   modalButtons: {
     flexDirection: "row",

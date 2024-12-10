@@ -13,12 +13,15 @@ import { useRouter } from "expo-router"; // Import useRouter
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
 import FeedHeader from "../../components/FeedHeader"; // Import your Header component
+import SideBar from "../../components/SideBar";
 import { usePets } from "../../context/PetContext"; // Adjust the path as needed
 
 const Feed = () => {
   const params = useLocalSearchParams();
   const { pets } = usePets(); // Access shared pets state
   const router = useRouter(); // For navigation
+  const { filteredPets, setFilteredPets } = usePets(); // Added
+  const [selectedItem, setSelectedItem] = useState("Main");
 
   // Parse the selectedImages string back into an array
   const selectedImages = params.selectedImages
@@ -37,73 +40,87 @@ const Feed = () => {
     typeof params.petVaccinated !== "undefined" &&
     selectedImages.length > 0;
 
-  const [isFavorited, setIsFavorited] = useState(false);
+  // State to track favorited pets by their IDs
+  const [favoritedPets, setFavoritedPets] = useState({});
 
-  const toggleFavorite = () => {
-    setIsFavorited(!isFavorited);
+  // Function to toggle favorite status of a pet
+  const toggleFavorite = (petId) => {
+    setFavoritedPets((prevState) => ({
+      ...prevState,
+      [petId]: !prevState[petId],
+    }));
   };
 
   // Render pet item
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.7}
-      onPress={() => {
-        router.push({
-          pathname: "/PetDetails",
-          params: {
-            ...item,
-            images: JSON.stringify(item.images),
-          },
-        });
-      }}
-    >
-      <View style={styles.imageContainer}>
-        <TouchableOpacity style={styles.favoriteIconButton} onPress={toggleFavorite}>
-          <FontAwesome
-            name={isFavorited ? "heart" : "heart-o"}
-            size={20}
-            color={isFavorited ? "#FF6B6B" : "#FFFFFF"} // Red for heart, white for heart-o
-          />
-        </TouchableOpacity>
-        <Image source={{ uri: item.images[0] }} style={styles.image} />
-      </View>
-      <View style={styles.petDetailsContainer}>
-        <View style={styles.nameGenderContainer}>
-          <Text style={styles.name}>{item.petName}</Text>
-          <View style={styles.genderContainer}>
-            {item.petGender === "Female" ? (
-              <Foundation name="female-symbol" size={24} color="#EF5B5B" />
-            ) : (
-              <Foundation name="male-symbol" size={24} color="#68C2FF" />
-            )}
-          </View>
+  const renderItem = ({ item }) => {
+    const isFavorited = favoritedPets[item.id]; // Check if this pet is favorited
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.7}
+        onPress={() => {
+          router.push({
+            pathname: "/PetDetails",
+            params: {
+              ...item,
+              images: JSON.stringify(item.images),
+            },
+          });
+        }}
+      >
+        <View style={styles.imageContainer}>
+          <TouchableOpacity
+            style={styles.favoriteIconButton}
+            onPress={() => toggleFavorite(item.id)} // Toggle the favorite for this pet
+          >
+            <FontAwesome
+              name={isFavorited ? "heart" : "heart-o"}
+              size={20}
+              color={isFavorited ? "#FF6B6B" : "#FFFFFF"} // Red for heart, white for heart-o
+            />
+          </TouchableOpacity>
+          <Image source={{ uri: item.images[0] }} style={styles.image} />
         </View>
-        <Text style={styles.age}>{item.petAge}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.petDetailsContainer}>
+          <View style={styles.nameGenderContainer}>
+            <Text style={styles.name}>{item.petName}</Text>
+            <View style={styles.genderContainer}>
+              {item.petGender === "Female" ? (
+                <Foundation name="female-symbol" size={24} color="#EF5B5B" />
+              ) : (
+                <Foundation name="male-symbol" size={24} color="#68C2FF" />
+              )}
+            </View>
+          </View>
+          <Text style={styles.age}>{item.petAge}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <FeedHeader />
-      {pets.length > 0 ? (
-        <FlatList
-          data={pets}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.container}
-        />
-      ) : (
-        <View style={styles.noPetsContainer}>
-          <Text style={styles.noPetsText}>
-            No pets available. Add a pet to display here!
-          </Text>
-        </View>
-      )}
-    </SafeAreaView>
+    <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
+      <SafeAreaView style={styles.safeArea}>
+        <FeedHeader setFilteredPets={setFilteredPets} />
+        {pets.length > 0 ? (
+          <FlatList
+            data={filteredPets}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={styles.container}
+          />
+        ) : (
+          <View style={styles.noPetsContainer}>
+            <Text style={styles.noPetsText}>
+              No pets available. Add a pet to display here!
+            </Text>
+          </View>
+        )}
+      </SafeAreaView>
+    </SideBar>
   );
 };
 
@@ -139,15 +156,15 @@ const styles = StyleSheet.create({
   favoriteIconButton: {
     width: 30,
     height: 30,
-    backgroundColor: 'rgba(128, 128, 128, 0.7)', // Gray with 70% opacity
+    backgroundColor: "rgba(128, 128, 128, 0.7)", // Gray with 70% opacity
     borderRadius: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 1,
-    position: 'absolute',
+    position: "absolute",
     marginLeft: 140,
     marginTop: 10,
-},
+  },
   image: {
     width: "100%",
     height: 160,
