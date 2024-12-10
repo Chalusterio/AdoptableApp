@@ -12,13 +12,14 @@ import { useLocalSearchParams } from "expo-router";
 import { useRouter } from "expo-router"; // Import useRouter
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
-import FeedHeader from "../../../components/FeedHeader"; // Import your Header component
-import { usePets } from "../../../context/PetContext"; // Adjust the path as needed
+import FeedHeader from "../../components/FeedHeader"; // Import your Header component
+import { usePets } from "../../context/PetContext"; // Adjust the path as needed
 
 const Feed = () => {
   const params = useLocalSearchParams();
   const { pets } = usePets(); // Access shared pets state
   const router = useRouter(); // For navigation
+  const { filteredPets, setFilteredPets } = usePets(); // Added
 
   // Parse the selectedImages string back into an array
   const selectedImages = params.selectedImages
@@ -98,10 +99,10 @@ const Feed = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <FeedHeader />
+      <FeedHeader setFilteredPets={setFilteredPets} />
       {pets.length > 0 ? (
         <FlatList
-          data={pets}
+          data={filteredPets}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           numColumns={2}

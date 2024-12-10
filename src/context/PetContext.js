@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getFirestore, collection, getDocs, onSnapshot } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  onSnapshot,
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const PetContext = createContext();
@@ -27,6 +31,7 @@ export const PetProvider = ({ children }) => {
         ...doc.data(),
       }));
       setPets(petList); // Set fetched pets to state
+      setFilteredPets(petList); // Initialize filteredPets with full list
     });
 
     // Cleanup the listener on component unmount
@@ -51,14 +56,18 @@ export const PetProvider = ({ children }) => {
     }
 
     if (filters.age) {
-      filtered = filtered.filter((pet) => Number(pet.petAge) === Number(filters.age));
+      filtered = filtered.filter(
+        (pet) => Number(pet.petAge) === Number(filters.age)
+      );
     }
 
     if (filters.weight) {
-      filtered = filtered.filter((pet) => pet.petWeight === filters.weight);
+      filtered = filtered.filter(
+        (pet) => Number(pet.petWeight) === Number(filters.weight)
+      );
     }
 
-    if (filters.personality.length > 0) {
+    if (filters.personality && filters.personality.length > 0) {
       filtered = filtered.filter((pet) =>
         filters.personality.some((trait) =>
           pet.petPersonality.includes(trait)
@@ -72,11 +81,30 @@ export const PetProvider = ({ children }) => {
       );
     }
 
+    if (filters.petType) {
+      filtered = filtered.filter((pet) => pet.petType === filters.petType);
+    }
+
+    if (filters.price) {
+      filtered = filtered.filter(
+        (pet) => Number(pet.price) <= Number(filters.price)
+      );
+    }
+
     setFilteredPets(filtered); // Update filtered pets list
   };
 
   return (
-    <PetContext.Provider value={{ pets, filteredPets, setPets, addPet, applyFilters }}>
+    <PetContext.Provider
+      value={{
+        pets,
+        filteredPets,
+        setPets,
+        addPet,
+        applyFilters,
+        setFilteredPets,
+      }}
+    >
       {children}
     </PetContext.Provider>
   );

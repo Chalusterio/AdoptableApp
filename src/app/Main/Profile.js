@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker"; // Import the Picker
-import { auth, signOut, db } from "../../../../firebase"; // Ensure this imports your Firebase setup
+import { auth, signOut, db } from "../../../firebase"; // Ensure this imports your Firebase setup
 import {
   getDocs,
   collection,
@@ -221,7 +221,7 @@ const Profile = () => {
               source={
                 profileInfo.profilePicture
                   ? { uri: profileInfo.profilePicture } // Firebase Storage URL
-                  : require("../../../assets/Profile/dp.png") // Default image
+                  : require("../../assets/Profile/dp.png") // Default image
               }
             />
 
@@ -297,7 +297,7 @@ const Profile = () => {
                             ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
                             : profileInfo.profilePicture
                             ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
-                            : require("../../../assets/Profile/dp.png") // Default image if no profile picture
+                            : require("../../assets/Profile/dp.png") // Default image if no profile picture
                         }
                       />
                       <TouchableOpacity

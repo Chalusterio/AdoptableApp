@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import SideBar from "../components/SideBar";
 
-const Favorites = () => {
+const Upload = () => {
   return (
+    <SideBar>
     <View style={styles.container}>
-      <Text style={styles.title}>This is the Favorites Drawer</Text>
+      <Text style={styles.title}>This is the Upload Drawer</Text>
       <Text style={styles.subtitle}>Freely navigate through the app!</Text>
     </View>
+    </SideBar>
   );
 };
 
@@ -33,4 +36,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Favorites;
+export default Upload;

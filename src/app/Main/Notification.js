@@ -10,7 +10,7 @@ const Notification = () => {
   const [notifications, setNotifications] = useState([
     {
       id: 1,
-      image: require("../../../assets/Notification/notifLogo.png"),
+      image: require("../../assets/Notification/notifLogo.png"),
       name: "CDO Animal Welfare Society Inc",
       content: "Has approved your adoption request! Click Here to see the full payment information.",
       time: "1:25 PM",
@@ -18,7 +18,7 @@ const Notification = () => {
     },
     {
       id: 2,
-      image: require("../../../assets/Notification/notifLogo.png"),
+      image: require("../../assets/Notification/notifLogo.png"),
       name: "CDO Animal Welfare Society Inc",
       content: "We are preparing Shiro for departure.",
       time: "9:55 PM",
@@ -26,7 +26,7 @@ const Notification = () => {
     },
     {
       id: 3,
-      image: require("../../../assets/Profile/dp.png"),
+      image: require("../../assets/Profile/dp.png"),
       name: "Mary Jane",
       content: "A wild Mary Jane has requested to adopt your pet.",
       time: "6:40 PM",
