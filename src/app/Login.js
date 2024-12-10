@@ -118,12 +118,12 @@ export default function Login() {
             source={require("../assets/Login/loginPawImage.png")}
             style={styles.loginPawImage}
             resizeMode="cover"
-          >
-            <View style={styles.textOverlayContainer}>
-              <Text style={styles.welcomeBackText}>Welcome Back!</Text>
-              <Text style={styles.loginText}>Login to your account</Text>
-            </View>
-          </ImageBackground>
+          ></ImageBackground>
+        </View>
+
+        <View style={styles.textOverlayContainer}>
+          <Text style={styles.welcomeBackText}>Welcome Back!</Text>
+          <Text style={styles.loginText}>Login to your account</Text>
         </View>
 
         <View
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     flexDirection: "column",
   },
   backgroundContainer: {
-    height: "30%", // Set fixed height for the background image
+    height: 300, // Set fixed height for the background image
     width: "100%",
     justifyContent: "center",
     alignItems: "center",
@@ -265,10 +265,9 @@ const styles = StyleSheet.create({
     width: "130%",
   },
   textOverlayContainer: {
-    position: "absolute",
-    top: "40%", // Adjust this to control vertical alignment
-    width: "100%",
-    justifyContent: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -180,
   },
   welcomeBackText: {
     fontSize: 50,
@@ -291,6 +290,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     width: "90%",
+    marginTop: -40,
   },
   input: {
     backgroundColor: "#F3F3F3",

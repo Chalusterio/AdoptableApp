@@ -1,52 +1,63 @@
-import { Tabs } from "expo-router";
-import TabBar from "../../components/TabBar";
-import PetProvider from "../../context/PetContext";
-import UserProvider from "../../context/UserContext";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Drawer } from 'expo-router/drawer';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import DrawerComponent from '../../components/DrawerComponent';
 
-const Main = () => {
+export default function DrawerLayout() {
   return (
-    <UserProvider>
-      <PetProvider>
-        <Tabs tabBar={(props) => <TabBar {...props} />}>
-          <Tabs.Screen
-            name="index"
-            options={{
-              title: "Home",
-              headerShown: false,
-            }}
-          />
-          <Tabs.Screen
-            name="Track"
-            options={{
-              title: "Track",
-              headerShown: false,
-            }}
-          />
-          <Tabs.Screen
-            name="List"
-            options={{
-              title: "List",
-              headerShown: false,
-            }}
-          />
-          <Tabs.Screen
-            name="Notification"
-            options={{
-              title: "Notifications",
-              headerShown: false,
-            }}
-          />
-          <Tabs.Screen
-            name="Profile"
-            options={{
-              title: "Profile",
-              headerShown: false,
-            }}
-          />
-        </Tabs>
-      </PetProvider>
-    </UserProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Drawer
+        drawerContent={(props) => <DrawerComponent {...props} />}
+        screenOptions={{
+          drawerActiveTintColor: 'white',
+          drawerActiveBackgroundColor: '#555',
+          drawerInactiveTintColor: 'black',
+          drawerInactiveBackgroundColor: 'transparent',
+        }}
+      >
+        <Drawer.Screen
+          name="(tabs)"
+          options={{
+            drawerLabel: 'Home',
+            title: 'Home',
+            drawerIcon: ({ focused, color, size }) => (
+              <MaterialCommunityIcons
+                name={focused ? 'home' : 'home-outline'}
+                color={focused ? 'white' : color}
+                size={size}
+              />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="Favorites"
+          options={{
+            drawerLabel: 'Favorites',
+            title: 'Favorites',
+            drawerIcon: ({ focused, color, size }) => (
+              <MaterialCommunityIcons
+                name={focused ? 'heart' : 'heart-outline'}
+                color={focused ? 'white' : color}
+                size={size}
+              />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="Donate"
+          options={{
+            drawerLabel: 'Donate',
+            title: 'Donate',
+            drawerIcon: ({ focused, color, size }) => (
+              <MaterialCommunityIcons
+                name={focused ? 'hand-coin' : 'hand-coin-outline'}
+                color={focused ? 'white' : color}
+                size={size}
+              />
+            ),
+          }}
+        />
+      </Drawer>
+    </GestureHandlerRootView>
   );
-};
-
-export default Main;
+}

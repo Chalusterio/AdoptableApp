@@ -224,6 +224,7 @@ export default function Signup() {
                     style={[
                       styles.nameInput,
                       errors.lastName && styles.errorInput,
+                      styles.lastNameInput,
                     ]}
                     left={<TextInput.Icon icon="account" />}
                     mode="flat"
@@ -451,12 +452,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    width: "100%", // Ensure it takes up the full width available
   },
   nameInput: {
     flex: 1,
-    marginHorizontal: 5, // Space between inputs
     marginBottom: 20,
     backgroundColor: "#F5F5F5",
+  },
+  lastNameInput: {
+    marginLeft: 10, // Adds space between the first name and last name inputs
   },
   socialContainer: {
     flexDirection: "row",

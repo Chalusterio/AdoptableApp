@@ -18,7 +18,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import * as FileSystem from "expo-file-system";
-import { usePets } from "../../context/PetContext"; // Adjust the path as needed
+import { usePets } from "../../../context/PetContext"; // Adjust the path as needed
 import { useNavigation } from "@react-navigation/native";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
