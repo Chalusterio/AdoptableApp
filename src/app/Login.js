@@ -20,6 +20,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { getUserData } from "../../firebase";
 import { auth, signInWithEmailAndPassword } from "../../firebase"; // Make sure to import Firebase auth methods
+import { persistSession } from "../../firebase"; // Make sure the path is correct
+
 
 export default function Login() {
   const theme = useTheme();
@@ -104,6 +106,7 @@ export default function Login() {
         password
       );
       const user = userCredential.user;
+      await persistSession(user);
 
       // Fetch user data from Firestore
       const userData = await getUserData(user.uid); // Using getUserData from your firebase.js

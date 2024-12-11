@@ -21,7 +21,7 @@ const db = getFirestore(app);
 const storage = getStorage(app); // Initialize Firebase Storage
 
 // Function to persist session data
-const persistSession = async (user) => {
+export const persistSession = async (user) => {
   try {
     const sessionData = JSON.stringify(user);
     await AsyncStorage.setItem('userSession', sessionData);
@@ -30,6 +30,7 @@ const persistSession = async (user) => {
     console.error('Error saving session: ', error);
   }
 };
+
 
 // Function to retrieve session data
 export const getSession = async () => {
@@ -43,7 +44,7 @@ export const getSession = async () => {
 };
 
 // Function to clear session data
-const clearSession = async () => {
+export const clearSession = async () => {
   try {
     await AsyncStorage.removeItem('userSession');
     console.log('User session cleared');

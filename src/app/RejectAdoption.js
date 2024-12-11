@@ -1,38 +1,66 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams  } from 'expo-router';
-import { useNavigation } from '@react-navigation/native'; // For navigation
-import * as SplashScreen from 'expo-splash-screen';
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRoute } from "@react-navigation/native";
+import * as SplashScreen from "expo-splash-screen";
+import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
 
-export default function AcceptAdoption({ }) {
-  const router = useRouter();
-
-  const navigation = useNavigation(); // Hook to handle navigation
-  const [isLoading, setIsLoading] = useState(true); // State to control loading state
-
-  // Handle splash screen and navigation after 2 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      router.push('/Main/Notification'); // Navigate to Notification tab
-    }, 3000); // Delay for 5 seconds
-
-    return () => clearTimeout(timer); // Clean up the timer
-  }, [navigation]);
+export default function RejectAdoption() {
+  const route = useRoute();
+  const { adopterEmail, petName = "Pet" } = route.params || {};
+  const [adopterName, setAdopterName] = useState("Adopter");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function prepare() {
-      await SplashScreen.preventAutoHideAsync(); // Prevent auto-hide of splash screen
+    async function fetchAdopterName() {
+      const db = getFirestore();
+      try {
+        const q = query(
+          collection(db, "users"),
+          where("email", "==", adopterEmail)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const userData = querySnapshot.docs[0].data();
+          setAdopterName(userData.name || "Adopter");
+        } else {
+          console.warn("No user found with the provided email.");
+        }
+      } catch (error) {
+        console.error("Error fetching adopter's name:", error);
+      }
     }
+
+    async function prepare() {
+      await SplashScreen.preventAutoHideAsync();
+      await fetchAdopterName();
+      setTimeout(async () => {
+        setIsLoading(false);
+        await SplashScreen.hideAsync();
+      }, 3000);
+    }
+
     prepare();
-  }, []);
+  }, [adopterEmail]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ActivityIndicator size="large" color="#FFFFFF" />
+        <Text style={styles.loadingText}>Processing decision...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.greetingsText}>You rejected {'\n'} Mary Jane as Shiro’s fur parent.</Text>
-        <Text style={styles.instructionText}>We’ll notify her of the decision. Feel free to review other potential adopters for Shiro.</Text>
+        <Text style={styles.greetingsText}>
+          You rejected {"\n"} {adopterName} as {petName}’s fur parent.
+        </Text>
+        <Text style={styles.instructionText}>
+          We’ll notify {adopterName} of the decision. Feel free to review other potential adopters for {petName}.
+        </Text>
       </View>
     </SafeAreaView>
   );
@@ -42,25 +70,29 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#68C2FF",
-    alignItems: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: "center",
   },
   greetingsText: {
-    fontSize: 25, 
-    fontFamily: 'Lilita',
-    color: 'white',
+    fontSize: 25,
+    fontFamily: "Lilita",
+    color: "white",
     marginTop: 15,
-    textAlign: 'center',
+    textAlign: "center",
   },
   instructionText: {
-    fontSize: 18, 
-    fontFamily: 'Lato',
-    color: 'white',
+    fontSize: 18,
+    fontFamily: "Lato",
+    color: "white",
     margin: 20,
-    textAlign: 'center',
+    textAlign: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "white",
   },
 });
