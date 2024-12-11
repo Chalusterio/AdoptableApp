@@ -10,7 +10,7 @@ import { Surface } from "react-native-paper";
 import { doc, getDoc } from "firebase/firestore"; // Import Firestore functions
 
 const Favorites = () => {
-  const { favoritedPets, setFilteredPets, pets } = usePets(); // Use favoritedPets from context
+  const { favoritedPets, setFilteredPets, pets, toggleFavorite, } = usePets(); // Use favoritedPets from context
   const router = useRouter();
   const [selectedItem, setSelectedItem] = useState("Favorites");
 
