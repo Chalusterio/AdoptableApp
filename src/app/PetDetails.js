@@ -6,7 +6,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions, Modal, modalVisible
+  Dimensions,
+  Modal,
+  modalVisible,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
@@ -30,6 +32,7 @@ const PetDetails = () => {
     petDescription,
     petIllnessHistory,
     petVaccinated,
+    adoptionFee,
     images,
     username,
     profileImage,
@@ -45,7 +48,6 @@ const PetDetails = () => {
   const scrollViewRef = useRef(null);
   const [imageURLs, setImageURLs] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-
 
   useEffect(() => {
     // Check if the user is logged in
@@ -102,7 +104,7 @@ const PetDetails = () => {
     try {
       const user = auth.currentUser;
       if (!user) throw new Error("User not logged in");
-  
+
       const adoptionRequest = {
         petName,
         adopterEmail: user.email,
@@ -110,24 +112,22 @@ const PetDetails = () => {
         requestDate: new Date(),
         status: "Pending",
       };
-  
+
       await addDoc(collection(db, "pet_request"), adoptionRequest);
-  
+
       // Show success message using alert
       alert("Success: We've notified the pet lister about your request!");
-  
+
       // Close the modal
       setModalVisible(false);
     } catch (error) {
       alert("Error: Failed to submit adoption request. Please try again.");
-  
+
       // Close the modal in case of error
       setModalVisible(false);
     }
   };
-  
-  
-  
+
   const onScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const imageWidth = Dimensions.get("window").width;
@@ -248,7 +248,9 @@ const PetDetails = () => {
               />
             </TouchableOpacity>
           </View>
-          <Text style={styles.subText}>{`${petAge} | ${petWeight}`}</Text>
+          <Text
+            style={styles.subText}
+          >{`${petAge} Years | ${petWeight} kg`}</Text>
           <Text style={styles.personalityText}>
             {petPersonality
               .split(",")
@@ -267,6 +269,7 @@ const PetDetails = () => {
               </Text>
             ))}
           </View>
+          <Text style={styles.adoptionFee}>₱ {adoptionFee}</Text>
         </View>
 
         {/* "Posted By" */}
@@ -323,14 +326,13 @@ const PetDetails = () => {
               <TouchableOpacity
                 style={styles.confirmButton}
                 onPress={handleAdoptConfirmation}
-            >
+              >
                 <Text style={styles.confirmButtonText}>Yes</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
     </View>
   );
 };
@@ -390,6 +392,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between", // Distribute space evenly between items
     alignItems: "center", // Align items vertically in the center
   },
+  adoptionFee: {
+    fontSize: 24,
+    fontFamily: "Lilita",
+    color: "#333",
+    marginRight: 10, // Add some right margin if necessary
+  },
   petName: {
     fontSize: 24,
     fontFamily: "Lilita",
@@ -425,6 +433,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "LatoBold",
     color: "#333",
+    marginTop: 30,
+  },
+  adoptionFee: {
+    fontSize: 24,
+    fontFamily: "Lilita",
+    color: "#EF5B5B",
     marginTop: 30,
   },
   bulletText: {
@@ -579,5 +593,3 @@ const styles = StyleSheet.create({
 });
 
 export default PetDetails;
-
-

@@ -9,6 +9,7 @@ import {
   Modal,
   TouchableWithoutFeedback,
   Keyboard,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import SideBar from "../components/SideBar";

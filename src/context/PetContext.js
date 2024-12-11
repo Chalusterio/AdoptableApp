@@ -126,10 +126,16 @@ export const PetProvider = ({ children }) => {
       filtered = filtered.filter((pet) => pet.petType === filters.petType);
     }
 
-    if (filters.price) {
-      filtered = filtered.filter(
-        (pet) => Number(pet.price) <= Number(filters.price)
-      );
+    if (filters.adoptionFee) {
+      if (filters.adoptionFee === "1001-1200") {
+        // Handle the case for "₱1000+" which means adoption fees greater than 1000
+        filtered = filtered.filter((pet) => Number(pet.adoptionFee) > 1000);
+      } else {
+        const [minFee, maxFee] = filters.adoptionFee.split('-').map(Number);
+        filtered = filtered.filter(
+          (pet) => Number(pet.adoptionFee) >= minFee && Number(pet.adoptionFee) <= maxFee
+        );
+      }
     }
 
     setFilteredPets(filtered); // Update filtered pets list
