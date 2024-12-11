@@ -1,11 +1,13 @@
-import React, { useState, useRef, useEffect } from "react";
-import { View, Text, Image, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Modal } from "react-native";
+import React, { useState, useRef } from "react";
+import { View, Text, Image, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Modal, TextInput } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { db, auth } from "../../firebase"; // Ensure `auth` is imported from Firebase
-import { collection, addDoc, doc, deleteDoc } from "firebase/firestore";
+import { db } from "../../firebase"; // Ensure `db` is imported from Firebase
+import { doc, deleteDoc, updateDoc } from "firebase/firestore";
+import * as ImagePicker from "expo-image-picker";
+import { Picker } from "@react-native-picker/picker"; // Import Picker
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -23,14 +25,23 @@ const PetDetailsEdit = () => {
     images,
     petId,  // Assuming petId is passed in the params for the pet
   } = useLocalSearchParams();
+  
   const parsedImages = JSON.parse(images || "[]");
 
   const [isFavorited, setIsFavorited] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const scrollViewRef = useRef(null);
+  const [editedPetName, setEditedPetName] = useState(petName);
+  const [editedPetAge, setEditedPetAge] = useState(petAge);
+  const [editedPetWeight, setEditedPetWeight] = useState(petWeight);
+  const [editedPetPersonality, setEditedPetPersonality] = useState(petPersonality);
+  const [editedPetDescription, setEditedPetDescription] = useState(petDescription);
+  const [editedPetVaccinated, setEditedPetVaccinated] = useState(petVaccinated);
+  const [editedPetType, setEditedPetType] = useState(petType);
+  const [editedPetGender, setEditedPetGender] = useState(petGender);
 
+  const scrollViewRef = useRef(null);
   const router = useRouter();
 
   const toggleFavorite = () => {
@@ -45,7 +56,6 @@ const PetDetailsEdit = () => {
   };
 
   const handleEdit = () => {
-    // Open the modal to edit pet details
     setModalVisible(true);
   };
 
@@ -58,6 +68,28 @@ const PetDetailsEdit = () => {
     } catch (error) {
       console.error("Error deleting pet: ", error);
       alert("Error deleting pet. Please try again.");
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const petRef = doc(db, "listed_pets", petId);
+      const updatedPetData = {
+        petName: editedPetName,
+        petAge: editedPetAge,
+        petWeight: editedPetWeight,
+        petPersonality: editedPetPersonality,
+        petDescription: editedPetDescription,
+        petVaccinated: editedPetVaccinated,
+        petType: editedPetType,
+        petGender: editedPetGender,
+      };
+      await updateDoc(petRef, updatedPetData);
+      alert("Pet details updated successfully!");
+      setModalVisible(false);
+    } catch (error) {
+      console.error("Error updating pet: ", error);
+      alert("Error updating pet details. Please try again.");
     }
   };
 
@@ -168,34 +200,6 @@ const PetDetailsEdit = () => {
         </View>
       </View>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        visible={deleteModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setDeleteModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Are you sure you want to delete {petName}?</Text>
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setDeleteModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleDelete}
-              >
-                <Text style={styles.confirmButtonText}>Yes, Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* Edit Modal */}
       <Modal
         visible={modalVisible}
@@ -206,28 +210,174 @@ const PetDetailsEdit = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Edit Pet Details</Text>
-            {/* Add form fields for editing here */}
-            {/* For example: */}
-            {/* <TextInput value={petName} onChangeText={setPetName} /> */}
-            {/* Other fields */}
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.buttonText}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
+
+            <ScrollView contentContainerStyle={styles.scrollViewContent2}>
+              {/* Pet's Name */}
+              <Text style={styles.question}>Pet's Name:</Text>
+              <TextInput
+                placeholder="Pet's Name"
+                value={editedPetName}
+                onChangeText={setEditedPetName}
+                style={[styles.input]}
+              />
+
+              {/* Pet Type - Side by side Buttons */}
+              <Text style={styles.question}>Pet Type:</Text>
+              <View style={styles.optionRow}>
+                <TouchableOpacity
+                  style={[styles.optionButton, editedPetType === "Cat" && styles.selectedOptionButton]}
+                  onPress={() => setEditedPetType("Cat")}
+                >
+                  <MaterialCommunityIcons
+                    name="cat"
+                    size={24}
+                    color={editedPetType === "Cat" ? "#68C2FF" : "#C2C2C2"}
+                  />
+                  <Text
+                    style={[styles.optionText, editedPetType === "Cat" && styles.selectedOptionText]}
+                  >
+                    Cat
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionButton, editedPetType === "Dog" && styles.selectedOptionButton]}
+                  onPress={() => setEditedPetType("Dog")}
+                >
+                  <MaterialCommunityIcons
+                    name="dog"
+                    size={24}
+                    color={editedPetType === "Dog" ? "#68C2FF" : "#C2C2C2"}
+                  />
+                  <Text
+                    style={[styles.optionText, editedPetType === "Dog" && styles.selectedOptionText]}
+                  >
+                    Dog
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Gender - Side by side Buttons */}
+              <Text style={styles.question}>Gender:</Text>
+              <View style={styles.optionRow}>
+                <TouchableOpacity
+                  style={[styles.optionButton, editedPetGender === "Female" && styles.selectedOptionButton]}
+                  onPress={() => setEditedPetGender("Female")}
+                >
+                  <Foundation
+                    name="female-symbol"
+                    size={24}
+                    color={editedPetGender === "Female" ? "#68C2FF" : "#C2C2C2"}
+                  />
+                  <Text
+                    style={[styles.optionText, editedPetGender === "Female" && styles.selectedOptionText]}
+                  >
+                    Female
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.optionButton, editedPetGender === "Male" && styles.selectedOptionButton]}
+                  onPress={() => setEditedPetGender("Male")}
+                >
+                  <Foundation
+                    name="male-symbol"
+                    size={24}
+                    color={editedPetGender === "Male" ? "#68C2FF" : "#C2C2C2"}
+                  />
+                  <Text
+                    style={[styles.optionText, editedPetGender === "Male" && styles.selectedOptionText]}
+                  >
+                    Male
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Age */}
+              <Text style={styles.question}>Age:</Text>
+              <TextInput
+                placeholder="e.g., 5 Years 3 Months"
+                value={editedPetAge}
+                onChangeText={setEditedPetAge}
+                style={[styles.input]}
+              />
+
+              {/* Weight (kg) */}
+              <Text style={styles.question}>Weight (kg):</Text>
+              <TextInput
+                placeholder="e.g., 25"
+                value={editedPetWeight}
+                onChangeText={setEditedPetWeight}
+                keyboardType="number-pad"
+                style={[styles.input]}
+              />
+
+              {/* Personality */}
+              <Text style={styles.question}>Personality:</Text>
+              <TextInput
+                placeholder="e.g., Friendly, Playful"
+                value={editedPetPersonality}
+                onChangeText={setEditedPetPersonality}
+                style={[styles.input]}
+              />
+
+              {/* Description */}
+              <Text style={styles.question}>Description:</Text>
+              <TextInput
+                placeholder="Briefly describe this pet"
+                value={editedPetDescription}
+                onChangeText={setEditedPetDescription}
+                style={[styles.input]}
+              />
+
+              {/* Vaccinated - Side by Side Buttons */}
+              <Text style={styles.question}>Is the pet vaccinated?</Text>
+              <View style={styles.optionRow}>
+                <TouchableOpacity
+                  style={[styles.optionButton, editedPetVaccinated === "Yes" && styles.selectedOptionButton]}
+                  onPress={() => setEditedPetVaccinated("Yes")}
+                >
+                  <Text
+                    style={[styles.optionText, editedPetVaccinated === "Yes" && styles.selectedOptionText]}
+                  >
+                    Yes
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.optionButton, editedPetVaccinated === "No" && styles.selectedOptionButton]}
+                  onPress={() => setEditedPetVaccinated("No")}
+                >
+                  <Text
+                    style={[styles.optionText, editedPetVaccinated === "No" && styles.selectedOptionText]}
+                  >
+                    No
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+            </ScrollView>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSave}
+              >
+                <Text style={styles.buttonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
     </View>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -382,44 +532,75 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContainer: {
-    width: "80%",
+    width: "90%",
     backgroundColor: "#FFF",
     borderRadius: 10,
     padding: 20,
     alignItems: "center",
   },
   modalTitle: {
-    fontSize: 18,
-    color: "#333",
+    fontSize: 20,
+    fontWeight: "bold",
     textAlign: "center",
     marginBottom: 20,
   },
-  modalActions: {
+  input: {
+    marginBottom: 10,
+    backgroundColor: "#F5F5F5",
+    padding: 10,
+  },
+  picker: {
+    backgroundColor: "#F5F5F5",
+    marginBottom: 20,
+  },
+  modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "100%",
+    marginTop: 20,
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: "#DDD",
+    backgroundColor: "#CCC",
     padding: 10,
     borderRadius: 5,
     marginRight: 10,
   },
-  cancelButtonText: {
-    textAlign: "center",
-    color: "#555",
-  },
-  confirmButton: {
+  saveButton: {
     flex: 1,
     backgroundColor: "#68C2FF",
     padding: 10,
     borderRadius: 5,
   },
-  confirmButtonText: {
-    textAlign: "center",
-    color: "#FFF",
+  optionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  optionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 25,
+    padding: 12,
+    flex: 1,
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: "#C2C2C2",
+  },
+  optionText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: "#666",
+  },
+  selectedOptionButton: {
+    backgroundColor: "#E6F4FF",
+    borderColor: "#68C2FF",
+  },
+  selectedOptionText: {
+    color: "#68C2FF",
   },
 });
+
+
 
 export default PetDetailsEdit;

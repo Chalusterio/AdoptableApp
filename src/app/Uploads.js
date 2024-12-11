@@ -83,7 +83,7 @@ const Upload = () => {
       },
     });
   };
-  
+    
 
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets[item.id];
