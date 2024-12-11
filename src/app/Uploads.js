@@ -9,18 +9,27 @@ import {
   Modal,
   ScrollView,
 } from "react-native";
-import { getFirestore, collection, query, where, getDocs } from "firebase/firestore"; // Firestore functions
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore"; // Firestore functions
 import { getAuth } from "firebase/auth"; // To get the current user
 import SideBar from "../components/SideBar"; // Importing the SideBar component
 import { FontAwesome } from "@expo/vector-icons"; // Import FontAwesome for heart icons
 import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
+import { useRouter } from "expo-router"; // Get params and router for navigation
 
 const Upload = () => {
+  const router = useRouter();
   const [pets, setPets] = useState([]); // State to store fetched pets
   const db = getFirestore(); // Initialize Firestore
   const auth = getAuth(); // Initialize Firebase Auth
   const [isModalVisible, setIsModalVisible] = useState(false); // State for modal visibility
   const [selectedPet, setSelectedPet] = useState(null); // State to store selected pet details
+  const [selectedItem, setSelectedItem] = useState("Uploads");
 
   // State to track favorited pets by their IDs
   const [favoritedPets, setFavoritedPets] = useState({});
@@ -44,7 +53,10 @@ const Upload = () => {
 
       try {
         const petsCollection = collection(db, "listed_pets"); // Reference to Firestore collection
-        const q = query(petsCollection, where("listedBy", "==", currentUser.email)); // Filter by current user's email
+        const q = query(
+          petsCollection,
+          where("listedBy", "==", currentUser.email)
+        ); // Filter by current user's email
         const snapshot = await getDocs(q);
         const petsData = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -71,6 +83,13 @@ const Upload = () => {
     setSelectedPet(null);
   };
 
+  const handlePetDetailsEdit = (pet) => {
+    router.push({
+      pathname: "/PetDetailsEdit",
+      params: { petId: pet.id },
+    });
+  };
+
   // Render pet item
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets[item.id]; // Check if this pet is favorited
@@ -79,7 +98,7 @@ const Upload = () => {
       <TouchableOpacity
         style={styles.card}
         activeOpacity={0.7}
-        onPress={() => openModal(item)} // Open modal with selected pet
+        onPress={() => handlePetDetailsEdit(item)} // Pass the selected pet as a parameter
       >
         <View style={styles.imageContainer}>
           <TouchableOpacity
@@ -112,7 +131,7 @@ const Upload = () => {
   };
 
   return (
-    <SideBar selectedItem="My Uploads" setSelectedItem={() => {}}>
+    <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
       <View style={styles.container}>
         <Text style={styles.titleText}>Uploads</Text>
         {pets.length > 0 ? (
@@ -126,28 +145,44 @@ const Upload = () => {
           />
         ) : (
           <View style={styles.noPetsContainer}>
-            <Text style={styles.noPetsText}>You haven't uploaded any pets yet.</Text>
+            <Text style={styles.noPetsText}>
+              You haven't uploaded any pets yet.
+            </Text>
           </View>
         )}
       </View>
 
       {/* Pet Details Modal */}
       {selectedPet && (
-        <Modal visible={isModalVisible} transparent={true} animationType="slide">
+        <Modal
+          visible={isModalVisible}
+          transparent={true}
+          animationType="slide"
+        >
           <View style={styles.modalBackdrop}>
             <View style={styles.modalContainer}>
               <ScrollView contentContainerStyle={styles.modalContent}>
-                <Image source={{ uri: selectedPet.images[0] }} style={styles.modalImage} />
+                <Image
+                  source={{ uri: selectedPet.images[0] }}
+                  style={styles.modalImage}
+                />
                 <Text style={styles.modalTitle}>{selectedPet.petName}</Text>
-                <Text style={styles.modalDescription}>{selectedPet.petDescription}</Text>
+                <Text style={styles.modalDescription}>
+                  {selectedPet.petDescription}
+                </Text>
                 <View style={styles.modalInfoContainer}>
-                  <Text style={styles.modalAge}>{selectedPet.petAge} years old</Text>
+                  <Text style={styles.modalAge}>
+                    {selectedPet.petAge} years old
+                  </Text>
                   <Text style={styles.modalGender}>
                     {selectedPet.petGender === "Female" ? "Female" : "Male"}
                   </Text>
                 </View>
                 <View style={styles.modalButtonContainer}>
-                  <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={closeModal}
+                  >
                     <Text style={styles.closeButtonText}>Close</Text>
                   </TouchableOpacity>
                 </View>
