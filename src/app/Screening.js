@@ -9,7 +9,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 export default function Screening() {
   const navigation = useNavigation();
   const route = useRoute(); // Use useRoute to get the params
-  const { adopterEmail, petRequestId } = route.params; // Get parameters from route params
+  const { adopterEmail, petRequestId, petName } = route.params; // Get parameters from route params
   const [adopter, setAdopter] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,12 +52,20 @@ export default function Screening() {
 
   const handleAcceptAdoption = async () => {
     await updatePetRequestStatus("Accepted"); // Update the status to 'accepted'
-    navigation.navigate("AcceptAdoption"); // Navigate to the accept adoption screen
+    navigation.navigate("AcceptAdoption", {
+      adopterEmail,
+      petRequestId,
+      petName, // Pass petName to RejectAdoption
+    });
   };
 
   const handleRejectAdoption = async () => {
     await updatePetRequestStatus("Rejected"); // Update the status to 'rejected'
-    navigation.navigate("RejectAdoption"); // Navigate to the reject adoption screen
+    navigation.navigate("RejectAdoption", {
+      adopterEmail,
+      petRequestId,
+      petName, // Pass petName to RejectAdoption
+    });
   };
 
   if (loading) {

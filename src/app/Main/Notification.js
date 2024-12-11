@@ -34,46 +34,42 @@ const Notification = () => {
       const savedMapping = await loadAdjectiveMapping();
       const notificationsList = [];
 
-      for (const doc of querySnapshot.docs) {
-        const petRequest = doc.data();
+    for (const doc of querySnapshot.docs) {
+  const petRequest = doc.data();
 
-        if (!adopters[petRequest.adopterEmail]) {
-          const adopterDetails = await fetchAdopterDetails(petRequest.adopterEmail);
-          if (adopterDetails) {
-            setAdopters((prev) => ({
-              ...prev,
-              [petRequest.adopterEmail]: adopterDetails,
-            }));
-          }
-        }
+  // Fetch adopter details
+  if (!adopters[petRequest.adopterEmail]) {
+    const adopterDetails = await fetchAdopterDetails(petRequest.adopterEmail);
+    if (adopterDetails) {
+      setAdopters((prev) => ({
+        ...prev,
+        [petRequest.adopterEmail]: adopterDetails,
+      }));
+    }
+  }
 
-        const adopter = adopters[petRequest.adopterEmail] || {};
-        const formattedTime = moment(petRequest.requestDate.seconds * 1000).fromNow();
+  const adopter = adopters[petRequest.adopterEmail] || {};
+  const formattedTime = moment(petRequest.requestDate.seconds * 1000).fromNow();
 
-        if (adopter.name) {
-          const randomAdjective =
-            savedMapping[doc.id] || getRandomAdjective();
-
-          // Update mapping and save it to AsyncStorage
-          if (!savedMapping[doc.id]) {
-            savedMapping[doc.id] = randomAdjective;
-            await saveAdjectiveMapping(savedMapping);
-          }
-
-          notificationsList.push({
-            id: doc.id,
-            image: adopter.profilePicture ? { uri: adopter.profilePicture } : null,
-            name: adopter.name || "Adopter",
-            content: `A ${randomAdjective} ${adopter.name || "Adopter"} has requested to adopt your pet.`,
-            time: formattedTime,
-            action: () =>
-              router.push({
-                pathname: "/Screening",
-                params: { adopterEmail: petRequest.adopterEmail, petRequestId: doc.id },
-              }),
-          });
-        }
-      }
+  if (adopter.name && petRequest.petName) { // Ensure both adopter and pet details are available
+    notificationsList.push({
+      id: doc.id,
+      image: adopter.profilePicture ? { uri: adopter.profilePicture } : null,
+      name: adopter.name || "Adopter",
+      content: `A ${getRandomAdjective()} ${adopter.name || "Adopter"} has requested to adopt your pet.`,
+      time: formattedTime,
+      action: () =>
+        router.push({
+          pathname: "/Screening",
+          params: {
+            adopterEmail: petRequest.adopterEmail,
+            petRequestId: doc.id,
+            petName: petRequest.petName, // Pass pet details here
+          },
+        }),
+    });
+  }
+}
 
       setNotifications(notificationsList);
     };
