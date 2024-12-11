@@ -131,7 +131,7 @@ const Notification = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent} keyboardShouldPersistTaps="handled">
         {notifications.length === 0 ? (
           <View style={styles.messageContainer}>
             <Text style={styles.noNotificationsText}>No notifications available</Text>
@@ -172,10 +172,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  container: {
-    flex: 1,
-    width: "100%",
-    paddingBottom: 20,
+  scrollViewContent: {
+    paddingBottom: 0,
   },
   iconContainer: {
     width: 70,

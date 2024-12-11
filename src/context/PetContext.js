@@ -7,6 +7,10 @@ import {
   updateDoc,
   arrayUnion,
   arrayRemove,
+  getDoc,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
@@ -16,6 +20,7 @@ export const PetProvider = ({ children }) => {
   const [pets, setPets] = useState([]); // State for all pets
   const [filteredPets, setFilteredPets] = useState([]);
   const [favoritedPets, setFavoritedPets] = useState([]); // Store full pet objects
+  const [requestedPets, setRequestedPets] = useState([]); // Store pets with pending requests
   const db = getFirestore(); // Firestore instance
   const auth = getAuth();
   const user = auth.currentUser;
@@ -52,6 +57,41 @@ export const PetProvider = ({ children }) => {
       unsubscribeFavorites(); // Unsubscribe from user's favorites listener
     };
   }, [db, user]);
+
+  // Function to fetch pets with "pending" requests by the current user
+  const fetchRequestedPets = async () => {
+    if (!user) {
+      console.log("User not logged in. Cannot fetch requested pets.");
+      return;
+    }
+  
+    try {
+      console.log("Fetching requested pets for user:", user.email);
+  
+      // Reference to the user's pet request document
+      const userDocRef = doc(db, "pet_request", user.email); // Ensure this matches your Firestore doc ID
+      const userDoc = await getDoc(userDocRef);
+  
+      if (userDoc.exists()) {
+        console.log("User Doc Data:", userDoc.data()); // Log the document data for debugging
+        const requests = userDoc.data().requests || []; // Ensure requests field exists and is an array
+        console.log("Fetched requests:", requests);
+        
+        const pendingRequests = requests.filter(
+          (request) =>
+            request.status === "Pending" && request.adopterEmail === user.email
+        );
+  
+        console.log("Filtered pending requests:", pendingRequests);
+        setRequestedPets(pendingRequests); // Set the filtered requests state
+      } else {
+        console.log("No requests found for the current user.");
+        setRequestedPets([]); // No pending requests found, clear state
+      }
+    } catch (error) {
+      console.error("Error fetching requested pets:", error);
+    }
+  };     
 
   // Function to toggle favorite status of a pet
   const toggleFavorite = async (petId, petData) => {
@@ -128,7 +168,6 @@ export const PetProvider = ({ children }) => {
 
     if (filters.adoptionFee) {
       if (filters.adoptionFee === "1001-1200") {
-        // Handle the case for "₱1000+" which means adoption fees greater than 1000
         filtered = filtered.filter((pet) => Number(pet.adoptionFee) > 1000);
       } else {
         const [minFee, maxFee] = filters.adoptionFee.split('-').map(Number);
@@ -152,6 +191,9 @@ export const PetProvider = ({ children }) => {
         setFilteredPets,
         favoritedPets,
         toggleFavorite,
+        requestedPets, // Add requestedPets to the context
+        setRequestedPets, // Add setter to the context
+        fetchRequestedPets, // Expose the new function
       }}
     >
       {children}
