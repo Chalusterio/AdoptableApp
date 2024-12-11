@@ -6,12 +6,11 @@ import { collection, query, getDocs, where, onSnapshot } from "firebase/firestor
 import { db, auth } from "../../../firebase";
 import { FontAwesome } from '@expo/vector-icons';
 import moment from 'moment';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Notification = () => {
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
-  const [adopters, setAdopters] = useState({});
+  const [users, setUsers] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
@@ -24,39 +23,50 @@ const Notification = () => {
 
     const petRequestsQuery = query(
       collection(db, "pet_request"),
-      where("status", "==", "Pending"),
-      where("listedBy", "==", currentUser.email)
+      where("status", "in", ["Pending", "Accepted", "Rejected"]) // Fetch all relevant statuses
     );
-
+    
     const unsubscribe = onSnapshot(petRequestsQuery, async (querySnapshot) => {
-      const savedMapping = await loadAdjectiveMapping();
       const notificationsList = [];
 
       querySnapshot.forEach((doc) => {
         const petRequest = doc.data();
 
-        if (!adopters[petRequest.adopterEmail]) {
-          fetchAdopterDetails(petRequest.adopterEmail).then((adopterDetails) => {
-            if (adopterDetails) {
-              setAdopters((prev) => ({
+        if (!users[petRequest.adopterEmail]) {
+          fetchUserDetails(petRequest.adopterEmail).then((userDetails) => {
+            if (userDetails) {
+              setUsers((prev) => ({
                 ...prev,
-                [petRequest.adopterEmail]: adopterDetails,
+                [petRequest.adopterEmail]: userDetails,
               }));
             }
           });
         }
 
-        const adopter = adopters[petRequest.adopterEmail] || {};
+        if (!users[petRequest.listedBy]) {
+          fetchUserDetails(petRequest.listedBy).then((userDetails) => {
+            if (userDetails) {
+              setUsers((prev) => ({
+                ...prev,
+                [petRequest.listedBy]: userDetails,
+              }));
+            }
+          });
+        }
+
+        const adopter = users[petRequest.adopterEmail] || {};
+        const petLister = users[petRequest.listedBy] || {};
         const formattedTime = moment(petRequest.requestDate.seconds * 1000).fromNow();
 
-        if (adopter.name && petRequest.petName) {
+        if (petRequest.status === "Pending" && currentUser.email === petRequest.listedBy) {
+          // Notifications for Pending requests visible to lister
           notificationsList.push({
             id: doc.id,
             image: adopter.profilePicture ? { uri: adopter.profilePicture } : null,
             name: adopter.name || "Adopter",
             content: (
               <Text>
-                A {getRandomAdjective()} <Text style={styles.boldText}>{adopter.name || "Adopter"}</Text> has requested to adopt <Text style={styles.boldText}>{petRequest.petName}</Text>.
+                {adopter.name || "Adopter"} has requested to adopt your pet <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             ),
             time: formattedTime,
@@ -71,61 +81,73 @@ const Notification = () => {
               }),
           });
         }
-      });
 
+        if (petRequest.status === "Accepted" && currentUser.email === petRequest.adopterEmail) {
+          // Notifications for Accepted requests visible to adopter
+          notificationsList.push({
+            id: doc.id,
+            image: petLister.profilePicture ? { uri: petLister.profilePicture } : null,
+            name: petLister.name || "Pet Lister",
+            content: (
+              <Text>
+                {petLister.name || "Pet Lister"} has accepted your request to adopt <Text style={styles.boldText}>{petRequest.petName}</Text>.
+                <Text style={styles.linkText}> {"\n"}Click here for more details.</Text>
+              </Text>
+            ),
+            time: moment().fromNow(), 
+            action: () =>
+              router.push({
+                pathname: "/ApproveAdoption",
+                params: {
+                  petRequestId: doc.id,
+                  petName: petRequest.petName,
+                  listedBy: petRequest.listedBy,
+                },
+              }),
+          });
+        }
+
+        if (petRequest.status === "Rejected" && currentUser.email === petRequest.adopterEmail) {
+          // Notifications for Rejected requests visible to the adopter
+          notificationsList.push({
+            id: doc.id,
+            image: petLister.profilePicture ? { uri: petLister.profilePicture } : null,
+            name: petLister.name || "Pet Lister",
+            content: (
+              <Text>
+                {petLister.name || "Pet Lister"} has rejected your adoption request for <Text style={styles.boldText}>{petRequest.petName}</Text>.
+              </Text>
+            ),
+            time: moment().fromNow(), // Current time for Rejected status
+            action: null, // No action needed for Rejected notifications
+          });
+        }
+        
+      });
+      notificationsList.sort((a, b) => b.time.localeCompare(a.time));
       setNotifications(notificationsList);
     });
 
     return () => unsubscribe();
-  }, [currentUser, adopters]);
+  }, [currentUser, users]);
 
-  const fetchAdopterDetails = async (adopterEmail) => {
+  const fetchUserDetails = async (email) => {
     try {
-      const usersQuery = query(
-        collection(db, "users"),
-        where("email", "==", adopterEmail)
-      );
+      const usersQuery = query(collection(db, "users"), where("email", "==", email));
       const querySnapshot = await getDocs(usersQuery);
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0].data();
         return {
           name: userDoc.name,
-          profilePicture: userDoc.profilePicture || null
+          profilePicture: userDoc.profilePicture || null,
         };
       } else {
-        console.log("Adopter not found for email:", adopterEmail);
+        console.log("User not found for email:", email);
         return null;
       }
     } catch (error) {
-      console.error("Error fetching adopter details: ", error);
+      console.error("Error fetching user details: ", error);
       return null;
-    }
-  };
-
-  const adjectives = ["wild", "curious", "bold", "determined", "passionate", "clever", "warm", "generous", "fearless", "playful", "mighty", "vigilant", "wise", "noble", "humble",
-    "lively", "radiant", "gracious","charming"];
-
-  const getRandomAdjective = () => {
-    const consonantAdjectives = adjectives.filter(adj => !/^[aeiou]/i.test(adj));
-    const randomIndex = Math.floor(Math.random() * consonantAdjectives.length);
-    return consonantAdjectives[randomIndex];
-  };
-
-  const saveAdjectiveMapping = async (mapping) => {
-    try {
-      await AsyncStorage.setItem("adjectiveMapping", JSON.stringify(mapping));
-    } catch (error) {
-      console.error("Error saving adjective mapping: ", error);
-    }
-  };
-
-  const loadAdjectiveMapping = async () => {
-    try {
-      const mapping = await AsyncStorage.getItem("adjectiveMapping");
-      return mapping ? JSON.parse(mapping) : {};
-    } catch (error) {
-      console.error("Error loading adjective mapping: ", error);
-      return {};
     }
   };
 
@@ -134,7 +156,7 @@ const Notification = () => {
       <ScrollView contentContainerStyle={styles.scrollViewContent} keyboardShouldPersistTaps="handled">
         {notifications.length === 0 ? (
           <View style={styles.centeredContainer}>
-            <Text style={styles.loadingText}>Loading...</Text>
+            <Text style={styles.loadingText}>No notifications available</Text>
           </View>
         ) : (
           notifications.map((notif) => (
@@ -166,7 +188,6 @@ const Notification = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -208,6 +229,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lato",
     fontSize: 12,
     marginRight: 15,
+    marginLeft: 5,
     color: '#68C2FF',
   },
   horizontalLine: {
@@ -232,6 +254,11 @@ const styles = StyleSheet.create({
   },
   boldText: {
     fontWeight: "bold",
+    color: "#EF5B5B",
+  },
+  linkText: {
+    textDecorationLine: "underline",
+    color: "#084C8F",
   },
   centeredContainer: {
     flex: 1,
@@ -246,5 +273,6 @@ const styles = StyleSheet.create({
     color: "#888",
   },
 });
+
 
 export default Notification;
