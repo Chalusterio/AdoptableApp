@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,15 +6,26 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  SafeAreaView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { FontAwesome } from "@expo/vector-icons";
+import { Foundation } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import { useRouter } from "expo-router"; // Import useRouter
-import { FontAwesome } from "@expo/vector-icons";
-import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
 import FeedHeader from "../../components/FeedHeader"; // Import your Header component
 import SideBar from "../../components/SideBar";
 import { usePets } from "../../context/PetContext"; // Adjust the path as needed
+import {
+  collection,
+  doc,
+  query,
+  where,
+  getDocs,
+  setDoc,
+  arrayUnion,
+  arrayRemove,
+} from "firebase/firestore";
+import { db, auth } from "../../../firebase"; // Ensure `auth` and `db` are imported from Firebase
 
 const Feed = () => {
   const params = useLocalSearchParams();
@@ -42,13 +53,76 @@ const Feed = () => {
 
   // State to track favorited pets by their IDs
   const [favoritedPets, setFavoritedPets] = useState({});
+  const [userFavorites, setUserFavorites] = useState([]); // Define state for user favorites
+
+  // Load the user's favorites when the component mounts
+  useEffect(() => {
+    const fetchUserFavorites = async () => {
+      const user = auth.currentUser; // Get the current logged-in user
+      if (user) {
+        try {
+          const userRef = collection(db, "users");
+          const userQuery = query(userRef, where("email", "==", user.email)); // Filter by email
+          const userSnapshot = await getDocs(userQuery);
+
+          if (!userSnapshot.empty) {
+            const userDoc = userSnapshot.docs[0]; // Get the first document (since email should be unique)
+            const userData = userDoc.data();
+
+            setUserFavorites(userData.favorites || []); // Set the favorites field from user document
+            const userFavoritesIds =
+              userData.favorites?.map((pet) => pet.id) || [];
+            setFavoritedPets((prevState) => {
+              const newState = { ...prevState };
+              userFavoritesIds.forEach((id) => (newState[id] = true));
+              return newState;
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching user favorites:", error);
+        }
+      }
+    };
+
+    fetchUserFavorites();
+  }, []);
 
   // Function to toggle favorite status of a pet
-  const toggleFavorite = (petId) => {
-    setFavoritedPets((prevState) => ({
-      ...prevState,
-      [petId]: !prevState[petId],
-    }));
+  const toggleFavorite = async (petId, petData) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) {
+      console.log("User is not logged in. Cannot toggle favorite.");
+      return;
+    }
+  
+    const userFavoritesRef = doc(db, "users", userId); // User's favorites document reference
+  
+    // Toggle the favorite status locally
+    setFavoritedPets((prevState) => {
+      const newState = { ...prevState };
+      if (newState[petId]) {
+        // If the pet is already favorited, remove it
+        delete newState[petId];
+        setDoc(
+          userFavoritesRef,
+          {
+            favorites: arrayRemove(petData),
+          },
+          { merge: true }
+        );
+      } else {
+        // If the pet is not favorited, add it
+        newState[petId] = true;
+        setDoc(
+          userFavoritesRef,
+          {
+            favorites: arrayUnion(petData),
+          },
+          { merge: true }
+        );
+      }
+      return newState;
+    });
   };
 
   // Render pet item
@@ -72,7 +146,7 @@ const Feed = () => {
         <View style={styles.imageContainer}>
           <TouchableOpacity
             style={styles.favoriteIconButton}
-            onPress={() => toggleFavorite(item.id)} // Toggle the favorite for this pet
+            onPress={() => toggleFavorite(item.id, item)} // Pass pet data to toggleFavorite
           >
             <FontAwesome
               name={isFavorited ? "heart" : "heart-o"}
@@ -103,6 +177,7 @@ const Feed = () => {
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
       <SafeAreaView style={styles.safeArea}>
         <FeedHeader setFilteredPets={setFilteredPets} />
+
         {pets.length > 0 ? (
           <FlatList
             data={filteredPets}

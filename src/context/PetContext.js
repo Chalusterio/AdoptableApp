@@ -2,30 +2,34 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import {
   getFirestore,
   collection,
+  doc,
   onSnapshot,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const PetContext = createContext();
 
 export const PetProvider = ({ children }) => {
-  const [pets, setPets] = useState([]); // State for pets
+  const [pets, setPets] = useState([]); // State for all pets
   const [filteredPets, setFilteredPets] = useState([]);
+  const [favoritedPets, setFavoritedPets] = useState([]); // Store full pet objects
   const db = getFirestore(); // Firestore instance
+  const auth = getAuth();
+  const user = auth.currentUser;
 
   // Fetch pets from Firestore when the provider is mounted
   useEffect(() => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-
     if (!user) {
       console.log("User not logged in. Skipping pet fetch.");
-      return; // Skip fetching if user is not authenticated
+      return;
     }
 
     // Real-time listener for pets collection
     const petCollection = collection(db, "listed_pets");
-    const unsubscribe = onSnapshot(petCollection, (snapshot) => {
+    const unsubscribePets = onSnapshot(petCollection, (snapshot) => {
       const petList = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -34,9 +38,46 @@ export const PetProvider = ({ children }) => {
       setFilteredPets(petList); // Initialize filteredPets with full list
     });
 
-    // Cleanup the listener on component unmount
-    return () => unsubscribe();
-  }, [db]);
+    // Real-time listener for user's favorites
+    const unsubscribeFavorites = onSnapshot(doc(db, "users", user.uid), (userDoc) => {
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setFavoritedPets(data.favorites || []); // Set favorited pets if they exist
+      }
+    });
+
+    // Cleanup the listeners on component unmount
+    return () => {
+      unsubscribePets(); // Unsubscribe from pets collection listener
+      unsubscribeFavorites(); // Unsubscribe from user's favorites listener
+    };
+  }, [db, user]);
+
+  // Function to toggle favorite status of a pet
+  const toggleFavorite = async (petId, petData) => {
+    if (!user) {
+      console.log("User is not logged in. Cannot toggle favorite.");
+      return;
+    }
+
+    const userRef = doc(db, "users", user.uid); // Reference to the user's document
+
+    if (favoritedPets.some((favPet) => favPet.id === petId)) {
+      // If already favorited, remove it
+      await updateDoc(userRef, {
+        favorites: arrayRemove(petData), // Remove from favorites
+      });
+      setFavoritedPets((prevFavorited) =>
+        prevFavorited.filter((favPet) => favPet.id !== petId)
+      );
+    } else {
+      // If not favorited, add it
+      await updateDoc(userRef, {
+        favorites: arrayUnion(petData), // Add to favorites
+      });
+      setFavoritedPets((prevFavorited) => [...prevFavorited, petData]);
+    }
+  };
 
   // Function to add a new pet locally (optional)
   const addPet = (pet) => {
@@ -103,6 +144,8 @@ export const PetProvider = ({ children }) => {
         addPet,
         applyFilters,
         setFilteredPets,
+        favoritedPets,
+        toggleFavorite,
       }}
     >
       {children}

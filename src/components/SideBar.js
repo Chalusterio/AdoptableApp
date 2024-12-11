@@ -130,16 +130,31 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => navigateTo("Requests")}
+            style={[styles.drawerItem, selectedItem === "Requests" && styles.activeDrawerItem]}
+          >
+            <MaterialCommunityIcons
+              name={selectedItem === "Requests" ? "file-question" : "file-question-outline"}
+              size={24}
+              color={selectedItem === "Requests" ? "black" : "gray"}
+            />
+            <Text
+              style={[styles.drawerItemText, selectedItem === "Requests" && styles.activeDrawerItemText]}
+            >
+              Requests
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => navigateTo("Login")}
-            style={[styles.drawerItem, selectedItem === "Login" && styles.activeDrawerItem]}
+            style={[styles.drawerItemLogout, selectedItem === "Login" && styles.activeDrawerItem]}
           >
             <MaterialCommunityIcons
               name={selectedItem === "Login" ? "logout" : "logout-variant"}
               size={24}
-              color={selectedItem === "Login" ? "black" : "gray"}
+              color={selectedItem === "Login" ? "black" : "white"}
             />
             <Text
-              style={[styles.drawerItemText, selectedItem === "Login" && styles.activeDrawerItemText]}
+              style={[styles.drawerItemLogoutText, selectedItem === "Login" && styles.activeDrawerItemLogoutText]}
             >
               Logout
             </Text>
@@ -217,6 +232,24 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(104, 194, 255, 0.5)", // Active background color with 50% opacity
   },
   activeDrawerItemText: {
+    color: "black", // Active text color
+  },
+  drawerItemLogout: {
+    padding: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EF5B5B", // Default background
+    justifyContent: 'center',
+    marginHorizontal: 30,
+    borderRadius: 30,
+  },
+  drawerItemLogoutText: {
+    fontSize: 16,
+    color: "white", // Default text color
+    fontFamily: "Lato",
+    marginLeft: 30,
+  },
+  activeDrawerItemLogoutText: {
     color: "black", // Active text color
   },
 });
