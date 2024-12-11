@@ -1,122 +1,126 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router'; // To access passed params
+import Bruno from '../../assets/Track/bruno.jpg';
+import Shiro from '../../assets/Track/shiro.jpg';
+
+const PetCard = ({ pet, onToggle, isExpanded }) => {
+  const currentStep = 1; // Current step for tracking (mock data)
+  const bigSteps = [
+    { title: 'Preparing', icon: <MaterialIcons name="build-circle" size={24} /> },
+    { title: 'Transporting', icon: <MaterialIcons name="local-shipping" size={24} /> },
+    { title: 'Out for Delivery', icon: <MaterialIcons name="directions-car" size={24} /> },
+    { title: 'Delivered', icon: <MaterialIcons name="home" size={24} /> },
+  ];
+
+  const smallSteps = {
+    Preparing: ['Adoption Request being reviewed', 'Preparing for delivery'],
+    Transporting: ['Car ready for delivery', 'Your pet has arrived in a resting stop'],
+    'Out for Delivery': [],
+    Delivered: [],
+  };
+
+  return (
+    <View style={styles.petCard}>
+      {/* Pet and Delivery Info */}
+      <TouchableOpacity onPress={onToggle}>
+        <View style={styles.petInfoBox}>
+          <View>
+            <Text style={styles.petName}>{pet.name}</Text>
+            <Text style={styles.petDetails}>{pet.age} | {pet.weight}</Text>
+          </View>
+          <Image source={pet.image} style={styles.petImage} />
+        </View>
+      </TouchableOpacity>
+      <View style={styles.deliveryBox}>
+        <View style={styles.deliveryDetailBox}>
+          <Text style={styles.deliveryDetails}>Delivery Type: {pet.deliveryType}</Text>
+        </View>
+        <View style={styles.deliveryDetailBox}>
+          <Text style={styles.deliveryDetails}>Amount: ₱ {pet.totalAmount}</Text>
+        </View>
+      </View>
+
+      {/* Tracking Steps (Expandable Section) */}
+      {isExpanded && (
+        <View style={styles.trackingContainer}>
+          {bigSteps.map((step, index) => (
+            <View key={index} style={styles.bigStepContainer}>
+              {/* Big Step Row */}
+              <View style={styles.bigStepRow}>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: index <= currentStep ? '#68C2FF' : '#FFFFFF' },
+                  ]}
+                >
+                  {React.cloneElement(step.icon, {
+                    color: index <= currentStep ? '#FFFFFF' : '#68C2FF',
+                  })}
+                </View>
+                <Text style={styles.bigStepTitle}>{step.title}</Text>
+              </View>
+
+              {/* Small Steps */}
+              {index <= currentStep && smallSteps[step.title]?.length > 0 && (
+                <View style={styles.smallStepsContainer}>
+                  {smallSteps[step.title].map((smallStep, i) => (
+                    <View key={i} style={styles.smallStep}>
+                      <View style={styles.smallStepDot} />
+                      <Text style={styles.smallStepText}>{smallStep}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          ))}
+          {/* Cancel Adoption Button */}
+          <TouchableOpacity style={styles.cancelButton} onPress={() => alert('Adoption canceled')}>
+            <Text style={styles.cancelButtonText}>Cancel Adoption</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+};
 
 const Track = () => {
-<<<<<<< HEAD
-    return (
-        <View style={styles.container}>
-          <Text style={styles.text}>Track yo pet!</Text>
-=======
-  const {
-    petName,
-    petAge,
-    petWeight,
-    petImage,
-    deliveryType,
-    totalAmount,
-  } = useLocalSearchParams(); // Retrieve params
+  const [expandedCard, setExpandedCard] = useState(null);
 
-  const currentStep = 2; // Current step (0-based index). Update dynamically based on the tracking status.
-
-  const steps = [
+  const pets = [
     {
-      title: 'Checking',
-      description: "We're reviewing your request to ensure everything is good to go.",
-      date: '15 October, 2024',
-      time: '9:00 AM',
-      icon: <FontAwesome5 name="check-circle" size={24} />,
+      id: 1,
+      name: 'Shiro',
+      age: '2 years',
+      weight: '5 kg',
+      image: Shiro,
+      deliveryType: 'Car',
+      totalAmount: '500',
     },
     {
-      title: 'Preparing',
-      description: 'Shiro is being prepared by the rescue organization for delivery.',
-      date: '15 October, 2024',
-      time: '10:50 AM',
-      icon: <MaterialIcons name="build-circle" size={24} />,
-    },
-    {
-      title: 'Transportation Arranged',
-      description: 'A car is ready to deliver Shiro to your home.',
-      date: '16 October, 2024',
-      time: '11:20 AM',
-      icon: <MaterialIcons name="local-shipping" size={24} />,
-    },
-    {
-      title: 'Out for Delivery',
-      description: 'Shiro is on his way to your home. Please be ready to welcome him!',
-      date: '16 October, 2024',
-      time: '3:00 PM',
-      icon: <MaterialIcons name="directions-car" size={24} />,
-    },
-    {
-      title: 'Delivered',
-      description: 'Shiro has safely arrived at your home. Thank you for adopting!',
-      date: '16 October, 2024',
-      time: '4:30 PM',
-      icon: <MaterialIcons name="home" size={24} />,
+      id: 2,
+      name: 'Bruno',
+      age: '1 year',
+      weight: '3 kg',
+      image: Bruno,
+      deliveryType: 'Car',
+      totalAmount: '0',
     },
   ];
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
-      <Text style={styles.header}>Track Your Pet</Text>
-
-      {/* Pet Info Section */}
-      <View style={styles.petInfoBox}>
-        <Image
-          source={{ uri: petImage }} // Use dynamic image URI
-          style={styles.petImage}
+      <Text style={styles.header}>Track Your Pets</Text>
+      {pets.map((pet) => (
+        <PetCard
+          key={pet.id}
+          pet={pet}
+          isExpanded={expandedCard === pet.id}
+          onToggle={() =>
+            setExpandedCard((prev) => (prev === pet.id ? null : pet.id))
+          }
         />
-        <View>
-          <Text style={styles.petName}>{petName}</Text>
-          <Text style={styles.petDetails}>{petAge} | {petWeight}</Text>
->>>>>>> 5c724397dc4aa21fd7802f810f7e5e5a2efe16c9
-        </View>
-      </View>
-
-      {/* Delivery Info Section */}
-      <View style={styles.deliveryBox}>
-        <Text style={styles.deliveryDetails}>Delivery Type: {deliveryType}</Text>
-        <Text style={styles.deliveryDetails}>Amount: ₱ {totalAmount}</Text>
-      </View>
-
-      {/* Tracking Steps */}
-      <View style={styles.trackingContainer}>
-        {steps.map((step, index) => (
-          <View key={index} style={styles.stepContainer}>
-            {/* Line connecting steps */}
-            {index > 0 && (
-              <View
-                style={[
-                  styles.line,
-                  { backgroundColor: index <= currentStep ? '#68C2FF' : '#E0E0E0' },
-                ]}
-              />
-            )}
-            {/* Step Icon */}
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: index <= currentStep ? '#68C2FF' : '#FFFFFF' },
-              ]}
-            >
-              {React.cloneElement(step.icon, {
-                color: index <= currentStep ? '#FFFFFF' : '#68C2FF',
-              })}
-            </View>
-            {/* Step Info */}
-            <View style={styles.stepInfo}>
-              <Text style={styles.stepTitle}>{step.title}</Text>
-              <Text style={styles.stepDescription}>{step.description}</Text>
-              <Text style={styles.stepDate}>
-                {step.date} - {step.time}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
+      ))}
     </ScrollView>
   );
 };
@@ -127,31 +131,45 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     paddingHorizontal: 20,
   },
+  cancelButton: {
+    backgroundColor: '#EF5B5B',
+    borderRadius: 20,
+    paddingVertical: 10,
+    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+},
+cancelButtonText: {
+  color: '#FFFFFF',
+  fontSize: 16,
+  fontWeight: 'bold',
+},
   header: {
     fontSize: 24,
     fontFamily: 'Lilita',
     color: '#68C2FF',
-    marginTop: 50,
+    marginTop: 30,
     marginBottom: 20,
-    textAlign: 'left',
+  },
+  petCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    marginBottom: 30,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
   },
   petInfoBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 3,
+    justifyContent: 'space-between'
   },
   petImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 75,
+    height: 75,
+    borderRadius: 50,
     marginRight: 15,
   },
   petName: {
@@ -160,37 +178,39 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   petDetails: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666',
-    marginTop: 5,
   },
   deliveryBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 3,
+    marginTop: 30,
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+  },
+  deliveryDetailBox: {
+    borderWidth: 2,
+    borderColor: '#68C2FF',
+    borderRadius: 20, // Makes the border rounded
+    paddingVertical: 5,
+    paddingHorizontal: 15,
+    marginHorizontal: 10, // Adds space between the boxes
   },
   deliveryDetails: {
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 5,
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
   trackingContainer: {
-    marginTop: 30,
+    marginTop: 50,
   },
-  stepContainer: {
+  bigStepContainer: {
+    marginBottom: 20,
+  },
+  bigStepRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 50,
-    position: 'relative',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   iconContainer: {
-    marginTop: -2,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -198,34 +218,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#68C2FF',
-    zIndex: 1,
+    marginRight: 10,
   },
-  line: {
-    position: 'absolute',
-    width: 2,
-    height: 200,
-    left: 20,
-    top: -90,
-    zIndex: 0,
-  },
-  stepInfo: {
-    marginLeft: 15,
-    flex: 1,
-  },
-  stepTitle: {
+  bigStepTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
   },
-  stepDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginVertical: 5,
+  smallStepsContainer: {
+    paddingLeft: 15, 
   },
-  stepDate: {
-    fontSize: 12,
-    color: '#68C2FF',
-    fontWeight: 'bold',
+  smallStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  smallStepDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#68C2FF',
+    marginRight: 10,
+  },
+  smallStepText: {
+    fontSize: 16,
+    color: '#666',
+    marginLeft: 15,
   },
 });
 
