@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, TouchableWithoutFeedback } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRoute } from "@react-navigation/native";
+import { useRouter, useLocalSearchParams } from "expo-router"; // Importing necessary hooks
 import * as SplashScreen from "expo-splash-screen";
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
 
 export default function AcceptAdoption() {
-  const route = useRoute();
-  const { adopterEmail, petName = "Pet" } = route.params || {};
+  const { adopterEmail, petName = "Pet" } = useLocalSearchParams(); // Getting params from the URL
   const [adopterName, setAdopterName] = useState("Adopter");
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter(); // Using the router from expo-router
 
   useEffect(() => {
     async function fetchAdopterName() {
@@ -52,16 +52,27 @@ export default function AcceptAdoption() {
     );
   }
 
+  const handlePress = () => {
+    // Navigate to /Main using router.push()
+    router.push("/Main/Notification");
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.greetingsText}>
-          You accepted {"\n"} {adopterName} as {petName}’s fur parent.
-        </Text>
-        <Text style={styles.instructionText}>
-          {petName} is one step closer to a loving home. Get ready to finalize the adoption process!
-        </Text>
-      </View>
+      <TouchableWithoutFeedback onPress={handlePress}>
+        <View style={styles.fullScreenContainer}>
+          {/* Wrapping text elements inside <Text> components */}
+          <Text style={styles.greetingsText}>
+            You accepted {"\n"} {adopterName} as {petName}’s fur parent.
+          </Text>
+          <Text style={styles.instructionText}>
+            {petName} is one step closer to a loving home. Get ready to finalize the adoption process!
+          </Text>
+          <Text style={styles.clickText}>
+            Click anywhere to go back
+          </Text>
+        </View>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -70,11 +81,11 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#68C2FF",
-    alignItems: "center",
-    justifyContent: "center",
   },
-  container: {
-    alignItems: "center",
+  fullScreenContainer: {
+    flex: 1, // Makes the container take up the entire screen
+    justifyContent: "center", // Centers the content vertically
+    alignItems: "center", // Centers the content horizontally
   },
   greetingsText: {
     fontSize: 25,
@@ -94,5 +105,13 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: "white",
+  },
+  clickText: {
+    fontSize: 16,
+    fontFamily: "Lato",
+    color: "white",
+    marginTop: 20,
+    textAlign: "center",
+    textDecorationLine: "underline", // Optional styling for emphasis
   },
 });
