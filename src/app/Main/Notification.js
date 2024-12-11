@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "../../../firebase"; // Ensure db is properly initialized
 import { FontAwesome } from '@expo/vector-icons';
 import moment from 'moment'; // Import moment.js for time formatting
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Notification = () => {
   const router = useRouter();
@@ -20,61 +21,65 @@ const Notification = () => {
   }, []);
 
   useEffect(() => {
-    if (!currentUser) return; // Skip fetching notifications if user is not logged in
-  
+    if (!currentUser) return;
+
     const fetchNotifications = async () => {
-      console.log('Fetching pet requests...'); // Debugging log
       const petRequestsQuery = query(
         collection(db, "pet_request"),
         where("status", "==", "Pending"),
-        where("listedBy", "==", currentUser.email) // Filter pet requests by the logged-in user's email
+        where("listedBy", "==", currentUser.email)
       );
       const querySnapshot = await getDocs(petRequestsQuery);
-  
+
+      const savedMapping = await loadAdjectiveMapping();
       const notificationsList = [];
-  
-      // Loop through each request
+
       for (const doc of querySnapshot.docs) {
         const petRequest = doc.data();
-   
-        // Fetch adopter details for each request if not already fetched
+
         if (!adopters[petRequest.adopterEmail]) {
           const adopterDetails = await fetchAdopterDetails(petRequest.adopterEmail);
           if (adopterDetails) {
             setAdopters((prev) => ({
               ...prev,
-              [petRequest.adopterEmail]: adopterDetails
+              [petRequest.adopterEmail]: adopterDetails,
             }));
           }
         }
-  
-        const adopter = adopters[petRequest.adopterEmail] || {}; // Get adopter details if available
-        const formattedTime = moment(petRequest.requestDate.seconds * 1000).fromNow(); // Format time using moment.js
-  
-        // Add notification if adopter details are available
-        if (adopter.name && adopter.profilePicture) {
-          // Generate random adjective only once per notification
-          const randomAdjective = getRandomAdjective();
-  
+
+        const adopter = adopters[petRequest.adopterEmail] || {};
+        const formattedTime = moment(petRequest.requestDate.seconds * 1000).fromNow();
+
+        if (adopter.name) {
+          const randomAdjective =
+            savedMapping[doc.id] || getRandomAdjective();
+
+          // Update mapping and save it to AsyncStorage
+          if (!savedMapping[doc.id]) {
+            savedMapping[doc.id] = randomAdjective;
+            await saveAdjectiveMapping(savedMapping);
+          }
+
           notificationsList.push({
             id: doc.id,
             image: adopter.profilePicture ? { uri: adopter.profilePicture } : null,
-            name: adopter.name || "Adopter", // Default name if not loaded
+            name: adopter.name || "Adopter",
             content: `A ${randomAdjective} ${adopter.name || "Adopter"} has requested to adopt your pet.`,
-            time: formattedTime, // Add the formatted time
-            action: () => router.push({ pathname: "/Screening", params: { adopterEmail: petRequest.adopterEmail, petRequestId: doc.id } })
+            time: formattedTime,
+            action: () =>
+              router.push({
+                pathname: "/Screening",
+                params: { adopterEmail: petRequest.adopterEmail, petRequestId: doc.id },
+              }),
           });
-        } else {
-          console.log('Skipping notification due to missing name or profile image'); // Log if missing data
         }
       }
-  
+
       setNotifications(notificationsList);
     };
-  
+
     fetchNotifications();
-  }, [currentUser, adopters]); // Re-run when currentUser or adopters data changes
-  
+  }, [currentUser, adopters]);
 
   const fetchAdopterDetails = async (adopterEmail) => {
     try {
@@ -85,7 +90,6 @@ const Notification = () => {
       const querySnapshot = await getDocs(usersQuery);
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0].data();
-       
         return {
           name: userDoc.name,
           profilePicture: userDoc.profilePicture || null
@@ -100,7 +104,6 @@ const Notification = () => {
     }
   };
 
-
   const adjectives = ["wild", "curious", "bold", "determined", "passionate", "clever", "warm", "generous", "fearless", "playful", "mighty", "vigilant", "wise", "noble", "humble",
     "lively", "radiant", "gracious","charming",];
 
@@ -112,11 +115,31 @@ const Notification = () => {
     return consonantAdjectives[randomIndex]; // Return the selected adjective
   };
 
+  const saveAdjectiveMapping = async (mapping) => {
+    try {
+      await AsyncStorage.setItem("adjectiveMapping", JSON.stringify(mapping));
+    } catch (error) {
+      console.error("Error saving adjective mapping: ", error);
+    }
+  };
+
+  const loadAdjectiveMapping = async () => {
+    try {
+      const mapping = await AsyncStorage.getItem("adjectiveMapping");
+      return mapping ? JSON.parse(mapping) : {};
+    } catch (error) {
+      console.error("Error loading adjective mapping: ", error);
+      return {};
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         {notifications.length === 0 ? (
-          <Text>No notifications available</Text>
+          <View style={styles.messageContainer}>
+            <Text style={styles.noNotificationsText}>No notifications available</Text>
+          </View>
         ) : (
           notifications.map((notif) => (
             <View key={notif.id}>
@@ -129,7 +152,7 @@ const Notification = () => {
                   <Image style={styles.notifImage} source={notif.image} />
                 ) : (
                   <View style={styles.iconContainer}>
-                    <FontAwesome name="user-circle" size={40} color="#fff" />
+                    <FontAwesome name="user-circle" size={70} color="#333" />
                   </View>
                 )}
                 <View style={styles.notifTextContainer}>
@@ -143,7 +166,7 @@ const Notification = () => {
             </View>
           ))
         )}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -156,6 +179,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: "100%",
+    paddingBottom: 20,
+  },
+  iconContainer: {
+    width: 70,
+    height: 70,
+    alignItems: "center",
+    justifyContent: "center",
   },
   notifButton: {
     flexDirection: "row",
@@ -165,6 +195,7 @@ const styles = StyleSheet.create({
   notifImage: {
     width: 70,
     height: 70,
+    borderRadius: 35,
   },
   notifTextContainer: {
     flexDirection: "column",
@@ -190,6 +221,20 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: "black",
     alignSelf: "stretch",
+  },
+  noNotificationsText: {
+    fontFamily: "Lato",
+    fontSize: 18,
+    textAlign: "center",
+    justifyContent: "center",
+    marginTop: 20,
+    color: "#888",
+  },
+  messageContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
   },
 });
 

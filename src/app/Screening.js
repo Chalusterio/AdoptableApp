@@ -92,7 +92,7 @@ export default function Screening() {
             </View>
 
             <Image
-              source={adopter.profilePicture ? { uri: adopter.profilePicture } : require("../assets/Notification/adopterImage.png")}
+              source={adopter.profilePicture ? { uri: adopter.profilePicture } : require("../assets/Profile/dp.png")}
               style={styles.adopterImage}
             />
 
@@ -109,7 +109,7 @@ export default function Screening() {
 
             <View style={styles.detailsContainer}>
               <Icon name="phone" size={24} color="#444444" style={styles.icon} />
-              <Text style={styles.detailsText}>{adopter.phone || "Not provided"}</Text>
+              <Text style={styles.detailsText}>{adopter.contactNumber || "Not provided"}</Text>
             </View>
 
             {/* Horizontal Line */}
@@ -133,7 +133,7 @@ export default function Screening() {
 
             <View style={styles.detailsContainer}>
               <Icon name="pets" size={24} color="#444444" style={styles.icon} />
-              <Text style={styles.detailsText}>Has a pet</Text>
+              <Text style={styles.detailsText}>Not Provided</Text>
             </View>
 
             {/* Horizontal Line */}
