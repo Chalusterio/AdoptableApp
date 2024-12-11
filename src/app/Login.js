@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ImageBackground,
+  ActivityIndicator,
 } from "react-native";
 import {
   useTheme,
@@ -15,10 +16,12 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Font from "expo-font";
-import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
-import { useRouter } from 'expo-router';
+import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
+import { getUserData } from "../../firebase";
+import { auth, signInWithEmailAndPassword } from "../../firebase"; // Make sure to import Firebase auth methods
 
-export default function Login({ navigation }) {
+export default function Login() {
   const theme = useTheme();
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
@@ -28,6 +31,7 @@ export default function Login({ navigation }) {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [dialogVisible, setDialogVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [errors, setErrors] = useState({
     email: "",
@@ -46,7 +50,6 @@ export default function Login({ navigation }) {
 
   useFocusEffect(
     React.useCallback(() => {
-      // Reset errors when the screen is focused
       setErrors({ email: "", password: "" });
     }, [])
   );
@@ -89,16 +92,45 @@ export default function Login({ navigation }) {
     setRememberMe(!rememberMe);
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!validateInputs()) return;
 
-    const userData = { email, password };
-    console.log("User data:", userData);
+    setIsLoading(true); // Start loading
+    try {
+      // Log in the user
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
 
-    setDialogVisible(true);
-    setEmail("");
-    setPassword("");
-    router.push("Main");
+      // Fetch user data from Firestore
+      const userData = await getUserData(user.uid); // Using getUserData from your firebase.js
+
+      if (userData) {
+        // Check the role and redirect
+        if (userData.role !== "admin") {
+          router.push("Main"); // Redirect to Main screen for non-admin users
+        } else {
+          router.push("ManageTrack"); // Redirect to Manage track for admins
+        }
+        // Clear the input fields after successful login
+        setEmail("");
+        setPassword("");
+      } else {
+        console.error("User data not found in Firestore");
+        setErrors({
+          ...errors,
+          email: "User data not found. Contact support.",
+        });
+      }
+    } catch (error) {
+      console.error("Error logging in:", error);
+      setErrors({ ...errors, password: "Invalid email or password" });
+    } finally {
+      setIsLoading(false); // Stop loading
+    }
   };
 
   const hideDialog = () => setDialogVisible(false);
@@ -111,12 +143,12 @@ export default function Login({ navigation }) {
             source={require("../assets/Login/loginPawImage.png")}
             style={styles.loginPawImage}
             resizeMode="cover"
-          >
-            <View style={styles.textOverlayContainer}>
-              <Text style={styles.welcomeBackText}>Welcome Back!</Text>
-              <Text style={styles.loginText}>Login to your account</Text>
-            </View>
-          </ImageBackground>
+          ></ImageBackground>
+        </View>
+
+        <View style={styles.textOverlayContainer}>
+          <Text style={styles.welcomeBackText}>Welcome Back!</Text>
+          <Text style={styles.loginText}>Login to your account</Text>
         </View>
 
         <View
@@ -139,6 +171,7 @@ export default function Login({ navigation }) {
               mode="flat"
               activeUnderlineColor="gray"
               keyboardType="email-address"
+              autoCapitalize="none"
               style={[styles.input, errors.email && styles.errorInput]}
             />
             {errors.email && (
@@ -153,12 +186,12 @@ export default function Login({ navigation }) {
               right={
                 <TextInput.Icon
                   icon={passwordVisible ? "eye" : "eye-off"}
-                  color="black"
                   onPress={() => setPasswordVisible(!passwordVisible)}
                 />
               }
               left={<TextInput.Icon icon="lock" />}
               mode="flat"
+              autoCapitalize="none"
               activeUnderlineColor="gray"
               style={[styles.input, errors.password && styles.errorInput]}
             />
@@ -187,8 +220,16 @@ export default function Login({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.loginButton} onPress={(handleLogin)}>
-            <Text style={styles.loginButtonText}>Login</Text>
+          <TouchableOpacity
+            style={[styles.loginButton, isLoading && { opacity: 0.5 }]}
+            onPress={handleLogin}
+            disabled={isLoading} // Disable button while loading
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.loginButtonText}>Login</Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.noAccountContainer}>
@@ -213,7 +254,10 @@ export default function Login({ navigation }) {
               <Text style={styles.dialogText}>Logged in successfully!</Text>
             </Dialog.Content>
             <Dialog.Actions style={styles.dialogActions}>
-              <TouchableOpacity onPress={hideDialog} style={styles.dialogButton}>
+              <TouchableOpacity
+                onPress={hideDialog}
+                style={styles.dialogButton}
+              >
                 <Text style={styles.dialogButtonText}>Done</Text>
               </TouchableOpacity>
             </Dialog.Actions>
@@ -234,7 +278,7 @@ const styles = StyleSheet.create({
     flexDirection: "column",
   },
   backgroundContainer: {
-    height: "30%", // Set fixed height for the background image
+    height: 300, // Set fixed height for the background image
     width: "100%",
     justifyContent: "center",
     alignItems: "center",
@@ -246,10 +290,9 @@ const styles = StyleSheet.create({
     width: "130%",
   },
   textOverlayContainer: {
-    position: "absolute",
-    top: "40%", // Adjust this to control vertical alignment
-    width: "100%",
     justifyContent: "center",
+    alignItems: "center",
+    marginTop: -180,
   },
   welcomeBackText: {
     fontSize: 50,
@@ -272,6 +315,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     width: "90%",
+    marginTop: -40,
   },
   input: {
     backgroundColor: "#F3F3F3",
@@ -346,34 +390,34 @@ const styles = StyleSheet.create({
   },
   //dialog
   dialogTitle: {
-    textAlign: "center",  // Center align the title
-    fontFamily: 'Lato',
+    textAlign: "center", // Center align the title
+    fontFamily: "Lato",
     fontSize: 30,
   },
   dialogContent: {
-    alignItems: "center",  // Center align the content
-    justifyContent: "center",  // Center vertically
+    alignItems: "center", // Center align the content
+    justifyContent: "center", // Center vertically
   },
   dialogText: {
-    textAlign: "center",  
+    textAlign: "center",
     fontSize: 15,
   },
   dialogActions: {
-    justifyContent: "center",  // Center align the actions (button)
-    alignItems: "center",  // Center horizontally
+    justifyContent: "center", // Center align the actions (button)
+    alignItems: "center", // Center horizontally
   },
   dialogButton: {
-    backgroundColor: '#68C2FF',  // Set the background color
-    width: 150,  // Set the width of the button
-    height: 50,  // Set the height of the button
-    borderRadius: 25,  // Set the border radius for rounded corners
-    justifyContent: 'center',  // Center align text inside button
-    alignItems: 'center',  // Center align text inside button
+    backgroundColor: "#68C2FF", // Set the background color
+    width: 150, // Set the width of the button
+    height: 50, // Set the height of the button
+    borderRadius: 25, // Set the border radius for rounded corners
+    justifyContent: "center", // Center align text inside button
+    alignItems: "center", // Center align text inside button
   },
   dialogButtonText: {
-    textAlign: "center",  
+    textAlign: "center",
     fontSize: 15,
-    color: 'white',
-    fontFamily: 'Lato',
+    color: "white",
+    fontFamily: "Lato",
   },
 });

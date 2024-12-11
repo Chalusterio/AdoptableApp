@@ -97,7 +97,10 @@ const styles = StyleSheet.create({
   tabbarItem: {
     alignItems: 'center',
     alignSelf: 'center', // Prevents stretching
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5c724397dc4aa21fd7802f810f7e5e5a2efe16c9
   },
   tabbarItemActive: {
     backgroundColor: '#FFF',
@@ -118,4 +121,8 @@ const styles = StyleSheet.create({
   },
 });
 
+<<<<<<< HEAD
 export default TabBar;
+=======
+export default TabBar;
+>>>>>>> 5c724397dc4aa21fd7802f810f7e5e5a2efe16c9
