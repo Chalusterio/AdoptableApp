@@ -95,39 +95,14 @@ const PetDetails = () => {
   };
 
   const handleAdopt = () => {
-    setModalVisible(true);
-  };
+  console.log(`${petName} adopted!`);
+  router.push({
+    pathname: "/AdoptMe", // The route to navigate to
+    params: { petName, username }, // Pass parameters if needed
+  });
+};
 
-  const handleAdoptConfirmation = async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) throw new Error("User not logged in");
-  
-      const adoptionRequest = {
-        petName,
-        adopterEmail: user.email,
-        listedBy,
-        requestDate: new Date(),
-        status: "Pending",
-      };
-  
-      await addDoc(collection(db, "pet_request"), adoptionRequest);
-  
-      // Show success message using alert
-      alert("Success: We've notified the pet lister about your request!");
-  
-      // Close the modal
-      setModalVisible(false);
-    } catch (error) {
-      alert("Error: Failed to submit adoption request. Please try again.");
-  
-      // Close the modal in case of error
-      setModalVisible(false);
-    }
-  };
-  
-  
-  
+
   const onScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const imageWidth = Dimensions.get("window").width;
@@ -283,9 +258,6 @@ const PetDetails = () => {
           <View style={styles.usernameContainer}>
             <Text style={styles.usernameText}>{userName}</Text>
           </View>
-          <TouchableOpacity style={styles.donateButton}>
-            <Text style={styles.donateButtonText}>Donate</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -582,3 +554,5 @@ const styles = StyleSheet.create({
 });
 
 export default PetDetails;
+
+
