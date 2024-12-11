@@ -24,6 +24,7 @@ const FeedHeader = ({}) => {
   const [selectedWeight, setSelectedWeight] = useState("");
   const [selectedPersonality, setSelectedPersonality] = useState([]);
   const [vaccinated, setVaccinated] = useState(null);
+  const [selectedPetType, setSelectedPetType] = useState(""); // Pet type filter (cat, dog)
   const [location, setLocation] = useState(null);
 
   // Animation values
@@ -109,6 +110,7 @@ const FeedHeader = ({}) => {
       age: selectedAge,
       weight: selectedWeight,
       personality: selectedPersonality,
+      petType: selectedPetType, // Add pet type filter
       vaccinated: vaccinated,
     };
 
@@ -119,6 +121,7 @@ const FeedHeader = ({}) => {
     setSelectedAge(""); // Reset age filter
     setSelectedWeight(""); // Reset weight filter
     setSelectedPersonality([]); // Reset personality filter
+    setSelectedPetType(""); // Reset pet type filter
     setVaccinated(null); // Reset vaccinated filter
 
     setModalVisible(false); // Close modal after applying filters
@@ -189,81 +192,74 @@ const FeedHeader = ({}) => {
               <View style={styles.horizontalLine}></View>
 
               {/* Gender Filter */}
-              <Text style={styles.modalText}>Gender</Text>
-              <View style={styles.input2}>
-                <Picker
-                  selectedValue={selectedGender}
-                  onValueChange={(itemValue) => setSelectedGender(itemValue)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Select Gender" value="" color="gray" />
-                  <Picker.Item label="Male" value="Male" />
-                  <Picker.Item label="Female" value="Female" />
-                </Picker>
-              </View>
+              <Picker
+          selectedValue={selectedGender}
+          onValueChange={(itemValue) => {
+            // If "Select Gender" is selected, reset the selectedGender to ""
+            if (itemValue === "") {
+              setSelectedGender(""); // Reset to initial state
+            } else {
+              setSelectedGender(itemValue); // Set selected gender
+            }
+          }}
+          style={styles.picker}
+        >
+          <Picker.Item label="Select Gender" value="" />
+          <Picker.Item label="Male" value="Male" />
+          <Picker.Item label="Female" value="Female" />
+        </Picker>
 
-              {/* Other Filters (Age, Weight, Personality, Vaccinated) */}
-              <Text style={styles.modalText}>Age (years)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Age"
-                placeholderTextColor={"gray"}
-                fontFamily={"Lato"}
-                keyboardType="numeric"
-                value={selectedAge}
-                onChangeText={(text) => setSelectedAge(text)}
-              />
+          {/* Other Filters (Age, Weight, Personality, Vaccinated) */}
+          <Text style={styles.modalText}>Age (years)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Age"
+            keyboardType="numeric"
+            value={selectedAge}
+            onChangeText={(text) => setSelectedAge(text)}
+          />
 
-              <Text style={styles.modalText}>Weight (kg)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Weight"
-                placeholderTextColor={"gray"}
-                fontFamily={"Lato"}
-                keyboardType="numeric"
-                value={selectedWeight}
-                onChangeText={(text) => setSelectedWeight(text)}
-              />
+          <Text style={styles.modalText}>Weight (kg)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Weight"
+            keyboardType="numeric"
+            value={selectedWeight}
+            onChangeText={(text) => setSelectedWeight(text)}
+          />
 
-              <Text style={styles.modalText}>Personality</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Personality Traits"
-                placeholderTextColor={"gray"}
-                fontFamily={"Lato"}
-                value={selectedPersonality.join(", ")}
-                onChangeText={(text) =>
-                  setSelectedPersonality(
-                    text.split(",").map((item) => item.trim())
-                  )
-                }
-              />
+          <Text style={styles.modalText}>Personality</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Personality Traits (comma separated)"
+            value={selectedPersonality.join(", ")}
+            onChangeText={(text) =>
+              setSelectedPersonality(text.split(",").map((item) => item.trim()))
+            }
+          />
 
-              <Text style={styles.modalText}>Vaccinated</Text>
-              <View style={styles.input2}>
-                <Picker
-                  selectedValue={vaccinated}
-                  onValueChange={(itemValue) => setVaccinated(itemValue)}
-                  style={[styles.picker, { fontFamily: "Lato" }]}
-                >
-                  <Picker.Item
-                    label="Select Vaccinated Status"
-                    value={null}
-                    color="gray"
-                    style={{ fontFamily: "Lato" }}
-                  />
-                  <Picker.Item
-                    label="Yes"
-                    value={true}
-                    style={{ fontFamily: "Lato" }}
-                  />
-                  <Picker.Item
-                    label="No"
-                    value={false}
-                    style={{ fontFamily: "Lato" }}
-                  />
-                </Picker>
-              </View>
+          <Text style={styles.modalText}>Vaccinated</Text>
+          <Picker
+            selectedValue={vaccinated}
+            onValueChange={(itemValue) => setVaccinated(itemValue)}
+            style={styles.picker}
+          >
+            <Picker.Item label="Select Vaccinated Status" value={null} />
+            <Picker.Item label="Yes" value={false} />
+            <Picker.Item label="No" value={true} />
+          </Picker>
+
+          {/* Pet Type Filter */}
+          <Text style={styles.modalText}>Pet Type</Text>
+          <Picker
+            selectedValue={selectedPetType}
+            onValueChange={(itemValue) => setSelectedPetType(itemValue)}
+            style={styles.picker}
+          >
+            <Picker.Item label="Select Pet Type" value="" />
+            <Picker.Item label="Cat" value="Cat" />
+            <Picker.Item label="Dog" value="Dog" />
+          </Picker>
 
               {/* Apply and Close Buttons */}
               <View style={styles.buttonContainer}>
