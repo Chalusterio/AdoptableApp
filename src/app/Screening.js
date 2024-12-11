@@ -1,91 +1,123 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Image,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { query, where, getDocs, collection, updateDoc, doc } from "firebase/firestore";
+import { db } from "../../firebase"; // Ensure db is initialized
 import Icon from "react-native-vector-icons/MaterialIcons";
 
-export default function Screening({ route }) {
-  const router = useRouter();
+export default function Screening() {
+  const navigation = useNavigation();
+  const route = useRoute(); // Use useRoute to get the params
+  const { adopterEmail, petRequestId } = route.params; // Get parameters from route params
+  const [adopter, setAdopter] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleAcceptAdoption = () => {
-    router.push("AcceptAdoption");
+  useEffect(() => {
+    const fetchAdopterDetails = async () => {
+      try {
+        const adopterQuery = query(
+          collection(db, "users"),
+          where("email", "==", adopterEmail) // Use adopterEmail to query Firestore
+        );
+        const querySnapshot = await getDocs(adopterQuery);
+        if (!querySnapshot.empty) {
+          const adopterData = querySnapshot.docs[0].data();
+          setAdopter(adopterData); // Set the adopter details
+        } else {
+          console.log("Adopter not found!");
+        }
+      } catch (error) {
+        console.error("Error fetching adopter details: ", error);
+      } finally {
+        setLoading(false); // Stop loading after the fetch is done
+      }
+    };
+
+    fetchAdopterDetails();
+  }, [adopterEmail]); // Re-run the effect when adopterEmail changes
+
+  // Function to update the pet request status
+  const updatePetRequestStatus = async (status) => {
+    try {
+      const petRequestRef = doc(db, "pet_request", petRequestId); // Reference to the pet request document
+      await updateDoc(petRequestRef, {
+        status: status, // Update the status to either 'accepted' or 'rejected'
+      });
+      console.log(`Pet request status updated to ${status}`);
+    } catch (error) {
+      console.error("Error updating pet request status: ", error);
+    }
   };
 
-  const handleRejectAdoption = () => {
-    router.push("RejectAdoption");
+  const handleAcceptAdoption = async () => {
+    await updatePetRequestStatus("Accepted"); // Update the status to 'accepted'
+    navigation.navigate("AcceptAdoption"); // Navigate to the accept adoption screen
   };
+
+  const handleRejectAdoption = async () => {
+    await updatePetRequestStatus("Rejected"); // Update the status to 'rejected'
+    navigation.navigate("RejectAdoption"); // Navigate to the reject adoption screen
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Text>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!adopter) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Text>Adopter details not found.</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.scrollViewContent}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.scrollViewContent} keyboardShouldPersistTaps="handled">
         <View style={styles.container}>
           {/* Back Button */}
           <View style={styles.buttonImageContainer}>
             <View style={styles.backButtonContainer}>
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={() => router.back()}
+                onPress={() => navigation.goBack()} // Go back to previous screen
               >
                 <Icon name="arrow-back" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
 
             <Image
-              source={require("../assets/Notification/adopterImage.png")}
+              source={adopter.profilePicture ? { uri: adopter.profilePicture } : require("../assets/Notification/adopterImage.png")}
               style={styles.adopterImage}
             />
 
-            <Text style={styles.adopterName}>Mary Jane</Text>
-
+            <Text style={styles.adopterName}>{adopter.name}</Text>
             <Text style={styles.profileStatus}>Active • Devoted Pet Owner</Text>
 
             <View style={styles.detailsContainer}>
-              <Icon
-                name="email"
-                size={24}
-                color="#444444"
-                style={styles.icon}
-              />
-              <Text style={styles.detailsText}>maryjane@gmail.com</Text>
+              <Icon name="email" size={24} color="#444444" style={styles.icon} />
+              <Text style={styles.detailsText}>{adopter.email}</Text>
             </View>
 
             {/* Horizontal Line */}
             <View style={styles.horizontalLine}></View>
 
             <View style={styles.detailsContainer}>
-              <Icon
-                name="phone"
-                size={24}
-                color="#444444"
-                style={styles.icon}
-              />
-              <Text style={styles.detailsText}>0984 174 2482</Text>
+              <Icon name="phone" size={24} color="#444444" style={styles.icon} />
+              <Text style={styles.detailsText}>{adopter.phone || "Not provided"}</Text>
             </View>
 
             {/* Horizontal Line */}
             <View style={styles.horizontalLine}></View>
 
             <View style={styles.detailsContainer}>
-              <Icon
-                name="location-on"
-                size={24}
-                color="#444444"
-                style={styles.icon}
-              />
-              <Text style={styles.detailsText}>
-                123 ABC Street, Barangay Carmen, Cagayan de Oro City, Misamis
-                Oriental, 9000, Philippines
-              </Text>
+              <Icon name="location-on" size={24} color="#444444" style={styles.icon} />
+              <Text style={styles.detailsText}>{adopter.address || "Not provided"}</Text>
             </View>
 
             {/* Horizontal Line */}
@@ -116,7 +148,7 @@ export default function Screening({ route }) {
                 <Text style={styles.acceptText}>Accept</Text>
               </TouchableOpacity>
 
-              {/* Accept Button */}
+              {/* Reject Button */}
               <TouchableOpacity
                 style={styles.rejectButton}
                 onPress={handleRejectAdoption}
