@@ -360,10 +360,11 @@ const List = () => {
 
               <Text style={styles.question}>Age:</Text>
               <TextInput
-                placeholder="e.g., 5 Years 3 Months"
-                label="e.g., 5 Years 3 Months"
+                placeholder="e.g., 5 Years"
+                label="e.g., 5 Years"
                 value={petAge}
                 onChangeText={setPetAge}
+                keyboardType="number-pad"
                 style={[styles.input, errors.petAge && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
@@ -380,16 +381,7 @@ const List = () => {
                 label="e.g., 25"
                 value={petWeight} // 'petWeight' now includes the 'kg' suffix
                 keyboardType="number-pad"
-                onChangeText={(text) => {
-                  // Remove any non-numeric characters (to handle cases where users paste text)
-                  const numericInput = text.replace(/[^0-9]/g, "");
-
-                  // Limit the input to a maximum of two digits
-                  const limitedInput = numericInput.slice(0, 2);
-
-                  // Set the numeric value and append "kg"
-                  setPetWeight(limitedInput ? `${limitedInput} kg` : ""); // Append "kg" to the value
-                }}
+                onChangeText={setPetWeight}
                 style={[styles.input, errors.petWeight && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
@@ -521,26 +513,11 @@ const List = () => {
 
               <Text style={styles.question}>Enter adoption fee:</Text>
               <TextInput
-                placeholder="e.g., ₱0 - ₱500"
-                label="e.g., ₱0 - ₱500"
+                placeholder="e.g., ₱500"
+                label="e.g., ₱500"
                 value={adoptionFee}
                 keyboardType="number-pad"
-                onChangeText={(text) => {
-                  // Remove any non-numeric characters (except for the peso symbol)
-                  const cleanedText = text.replace(/[^0-9]/g, "");
-
-                  // If the cleaned text is empty (i.e., user erased everything), set to "₱0"
-                  if (cleanedText === "") {
-                    setAdoptionFee("");
-                    return;
-                  }
-
-                  // Convert to number
-                  let number = parseInt(cleanedText, 10);
-
-                  // Update the state with the formatted value, prefixing with the peso symbol
-                  setAdoptionFee(number === 0 ? "₱0" : `₱${number}`);
-                }}
+                onChangeText={setAdoptionFee}
                 style={[styles.input, errors.adoptionFee && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"

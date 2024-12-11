@@ -32,6 +32,7 @@ const Feed = () => {
   const { pets } = usePets(); // Access shared pets state
   const router = useRouter(); // For navigation
   const { filteredPets, setFilteredPets } = usePets(); // Added
+  const [loading, setLoading] = useState(true); // Loading state
   const [selectedItem, setSelectedItem] = useState("Main");
 
   // Parse the selectedImages string back into an array
@@ -80,6 +81,8 @@ const Feed = () => {
           }
         } catch (error) {
           console.error("Error fetching user favorites:", error);
+        } finally {
+          setLoading(false); // Set loading to false when fetching is done
         }
       }
     };
@@ -167,7 +170,7 @@ const Feed = () => {
               )}
             </View>
           </View>
-          <Text style={styles.age}>{item.petAge}</Text>
+          <Text style={styles.age}>{item.petAge} Years Old</Text>
         </View>
       </TouchableOpacity>
     );
@@ -288,6 +291,17 @@ const styles = StyleSheet.create({
     fontFamily: "Lato",
     fontSize: 16,
     color: "#999",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: "Lato",
+    color: "#68C2FF",
   },
 });
 

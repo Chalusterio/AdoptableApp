@@ -8,6 +8,7 @@ import {
   Modal,
   Alert,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Picker } from "@react-native-picker/picker";
@@ -17,6 +18,8 @@ import Feather from "@expo/vector-icons/Feather";
 
 const FeedHeader = ({}) => {
   // State for dropdown and filter options
+
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedGender, setSelectedGender] = useState("");
@@ -24,6 +27,8 @@ const FeedHeader = ({}) => {
   const [selectedWeight, setSelectedWeight] = useState("");
   const [selectedPersonality, setSelectedPersonality] = useState([]);
   const [vaccinated, setVaccinated] = useState(null);
+  const [selectedAdoptionFee, setSelectedAdoptionFee] = useState(""); // Updated state for adoption fee
+  const [selectedPetType, setSelectedPetType] = useState(""); // Pet type filter (cat, dog)
   const [location, setLocation] = useState(null);
 
   // Animation values
@@ -82,14 +87,19 @@ const FeedHeader = ({}) => {
 
   // Handle filter button click
   const handleFilterClick = () => {
-    setModalVisible(true);
+    if (isLoading) return; // Prevent further clicks if already loading
+
+    setIsLoading(true); // Start loading
 
     // Animate the modal sliding in from the right
     Animated.timing(slideAnim, {
       toValue: 0, // End position (visible on screen)
       duration: 300,
       useNativeDriver: true, // Use native driver for better performance
-    }).start();
+    }).start(() => {
+      setIsLoading(false); // Stop loading once animation is done
+      setModalVisible(true); // Show the modal
+    });
   };
 
   // Handle modal close
@@ -110,6 +120,8 @@ const FeedHeader = ({}) => {
       weight: selectedWeight,
       personality: selectedPersonality,
       vaccinated: vaccinated,
+      adoptionFee: selectedAdoptionFee, // Updated filter for adoption fee
+      petType: selectedPetType, // Add pet type filter
     };
 
     applyFilters(filters); // Call applyFilters from context
@@ -120,6 +132,8 @@ const FeedHeader = ({}) => {
     setSelectedWeight(""); // Reset weight filter
     setSelectedPersonality([]); // Reset personality filter
     setVaccinated(null); // Reset vaccinated filter
+    setSelectedAdoptionFee(""); // Reset adoption fee filter
+    setSelectedPetType(""); // Reset pet type filter
 
     setModalVisible(false); // Close modal after applying filters
   };
@@ -220,7 +234,7 @@ const FeedHeader = ({}) => {
                 placeholder="Enter Weight"
                 placeholderTextColor={"gray"}
                 fontFamily={"Lato"}
-                keyboardType="numeric"
+                keyboardType="number-pad"
                 value={selectedWeight}
                 onChangeText={(text) => setSelectedWeight(text)}
               />
@@ -265,13 +279,54 @@ const FeedHeader = ({}) => {
                 </Picker>
               </View>
 
+              {/* Pet Type Filter */}
+              <Text style={styles.modalText}>Pet Type</Text>
+              <View style={styles.input2}>
+                <Picker
+                  selectedValue={selectedPetType}
+                  onValueChange={(itemValue) => setSelectedPetType(itemValue)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Select Pet Type" value="" color="gray" />
+                  <Picker.Item label="Cat" value="Cat" />
+                  <Picker.Item label="Dog" value="Dog" />
+                </Picker>
+              </View>
+
+              {/* Price Range Filter */}
+              <Text style={styles.modalText}>Adoption Fee Range (₱)</Text>
+              <View style={styles.input2}>
+                <Picker
+                  selectedValue={selectedAdoptionFee}
+                  onValueChange={setSelectedAdoptionFee}
+                  style={styles.picker}
+                >
+                  <Picker.Item
+                    label="Select Adoption Fee Range"
+                    value=""
+                    color="gray"
+                  />
+                  <Picker.Item label="₱0 - ₱200" value="0-200" />
+                  <Picker.Item label="₱201 - ₱400" value="201-400" />
+                  <Picker.Item label="₱401 - ₱600" value="401-600" />
+                  <Picker.Item label="₱601 - ₱800" value="601-800" />
+                  <Picker.Item label="₱801 - ₱1000" value="801-1000" />
+                  <Picker.Item label="₱1000+" value="1001-1200" />
+                </Picker>
+              </View>
+
               {/* Apply and Close Buttons */}
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
-                  style={styles.buttonStyle}
+                  style={[styles.buttonStyle, isLoading && { opacity: 0.5 }]}
                   onPress={applyFiltersToPets}
+                  disabled={isLoading} // Disable button while loading
                 >
-                  <Text style={styles.buttonText}>Apply Filters</Text>
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.buttonText}>Apply Filters</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </Animated.View>
