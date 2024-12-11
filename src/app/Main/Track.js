@@ -4,6 +4,11 @@ import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router'; // To access passed params
 
 const Track = () => {
+<<<<<<< HEAD
+    return (
+        <View style={styles.container}>
+          <Text style={styles.text}>Track yo pet!</Text>
+=======
   const {
     petName,
     petAge,
@@ -67,6 +72,7 @@ const Track = () => {
         <View>
           <Text style={styles.petName}>{petName}</Text>
           <Text style={styles.petDetails}>{petAge} | {petWeight}</Text>
+>>>>>>> 5c724397dc4aa21fd7802f810f7e5e5a2efe16c9
         </View>
       </View>
 
