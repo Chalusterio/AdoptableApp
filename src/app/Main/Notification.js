@@ -2,79 +2,81 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db, auth } from "../../../firebase"; // Ensure db is properly initialized
+import { collection, query, getDocs, where, onSnapshot } from "firebase/firestore";
+import { db, auth } from "../../../firebase";
 import { FontAwesome } from '@expo/vector-icons';
-import moment from 'moment'; // Import moment.js for time formatting
+import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Notification = () => {
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
-  const [adopters, setAdopters] = useState({}); // Store adopter details
-  const [currentUser, setCurrentUser] = useState(null); // Store current logged-in user
+  const [adopters, setAdopters] = useState({});
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // Get current user
   useEffect(() => {
-    const user = auth.currentUser; // Get the current authenticated user
-    setCurrentUser(user); // Set the logged-in user
+    const user = auth.currentUser;
+    setCurrentUser(user);
   }, []);
 
   useEffect(() => {
     if (!currentUser) return;
 
-    const fetchNotifications = async () => {
-      const petRequestsQuery = query(
-        collection(db, "pet_request"),
-        where("status", "==", "Pending"),
-        where("listedBy", "==", currentUser.email)
-      );
-      const querySnapshot = await getDocs(petRequestsQuery);
+    const petRequestsQuery = query(
+      collection(db, "pet_request"),
+      where("status", "==", "Pending"),
+      where("listedBy", "==", currentUser.email)
+    );
 
+    const unsubscribe = onSnapshot(petRequestsQuery, async (querySnapshot) => {
       const savedMapping = await loadAdjectiveMapping();
       const notificationsList = [];
 
-    for (const doc of querySnapshot.docs) {
-  const petRequest = doc.data();
+      querySnapshot.forEach((doc) => {
+        const petRequest = doc.data();
 
-  // Fetch adopter details
-  if (!adopters[petRequest.adopterEmail]) {
-    const adopterDetails = await fetchAdopterDetails(petRequest.adopterEmail);
-    if (adopterDetails) {
-      setAdopters((prev) => ({
-        ...prev,
-        [petRequest.adopterEmail]: adopterDetails,
-      }));
-    }
-  }
+        if (!adopters[petRequest.adopterEmail]) {
+          fetchAdopterDetails(petRequest.adopterEmail).then((adopterDetails) => {
+            if (adopterDetails) {
+              setAdopters((prev) => ({
+                ...prev,
+                [petRequest.adopterEmail]: adopterDetails,
+              }));
+            }
+          });
+        }
 
-  const adopter = adopters[petRequest.adopterEmail] || {};
-  const formattedTime = moment(petRequest.requestDate.seconds * 1000).fromNow();
+        const adopter = adopters[petRequest.adopterEmail] || {};
+        const formattedTime = moment(petRequest.requestDate.seconds * 1000).fromNow();
 
-  if (adopter.name && petRequest.petName) { // Ensure both adopter and pet details are available
-    notificationsList.push({
-      id: doc.id,
-      image: adopter.profilePicture ? { uri: adopter.profilePicture } : null,
-      name: adopter.name || "Adopter",
-      content: `A ${getRandomAdjective()} ${adopter.name || "Adopter"} has requested to adopt your pet.`,
-      time: formattedTime,
-      action: () =>
-        router.push({
-          pathname: "/Screening",
-          params: {
-            adopterEmail: petRequest.adopterEmail,
-            petRequestId: doc.id,
-            petName: petRequest.petName, // Pass pet details here
-          },
-        }),
-    });
-  }
-}
+        if (adopter.name && petRequest.petName) {
+          notificationsList.push({
+            id: doc.id,
+            image: adopter.profilePicture ? { uri: adopter.profilePicture } : null,
+            name: adopter.name || "Adopter",
+            content: (
+              <Text>
+                A {getRandomAdjective()} <Text style={styles.boldText}>{adopter.name || "Adopter"}</Text> has requested to adopt <Text style={styles.boldText}>{petRequest.petName}</Text>.
+              </Text>
+            ),
+            time: formattedTime,
+            action: () =>
+              router.push({
+                pathname: "/Screening",
+                params: {
+                  adopterEmail: petRequest.adopterEmail,
+                  petRequestId: doc.id,
+                  petName: petRequest.petName,
+                },
+              }),
+          });
+        }
+      });
 
       setNotifications(notificationsList);
-    };
+    });
 
-    fetchNotifications();
+    return () => unsubscribe();
   }, [currentUser, adopters]);
 
   const fetchAdopterDetails = async (adopterEmail) => {
@@ -101,14 +103,12 @@ const Notification = () => {
   };
 
   const adjectives = ["wild", "curious", "bold", "determined", "passionate", "clever", "warm", "generous", "fearless", "playful", "mighty", "vigilant", "wise", "noble", "humble",
-    "lively", "radiant", "gracious","charming",];
+    "lively", "radiant", "gracious","charming"];
 
   const getRandomAdjective = () => {
-    // Filter adjectives that start with consonants (excluding vowels)
     const consonantAdjectives = adjectives.filter(adj => !/^[aeiou]/i.test(adj));
-
-    const randomIndex = Math.floor(Math.random() * consonantAdjectives.length); // Random index from filtered adjectives array
-    return consonantAdjectives[randomIndex]; // Return the selected adjective
+    const randomIndex = Math.floor(Math.random() * consonantAdjectives.length);
+    return consonantAdjectives[randomIndex];
   };
 
   const saveAdjectiveMapping = async (mapping) => {
@@ -133,8 +133,8 @@ const Notification = () => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         {notifications.length === 0 ? (
-          <View style={styles.messageContainer}>
-            <Text style={styles.noNotificationsText}>No notifications available</Text>
+          <View style={styles.centeredContainer}>
+            <Text style={styles.loadingText}>Loading...</Text>
           </View>
         ) : (
           notifications.map((notif) => (
@@ -142,7 +142,7 @@ const Notification = () => {
               <TouchableOpacity
                 style={styles.notifButton}
                 onPress={notif.action}
-                disabled={!notif.action} // Disable click if no action
+                disabled={!notif.action}
               >
                 {notif.image ? (
                   <Image style={styles.notifImage} source={notif.image} />
@@ -231,6 +231,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 20,
+  },
+  boldText: {
+    fontWeight: "bold",
+  },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  loadingText: {
+    fontFamily: "Lato",
+    fontSize: 18,
+    textAlign: "center",
+    color: "#888",
   },
 });
 
