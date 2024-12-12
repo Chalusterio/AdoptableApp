@@ -10,6 +10,7 @@ import {
   query,
   where,
   addDoc,
+  getDocs,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
@@ -91,6 +92,39 @@ export const PetProvider = ({ children }) => {
       ]);
     } catch (error) {
       console.error("Error adding pet: ", error);
+    }
+  };
+
+  const cancelRequest = async (petName) => {
+    if (!user) return;
+
+    const requestsRef = collection(db, "pet_request");
+    const q = query(
+      requestsRef,
+      where("adopterEmail", "==", user.email),
+      where("petName", "==", petName),
+      where("status", "==", "Pending")
+    );
+
+    try {
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const docId = querySnapshot.docs[0].id; // Get the first matching document's ID
+        const requestRef = doc(db, "pet_request", docId);
+
+        // Update the status to "Canceled"
+        await updateDoc(requestRef, { status: "Canceled" });
+
+        // Remove the canceled request from the local state
+        setRequestedPets((prevRequests) =>
+          prevRequests.filter((pet) => pet.petName !== petName)
+        );
+      } else {
+        console.error("No pending request found for petName:", petName);
+      }
+    } catch (error) {
+      console.error("Error canceling request: ", error);
     }
   };
 
@@ -184,6 +218,7 @@ export const PetProvider = ({ children }) => {
         toggleFavorite,
         requestedPets, // Provide requested pets (filtered by the current user)
         setRequestedPets,
+        cancelRequest,
         addPet, // Provide addPet function to add a new pet
       }}
     >
