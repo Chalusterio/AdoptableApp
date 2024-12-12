@@ -13,119 +13,118 @@ import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import SideBar from "../components/SideBar";
-import { usePets } from "../context/PetContext";
-import { db, auth } from "../../firebase"; // Firebase imports
 import { Surface } from "react-native-paper";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { usePets } from "../context/PetContext"; // Adjust the path as needed
+import { db, auth } from "../../firebase"; // Ensure `auth` and `db` are imported from Firebase
+import { collection, query, where, getDocs } from "firebase/firestore"; // Import Firestore functions
 
 const Requests = () => {
-  const { toggleFavorite, favoritedPets, requestedPets, setRequestedPets } = usePets(); // Context hooks
+  const { favoritedPets, setFilteredPets, pets, toggleFavorite } = usePets();
   const router = useRouter();
   const [selectedItem, setSelectedItem] = useState("Requests");
-  const [isLoading, setIsLoading] = useState(true); // Loading state
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
+  const [requestedPets, setRequestedPets] = useState([]); // State to hold filtered requested pets
 
+  // Fetch the current user's pending requests
   useEffect(() => {
-    const fetchRequestedPets = async () => {
+    const fetchUserRequests = async () => {
       setIsLoading(true); // Start loading
       const user = auth.currentUser;
-
       if (user) {
         try {
-          // Fetch pet requests for the current user
-          const petRequestsRef = collection(db, "pet_request");
+          // Query pet requests where adopterEmail is the current user's email and status is "Pending"
+          const requestsRef = collection(db, "pet_request");
           const q = query(
-            petRequestsRef,
+            requestsRef,
             where("adopterEmail", "==", user.email),
             where("status", "==", "Pending")
           );
           const querySnapshot = await getDocs(q);
 
-          const fetchedRequests = [];
+          const requestedPetIds = [];
           querySnapshot.forEach((doc) => {
-            fetchedRequests.push(doc.data());
+            const petData = doc.data();
+            requestedPetIds.push(petData.petName); // Assuming petName is used as a unique identifier
           });
 
-          setRequestedPets(fetchedRequests); // Set the filtered pets to the state
+          // Now filter the `pets` array to show only those that match the requested pet IDs
+          const pendingPets = pets.filter((pet) => requestedPetIds.includes(pet.petName));
+
+          setRequestedPets(pendingPets); // Update the state with the filtered pets
         } catch (error) {
-          console.error("Error fetching requested pets:", error);
+          console.error("Error fetching user requests:", error);
         }
       }
       setIsLoading(false); // Stop loading
     };
 
-    fetchRequestedPets();
-  }, []); // Empty dependency array ensures this only runs once when the component mounts
+    fetchUserRequests();
+  }, [pets]); // Only re-run when `pets` changes
 
   // Render pet item
   const renderItem = ({ item }) => {
-  // Ensure images is defined and not empty
-  const images = Array.isArray(item.images) && item.images.length > 0 ? item.images : ["default_image_url"]; // Default image if none
+    const isFavorited = favoritedPets.some((favPet) => favPet.id === item.id);
 
-  // Check if the pet is already favorited by the current user
-  const isFavorited = favoritedPets.some(
-    (favPet) => favPet.id === item.petId
-  );
-
-  return (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.7}
-      onPress={() => {
-        router.push({
-          pathname: "/PetDetails",
-          params: {
-            ...item,
-            images: JSON.stringify(images), // Pass valid images array
-          },
-        });
-      }}
-    >
-      <View style={styles.imageContainer}>
-        <TouchableOpacity
-          style={styles.favoriteIconButton}
-          onPress={() => toggleFavorite(item.petId, item)} // Pass pet data to toggleFavorite
-        >
-          <FontAwesome
-            name={isFavorited ? "heart" : "heart-o"}
-            size={20}
-            color={isFavorited ? "#FF6B6B" : "#FFFFFF"} // Red for heart, white for heart-o
-          />
-        </TouchableOpacity>
-        <Image source={{ uri: images[0] }} style={styles.image} />
-      </View>
-      <View style={styles.petDetailsContainer}>
-        <View style={styles.nameGenderContainer}>
-          <Text style={styles.name}>{item.petName}</Text>
-          <View style={styles.genderContainer}>
-            {item.petGender === "Female" ? (
-              <Foundation name="female-symbol" size={24} color="#EF5B5B" />
-            ) : (
-              <Foundation name="male-symbol" size={24} color="#68C2FF" />
-            )}
-          </View>
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.7}
+        onPress={() => {
+          router.push({
+            pathname: "/PetDetails",
+            params: {
+              ...item,
+              images: JSON.stringify(item.images),
+            },
+          });
+        }}
+      >
+        <View style={styles.imageContainer}>
+          <TouchableOpacity
+            style={styles.favoriteIconButton}
+            onPress={() => toggleFavorite(item.id, item)} // Pass pet data to toggleFavorite
+          >
+            <FontAwesome
+              name={isFavorited ? "heart" : "heart-o"}
+              size={20}
+              color={isFavorited ? "#FF6B6B" : "#FFFFFF"} // Red for heart, white for heart-o
+            />
+          </TouchableOpacity>
+          <Image source={{ uri: item.images[0] }} style={styles.image} />
         </View>
-        <Text style={styles.age}>{item.petAge}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-};
+        <View style={styles.petDetailsContainer}>
+          <View style={styles.nameGenderContainer}>
+            <Text style={styles.name}>{item.petName}</Text>
+            <View style={styles.genderContainer}>
+              {item.petGender === "Female" ? (
+                <Foundation name="female-symbol" size={24} color="#EF5B5B" />
+              ) : (
+                <Foundation name="male-symbol" size={24} color="#68C2FF" />
+              )}
+            </View>
+          </View>
+          <Text style={styles.age}>{item.petAge} Years Old</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
       <SafeAreaView style={styles.safeArea}>
         <Surface style={styles.titleContainer} elevation={3}>
-          <Text style={styles.title}>Your Requested Pets</Text>
+          <Text style={styles.title}>Your Pending Requested Pets</Text>
         </Surface>
 
-        {isLoading ? (
+        {isLoading ? ( // Display loading text while fetching data
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#68C2FF" />
             <Text style={styles.loadingText}>Loading requests...</Text>
           </View>
         ) : requestedPets.length > 0 ? (
           <FlatList
-            data={requestedPets}
-            keyExtractor={(item) => item.petId}
+            data={requestedPets} // Display only requested pets that are pending
+            keyExtractor={(item) => item.id}
             renderItem={renderItem}
             numColumns={2}
             columnWrapperStyle={styles.row}
@@ -133,7 +132,7 @@ const Requests = () => {
           />
         ) : (
           <View style={styles.noPetsContainer}>
-            <Text style={styles.noPetsText}>No pending requests available.</Text>
+            <Text style={styles.noPetsText}>No pending pet requests available.</Text>
           </View>
         )}
       </SafeAreaView>
