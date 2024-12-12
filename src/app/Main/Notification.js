@@ -15,6 +15,8 @@ import {
   getDocs,
   where,
   onSnapshot,
+  setDoc,
+  doc,
 } from "firebase/firestore";
 import { db, auth } from "../../../firebase";
 import { FontAwesome } from "@expo/vector-icons";
@@ -36,7 +38,7 @@ const Notification = () => {
 
     const petRequestsQuery = query(
       collection(db, "pet_request"),
-      where("status", "in", ["Pending", "Accepted", "Rejected"]) // Fetch all relevant statuses
+      where("status", "in", ["Pending", "Accepted", "Rejected"])
     );
 
     const unsubscribe = onSnapshot(petRequestsQuery, async (querySnapshot) => {
@@ -69,16 +71,27 @@ const Notification = () => {
 
         const adopter = users[petRequest.adopterEmail] || {};
         const petLister = users[petRequest.listedBy] || {};
-        const formattedTime = moment(
-          petRequest.requestDate.seconds * 1000
-        ).fromNow();
+
+        let formattedTime = "";
+        if (petRequest.status === "Pending") {
+          formattedTime = moment(
+            petRequest.requestDate.seconds * 1000
+          ).fromNow();
+        } else if (petRequest.status === "Accepted") {
+          formattedTime = moment(
+            petRequest.acceptDate.seconds * 1000
+          ).fromNow();
+        } else if (petRequest.status === "Rejected") {
+          formattedTime = moment(
+            petRequest.rejectDate.seconds * 1000
+          ).fromNow();
+        }
 
         if (
           petRequest.status === "Pending" &&
           currentUser.email === petRequest.listedBy
         ) {
-          // Notifications for Pending requests visible to lister
-          notificationsList.push({
+          const notification = {
             id: doc.id,
             image: adopter.profilePicture
               ? { uri: adopter.profilePicture }
@@ -100,15 +113,46 @@ const Notification = () => {
                   petName: petRequest.petName,
                 },
               }),
+          };
+
+          notificationsList.push(notification);
+          storeNotification(doc.id, petRequest, currentUser.email);
+        }
+
+        if (
+          currentUser.email === petRequest.listedBy &&
+          ["Accepted", "Rejected"].includes(petRequest.status)
+        ) {
+          const message =
+            petRequest.status === "Accepted" ? (
+              <Text>
+                You have accepted {adopter.name || "the adopter"}'s request to adopt{" "}
+                <Text style={styles.boldText}>{petRequest.petName}</Text>.
+              </Text>
+            ) : (
+              <Text>
+                You have rejected {adopter.name || "the adopter"}'s request to adopt{" "}
+                <Text style={styles.boldText}>{petRequest.petName}</Text>.
+              </Text>
+            );
+
+          notificationsList.push({
+            id: `${doc.id}-${petRequest.status}`,
+            image: require("../../assets/Icon_white.png"),
+            name: "System Notification",
+            content: message,
+            time: formattedTime,
+            action: null,
           });
+
+          storeNotification(`${doc.id}-${petRequest.status}`, petRequest, currentUser.email);
         }
 
         if (
           petRequest.status === "Accepted" &&
           currentUser.email === petRequest.adopterEmail
         ) {
-          // Notifications for Accepted requests visible to adopter
-          notificationsList.push({
+          const notification = {
             id: doc.id,
             image: petLister.profilePicture
               ? { uri: petLister.profilePicture }
@@ -123,7 +167,7 @@ const Notification = () => {
                 </Text>
               </Text>
             ),
-            time: moment().fromNow(),
+            time: formattedTime,
             action: () =>
               router.push({
                 pathname: "/ApproveAdoption",
@@ -133,15 +177,17 @@ const Notification = () => {
                   listedBy: petRequest.listedBy,
                 },
               }),
-          });
+          };
+
+          notificationsList.push(notification);
+          storeNotification(doc.id, petRequest, currentUser.email);
         }
 
         if (
           petRequest.status === "Rejected" &&
           currentUser.email === petRequest.adopterEmail
         ) {
-          // Notifications for Rejected requests visible to the adopter
-          notificationsList.push({
+          const notification = {
             id: doc.id,
             image: petLister.profilePicture
               ? { uri: petLister.profilePicture }
@@ -154,11 +200,15 @@ const Notification = () => {
                 <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             ),
-            time: moment().fromNow(), // Current time for Rejected status
-            action: null, // No action needed for Rejected notifications
-          });
+            time: formattedTime,
+            action: null,
+          };
+
+          notificationsList.push(notification);
+          storeNotification(doc.id, petRequest, currentUser.email);
         }
       });
+
       notificationsList.sort((a, b) => b.time.localeCompare(a.time));
       setNotifications(notificationsList);
     });
@@ -189,8 +239,25 @@ const Notification = () => {
     }
   };
 
+  const storeNotification = async (notificationId, petRequest, userEmail) => {
+    try {
+      const notificationRef = doc(db, "notifications", notificationId);
+      await setDoc(notificationRef, {
+        petRequestId: notificationId,
+        status: petRequest.status,
+        userEmail: userEmail,
+        petName: petRequest.petName,
+        timestamp: petRequest.requestDate || new Date(),
+        read: false, // Mark as unread initially
+      });
+    } catch (error) {
+      console.error("Error storing notification: ", error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
+
       <ScrollView
         contentContainerStyle={styles.scrollViewContent}
         keyboardShouldPersistTaps="handled"
@@ -275,7 +342,6 @@ const styles = StyleSheet.create({
   notifContent: {
     fontFamily: "Lato",
     fontSize: 14,
-    textAlign: 'justify',
     marginRight: 10,
   },
   timeContainer: {
