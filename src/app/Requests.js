@@ -68,7 +68,13 @@ const Requests = () => {
 
   const handleCancelRequest = () => {
     if (longPressedPetId) {
-      cancelRequest(longPressedPetId); // Use petName instead of requestId
+      cancelRequest(longPressedPetId); // Perform the cancel operation
+
+      // Optimistically update the requestedPets state
+      setRequestedPets((prevRequestedPets) =>
+        prevRequestedPets.filter((pet) => pet.petName !== longPressedPetId)
+      );
+
       setLongPressedPetId(null); // Reset the long-press state
     }
   };
