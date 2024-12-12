@@ -117,4 +117,8 @@ const styles = StyleSheet.create({
   },
 });
 
+<<<<<<< Updated upstream
 export default TabBar;
+=======
+export default TabBar;
+>>>>>>> Stashed changes
