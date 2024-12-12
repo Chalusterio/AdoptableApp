@@ -216,6 +216,11 @@ const Profile = () => {
           </TouchableOpacity>
 
           <View style={styles.header}>
+             {/* Default Cover Photo */}
+            <Image
+              style={styles.coverImage}
+              source={require("../../assets/Profile/default1.png")}
+            />
             <Image
               style={styles.profileImage}
               source={
@@ -518,6 +523,11 @@ const styles = StyleSheet.create({
     marginTop: 60,
     marginBottom: 20,
   },
+  coverImage: {
+    width: "100%",
+    height: 200,
+    resizeMode: "cover",
+  },
   profileImage: {
     width: 244,
     height: 244,
@@ -529,7 +539,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lilita",
     fontSize: 24,
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 30
   },
   profileStatus: {
     fontFamily: "Lilita",
@@ -687,12 +697,17 @@ const styles = StyleSheet.create({
   profileImageContainer: {
     width: 244,
     height: 244,
-    borderRadius: 122,
+    borderRadius: 100,
     borderWidth: 4,
     borderColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 40,
+    position: "absolute",
+    bottom: -50,
+    alignSelf: "center",
+    overflow: "hidden",
+
   },
   profileImage: {
     width: 240,
@@ -700,6 +715,7 @@ const styles = StyleSheet.create({
     borderRadius: 120, // Ensures the image is circular
     borderColor: "#68C2FF",
     borderWidth: 5,
+    marginTop: -150,
   },
   editProfileImage: {
     width: 30,
