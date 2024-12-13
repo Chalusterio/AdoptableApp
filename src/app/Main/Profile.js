@@ -157,7 +157,6 @@ const Profile = () => {
     setModalVisible(true);
   };
 
-
   const handleCancelEdit = () => {
     setEditConfirmVisible(false);
   };
@@ -246,7 +245,6 @@ const Profile = () => {
             </Text>
           </View>
           <View style={styles.horizontalLine}></View>
-
 
           {/* Edit Modal */}
           <Modal
@@ -430,7 +428,6 @@ const Profile = () => {
               </View>
             </View>
           </Modal>
-
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -524,6 +521,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.5)",
+    zIndex: 9999,
   },
   modalContent: {
     width: "90%", // Adjust the width as needed
@@ -579,6 +577,39 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     flex: 1,
     marginLeft: 5,
+  },
+  logoutModalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  logoutModalContent: {
+    width: "80%",
+    backgroundColor: "#68C2FF",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+  },
+  logoutModalText: {
+    fontSize: 18,
+    fontFamily: "Lilita",
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  logoutModalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  logoutButtonModal: {
+    backgroundColor: "#EF5B5B",
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginLeft: 5,
+    alignItems: "center",
   },
   buttonText: {
     color: "#fff",

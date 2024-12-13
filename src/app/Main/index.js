@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import {
   View,
   Text,
@@ -97,9 +97,9 @@ const Feed = () => {
       console.log("User is not logged in. Cannot toggle favorite.");
       return;
     }
-  
+
     const userFavoritesRef = doc(db, "users", userId); // User's favorites document reference
-  
+
     // Toggle the favorite status locally
     setFavoritedPets((prevState) => {
       const newState = { ...prevState };
@@ -189,6 +189,10 @@ const Feed = () => {
             numColumns={2}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.container}
+            initialNumToRender={10} // Render 6 items initially
+            maxToRenderPerBatch={10} // Render 10 items in each batch
+            windowSize={5} // Keep 5 items in memory (default: 21)
+            removeClippedSubviews={true} // Remove off-screen items
           />
         ) : (
           <View style={styles.noPetsContainer}>
@@ -305,4 +309,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Feed;
+export default memo(Feed);

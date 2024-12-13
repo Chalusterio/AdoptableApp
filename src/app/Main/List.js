@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TextInput, Dialog, Portal } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Foundation from "@expo/vector-icons/Foundation";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -154,22 +155,22 @@ const List = () => {
       setDialogVisible(true);
       return;
     }
-  
+
     setIsLoading(true); // Start loading
-  
+
     try {
       const auth = getAuth();
       const user = auth.currentUser;
-  
+
       if (!user) {
         alert("Please log in to list a pet.");
         setIsLoading(false);
         return;
       }
-  
+
       const storage = getStorage();
       const db = getFirestore();
-  
+
       const newPet = {
         petName,
         petType,
@@ -185,11 +186,11 @@ const List = () => {
         createdAt: new Date().toISOString(),
         listedBy: user.email,
       };
-  
+
       const petCollection = collection(db, "listed_pets");
       const docRef = await addDoc(petCollection, newPet);
       const petId = docRef.id;
-  
+
       const imageUploadPromises = selectedImages.map(async (image, index) => {
         const response = await fetch(image.uri);
         const blob = await response.blob();
@@ -200,12 +201,12 @@ const List = () => {
         await uploadBytes(imageRef, blob);
         return getDownloadURL(imageRef);
       });
-  
+
       const uploadedImages = await Promise.all(imageUploadPromises);
-  
+
       // Update the Firestore document with the uploaded image URLs
       await updateDoc(docRef, { images: uploadedImages });
-  
+
       // Add the pet to the global state using addPet
       addPet({
         id: petId,
@@ -223,7 +224,7 @@ const List = () => {
         createdAt: new Date().toISOString(),
         listedBy: user.email,
       });
-  
+
       alert("Pet listed successfully!");
       resetForm();
       router.push("/Main");
@@ -233,7 +234,7 @@ const List = () => {
     } finally {
       setIsLoading(false); // Stop loading
     }
-  }  
+  };
 
   const resetForm = () => {
     setAdoptionFee("");
@@ -615,7 +616,13 @@ const List = () => {
             {/* Dialog for Alert */}
             <Portal>
               <Dialog visible={dialogVisible} onDismiss={hideDialog}>
-                <Dialog.Icon icon="exclamation-thick" color="#EF5B5B" />
+                <Dialog.Content style={styles.dialogueIcon}>
+                  <FontAwesome
+                    name="exclamation-triangle"
+                    size={24}
+                    color="#EF5B5B"
+                  />
+                </Dialog.Content>
                 <Dialog.Title style={styles.dialogTitle}>Alert</Dialog.Title>
                 <Dialog.Content style={styles.dialogContent}>
                   <Text style={styles.dialogText}>
@@ -801,6 +808,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   //dialog
+  dialogueIcon: {
+    alignItems: "center", // Center align the content
+    justifyContent: "center", // Center vertically
+    width: '100%',
+  },
   dialogTitle: {
     textAlign: "center", // Center align the title
     fontFamily: "Lato",
