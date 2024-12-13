@@ -1,48 +1,66 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Text, Image, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Modal, TextInput } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { db } from "../../firebase"; // Ensure `db` is imported from Firebase
-import { doc, deleteDoc, updateDoc } from "firebase/firestore";
-import * as ImagePicker from "expo-image-picker";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { Picker } from "@react-native-picker/picker"; // Import Picker
 
 const screenWidth = Dimensions.get("window").width;
 
 const PetDetailsEdit = () => {
   const {
-    petName,
-    petType,
-    petGender,
-    petAge,
-    petWeight,
-    petPersonality,
-    petDescription,
-    petIllnessHistory,
-    petVaccinated,
-    images,
     petId,  // Assuming petId is passed in the params for the pet
   } = useLocalSearchParams();
   
-  const parsedImages = JSON.parse(images || "[]");
-
+  const [petData, setPetData] = useState(null); // State to hold pet data
   const [isFavorited, setIsFavorited] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [editedPetName, setEditedPetName] = useState(petName);
-  const [editedPetAge, setEditedPetAge] = useState(petAge);
-  const [editedPetWeight, setEditedPetWeight] = useState(petWeight);
-  const [editedPetPersonality, setEditedPetPersonality] = useState(petPersonality);
-  const [editedPetDescription, setEditedPetDescription] = useState(petDescription);
-  const [editedPetVaccinated, setEditedPetVaccinated] = useState(petVaccinated);
-  const [editedPetType, setEditedPetType] = useState(petType);
-  const [editedPetGender, setEditedPetGender] = useState(petGender);
+  const [editedPetName, setEditedPetName] = useState("");
+  const [editedPetAge, setEditedPetAge] = useState("");
+  const [editedPetWeight, setEditedPetWeight] = useState("");
+  const [editedPetPersonality, setEditedPetPersonality] = useState("");
+  const [editedPetDescription, setEditedPetDescription] = useState("");
+  const [editedPetVaccinated, setEditedPetVaccinated] = useState("");
+  const [editedPetType, setEditedPetType] = useState("");
+  const [editedPetGender, setEditedPetGender] = useState("");
+  const [editedAdoptionFee, setEditedAdoptionFee] = useState("");
 
   const scrollViewRef = useRef(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchPetData = async () => {
+      try {
+        const petRef = doc(db, "listed_pets", petId);
+        const petDoc = await getDoc(petRef);
+        if (petDoc.exists()) {
+          const pet = petDoc.data();
+          setPetData(pet);
+          // Set initial state with pet data
+          setEditedPetName(pet.petName);
+          setEditedPetAge(pet.petAge);
+          setEditedPetWeight(pet.petWeight);
+          setEditedPetPersonality(pet.petPersonality);
+          setEditedPetDescription(pet.petDescription);
+          setEditedPetVaccinated(pet.petVaccinated);
+          setEditedPetType(pet.petType);
+          setEditedPetGender(pet.petGender);
+          setEditedAdoptionFee(pet.adoptionFee);
+        } else {
+          console.log("Pet not found!");
+        }
+      } catch (error) {
+        console.error("Error fetching pet data: ", error);
+      }
+    };
+
+    fetchPetData();
+  }, [petId]);
 
   const toggleFavorite = () => {
     setIsFavorited(!isFavorited);
@@ -83,6 +101,7 @@ const PetDetailsEdit = () => {
         petVaccinated: editedPetVaccinated,
         petType: editedPetType,
         petGender: editedPetGender,
+        adoptionFee: editedAdoptionFee,
       };
       await updateDoc(petRef, updatedPetData);
       alert("Pet details updated successfully!");
@@ -93,6 +112,12 @@ const PetDetailsEdit = () => {
     }
   };
 
+  if (!petData) {
+    return <Text>Loading...</Text>;
+  }
+
+  const { images } = petData; // Use images from pet data
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -100,7 +125,7 @@ const PetDetailsEdit = () => {
         contentContainerStyle={{ paddingBottom: 100 }}
       >
         {/* Horizontal Image Scroll */}
-        {parsedImages.length > 0 && (
+        {images && images.length > 0 && (
           <View>
             <ScrollView
               horizontal={true}
@@ -111,16 +136,19 @@ const PetDetailsEdit = () => {
               showsHorizontalScrollIndicator={false}
               pagingEnabled={true}
             >
-              {parsedImages.map((imageURL, index) => (
+              {images.map((imageURL, index) => (
                 <View key={index} style={styles.petImageContainer}>
-                  <Image source={{ uri: imageURL }} style={styles.petImage} />
+                  <Image
+                    source={{ uri: imageURL }}
+                    style={styles.petImage}
+                  />
                 </View>
               ))}
             </ScrollView>
 
             {/* Pagination Dots */}
             <View style={styles.paginationContainer}>
-              {parsedImages.map((_, index) => (
+              {images.map((_, index) => (
                 <View
                   key={index}
                   style={[styles.paginationDot, index === currentIndex && styles.activeDot]}
@@ -134,18 +162,18 @@ const PetDetailsEdit = () => {
         <View style={styles.card}>
           <View style={styles.header}>
             <View style={styles.mainInfoHeader}>
-              <Text style={styles.petName}>{petName}</Text>
+              <Text style={styles.petName}>{petData.petName}</Text>
               <Text style={styles.petTypeIcon}>
-                {petType === "Cat" ? (
+                {petData.petType === "Cat" ? (
                   <MaterialCommunityIcons name="cat" size={24} color="#333" />
                 ) : (
                   <MaterialCommunityIcons name="dog" size={24} color="#333" />
                 )}
               </Text>
               <Text
-                style={[styles.petGender, { color: petGender === "Male" ? "#68C2FF" : "#EF5B5B" }]}
+                style={[styles.petGender, { color: petData.petGender === "Male" ? "#68C2FF" : "#EF5B5B" }]}
               >
-                {petGender === "Male" ? (
+                {petData.petGender === "Male" ? (
                   <Foundation name="male-symbol" size={24} color="#68C2FF" />
                 ) : (
                   <Foundation name="female-symbol" size={24} color="#EF5B5B" />
@@ -153,22 +181,23 @@ const PetDetailsEdit = () => {
               </Text>
             </View>
           </View>
-          <Text style={styles.subText}>{`${petAge} | ${petWeight}`}</Text>
+          <Text style={styles.subText}>{`${petData.petAge} | ${petData.petWeight}`}</Text>
           <Text style={styles.personalityText}>
-            {petPersonality ? petPersonality.split(",").join(" ● ") : "No personality traits available"}
+            {petData.petPersonality ? petData.petPersonality.split(",").join(" ● ") : "No personality traits available"}
           </Text>
-          <Text style={styles.description}>{petDescription}</Text>
+          <Text style={styles.description}>{petData.petDescription}</Text>
           <Text style={styles.sectionTitle}>Health History:</Text>
           <View>
             <Text style={styles.bulletText}>
-              {petVaccinated === "Yes" ? "• Vaccinated" : "• Not Vaccinated"}
+              {petData.petVaccinated === "Yes" ? "• Vaccinated" : "• Not Vaccinated"}
             </Text>
-            {petIllnessHistory.split(",").map((illness, index) => (
+            {petData.petIllnessHistory.split(",").map((illness, index) => (
               <Text key={index} style={styles.bulletText}>
                 • {illness.trim()}
               </Text>
             ))}
           </View>
+          <Text style={styles.adoptionFee}>₱ {petData.adoptionFee}</Text>
         </View>
       </ScrollView>
 
@@ -199,7 +228,6 @@ const PetDetailsEdit = () => {
           </TouchableOpacity>
         </View>
       </View>
-
       {/* Edit Modal */}
       <Modal
         visible={modalVisible}
@@ -353,6 +381,15 @@ const PetDetailsEdit = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
+              {/* Adoption Fee */}
+              <Text style={styles.question}>Adoption Fee:</Text>
+              <TextInput
+                placeholder="e.g., 100"
+                value={editedAdoptionFee}
+                onChangeText={setEditedAdoptionFee}
+                keyboardType="number-pad"
+                style={[styles.input, styles.adoptionFee]}
+              />
 
             </ScrollView>
 
@@ -376,7 +413,6 @@ const PetDetailsEdit = () => {
     </View>
   );
 };
-
 
 
 const styles = StyleSheet.create({
@@ -525,51 +561,53 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContainer: {
-    width: "90%",
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    padding: 20,
-    alignItems: "center",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  input: {
-    marginBottom: 10,
-    backgroundColor: "#F5F5F5",
-    padding: 10,
-  },
   picker: {
     backgroundColor: "#F5F5F5",
     marginBottom: 20,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    backgroundColor: "#fff",
+    width: "90%",
+    marginVertical: 50,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  scrollViewContent2: {
+    padding: 20,
+  },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 20,
+    padding: 10,
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: "#CCC",
+    backgroundColor: "#ccc",
     padding: 10,
     borderRadius: 5,
-    marginRight: 10,
+    marginRight: 5,
+    marginBottom: 50,
   },
   saveButton: {
     flex: 1,
     backgroundColor: "#68C2FF",
     padding: 10,
     borderRadius: 5,
+    marginLeft: 5,
+    marginBottom: 50,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 15,
   },
   optionRow: {
     flexDirection: "row",
@@ -580,7 +618,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F5F5F5",
-    borderRadius: 25,
+    borderRadius: 8,
+    paddingVertical: 5,
+    marginHorizontal: 5,
     padding: 12,
     flex: 1,
     marginHorizontal: 5,
@@ -599,8 +639,22 @@ const styles = StyleSheet.create({
   selectedOptionText: {
     color: "#68C2FF",
   },
+  adoptionFee: {
+    fontSize: 25,
+    fontFamily: "Lilita",
+    color: "#EF5B5B",
+    marginRight: 10,
+    marginTop: 30,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontFamily: "Lilita",
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+    marginTop: 30,
+  },
 });
-
 
 
 export default PetDetailsEdit;
