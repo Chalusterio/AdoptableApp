@@ -18,7 +18,6 @@ import { usePets } from '../context/PetContext'; // Import the context
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { db, auth } from "../../firebase"; // Ensure `auth` is imported from Firebase
-import { useNotifications } from '../context/NotificationContext';  // Import the hook
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -180,9 +179,7 @@ const PetDetails = () => {
     } finally {
       setIsSubmitting(false); // Reset submitting state after action completes
     }
-  };
-
-  const onScroll = (event) => {
+  };  const onScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const imageWidth = Dimensions.get("window").width;
     const index = Math.round(contentOffsetX / imageWidth);
