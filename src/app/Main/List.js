@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TextInput, Dialog, Portal } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Foundation from "@expo/vector-icons/Foundation";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -203,7 +204,26 @@ const List = () => {
 
       const uploadedImages = await Promise.all(imageUploadPromises);
 
+      // Update the Firestore document with the uploaded image URLs
       await updateDoc(docRef, { images: uploadedImages });
+
+      // Add the pet to the global state using addPet
+      addPet({
+        id: petId,
+        petName,
+        petType,
+        petGender,
+        petAge,
+        petWeight,
+        petPersonality,
+        petDescription,
+        petIllnessHistory,
+        petVaccinated,
+        adoptionFee,
+        images: uploadedImages,
+        createdAt: new Date().toISOString(),
+        listedBy: user.email,
+      });
 
       alert("Pet listed successfully!");
       resetForm();
@@ -360,10 +380,11 @@ const List = () => {
 
               <Text style={styles.question}>Age:</Text>
               <TextInput
-                placeholder="e.g., 5 Years 3 Months"
-                label="e.g., 5 Years 3 Months"
+                placeholder="e.g., 5 Years"
+                label="e.g., 5 Years"
                 value={petAge}
                 onChangeText={setPetAge}
+                keyboardType="number-pad"
                 style={[styles.input, errors.petAge && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
@@ -380,16 +401,7 @@ const List = () => {
                 label="e.g., 25"
                 value={petWeight} // 'petWeight' now includes the 'kg' suffix
                 keyboardType="number-pad"
-                onChangeText={(text) => {
-                  // Remove any non-numeric characters (to handle cases where users paste text)
-                  const numericInput = text.replace(/[^0-9]/g, "");
-
-                  // Limit the input to a maximum of two digits
-                  const limitedInput = numericInput.slice(0, 2);
-
-                  // Set the numeric value and append "kg"
-                  setPetWeight(limitedInput ? `${limitedInput} kg` : ""); // Append "kg" to the value
-                }}
+                onChangeText={setPetWeight}
                 style={[styles.input, errors.petWeight && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
@@ -521,26 +533,11 @@ const List = () => {
 
               <Text style={styles.question}>Enter adoption fee:</Text>
               <TextInput
-                placeholder="e.g., ₱0 - ₱500"
-                label="e.g., ₱0 - ₱500"
+                placeholder="e.g., ₱500"
+                label="e.g., ₱500"
                 value={adoptionFee}
                 keyboardType="number-pad"
-                onChangeText={(text) => {
-                  // Remove any non-numeric characters (except for the peso symbol)
-                  const cleanedText = text.replace(/[^0-9]/g, "");
-
-                  // If the cleaned text is empty (i.e., user erased everything), set to "₱0"
-                  if (cleanedText === "") {
-                    setAdoptionFee("");
-                    return;
-                  }
-
-                  // Convert to number
-                  let number = parseInt(cleanedText, 10);
-
-                  // Update the state with the formatted value, prefixing with the peso symbol
-                  setAdoptionFee(number === 0 ? "₱0" : `₱${number}`);
-                }}
+                onChangeText={setAdoptionFee}
                 style={[styles.input, errors.adoptionFee && styles.errorInput]}
                 mode="outlined"
                 outlineColor="transparent"
@@ -619,7 +616,13 @@ const List = () => {
             {/* Dialog for Alert */}
             <Portal>
               <Dialog visible={dialogVisible} onDismiss={hideDialog}>
-                <Dialog.Icon icon="exclamation-thick" color="#EF5B5B" />
+                <Dialog.Content style={styles.dialogueIcon}>
+                  <FontAwesome
+                    name="exclamation-triangle"
+                    size={24}
+                    color="#EF5B5B"
+                  />
+                </Dialog.Content>
                 <Dialog.Title style={styles.dialogTitle}>Alert</Dialog.Title>
                 <Dialog.Content style={styles.dialogContent}>
                   <Text style={styles.dialogText}>
@@ -805,6 +808,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   //dialog
+  dialogueIcon: {
+    alignItems: "center", // Center align the content
+    justifyContent: "center", // Center vertically
+    width: '100%',
+  },
   dialogTitle: {
     textAlign: "center", // Center align the title
     fontFamily: "Lato",

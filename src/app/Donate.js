@@ -8,7 +8,7 @@ import {
   TextInput,
   Modal,
   TouchableWithoutFeedback,
-  Keyboard,
+  Keyboard,ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import SideBar from "../components/SideBar";
@@ -34,6 +34,7 @@ const Donate = () => {
 
   return (
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
+      <ScrollView>
       <View style={styles.container}>
         {/* Header Section */}
         <Text style={styles.headerText}>Your Kindness, Their Care</Text>
@@ -146,6 +147,7 @@ const Donate = () => {
           </View>
         </Modal>
       </View>
+      </ScrollView>
     </SideBar>
   );
 };
@@ -183,7 +185,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 25,
     padding: 10,
     alignItems: 'center',
-    paddingVertical: 90,
+    paddingVertical: 100,
   },
   supportHeader: {
     fontSize: 24,

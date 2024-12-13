@@ -13,10 +13,12 @@ import {
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
+import { auth, signOut, clearSession, getSession } from "../../firebase"; // Ensure this imports your Firebase setup
 
 const SideBar = ({ children, selectedItem, setSelectedItem }) => {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isLogoutConfirmVisible, setLogoutConfirmVisible] = useState(false); // Modal visibility state for logout confirmation
   const screenWidth = Dimensions.get("window").width;
   const drawerWidth = screenWidth * 0.8; // Adjust the width of the drawer (80% of screen width)
   const drawerTranslateX = useState(new Animated.Value(-drawerWidth))[0]; // Start off-screen
@@ -43,6 +45,50 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
     setSelectedItem(screen); // Update the selected item state
     router.push(screen); // Use expo-router's push method to navigate
     closeDrawer(); // Close the drawer after navigation
+  };
+
+  const handleLogout = async () => {
+    try {
+      const session = await getSession(); // Check session before logout
+      console.log("Session before logout:", session); // Debug log
+      if (!session) {
+        console.error("No session found, user is not logged in.");
+        return;
+      }
+  
+      // Clear session in Firebase
+      await signOut(auth);
+      console.log("Firebase session cleared");
+  
+      // Clear custom session
+      await clearSession();
+      console.log("Custom session cleared");
+  
+      // Ensure session is completely cleared
+      const newSession = await getSession();
+      console.log("Session after logout:", newSession); // Debug log
+  
+      if (newSession) {
+        console.error("Session not cleared properly");
+        return;
+      }
+  
+      console.log("User logged out");
+      router.push("/Login"); // Ensure the route is correct
+    } catch (error) {
+      console.error("Error logging out: ", error.message);
+    } finally {
+      setLogoutConfirmVisible(false); // Close logout confirmation modal
+    }
+  };
+  
+
+  const handleLogoutConfirm = () => {
+    setLogoutConfirmVisible(true); // Show confirmation modal
+  };
+
+  const handleCancelLogout = () => {
+    setLogoutConfirmVisible(false); // Hide confirmation modal
   };
 
   return (
@@ -100,21 +146,6 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigateTo("Donate")}
-            style={[styles.drawerItem, selectedItem === "Donate" && styles.activeDrawerItem]}
-          >
-            <MaterialCommunityIcons
-              name={selectedItem === "Donate" ? "hand-coin" : "hand-coin-outline"}
-              size={24}
-              color={selectedItem === "Donate" ? "black" : "gray"}
-            />
-            <Text
-              style={[styles.drawerItemText, selectedItem === "Donate" && styles.activeDrawerItemText]}
-            >
-              Donate
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             onPress={() => navigateTo("Uploads")}
             style={[styles.drawerItem, selectedItem === "Uploads" && styles.activeDrawerItem]}
           >
@@ -145,7 +176,22 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigateTo("Login")}
+            onPress={() => navigateTo("Donate")}
+            style={[styles.drawerItem, selectedItem === "Donate" && styles.activeDrawerItem]}
+          >
+            <MaterialCommunityIcons
+              name={selectedItem === "Donate" ? "hand-coin" : "hand-coin-outline"}
+              size={24}
+              color={selectedItem === "Donate" ? "black" : "gray"}
+            />
+            <Text
+              style={[styles.drawerItemText, selectedItem === "Donate" && styles.activeDrawerItemText]}
+            >
+              Donate
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleLogoutConfirm} // Trigger logout confirmation
             style={[styles.drawerItemLogout, selectedItem === "Login" && styles.activeDrawerItem]}
           >
             <MaterialCommunityIcons
@@ -160,6 +206,34 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
             </Text>
           </TouchableOpacity>
         </Animated.View>
+      </Modal>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        visible={isLogoutConfirmVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={handleCancelLogout}
+      >
+        <View style={styles.logoutModalContainer}>
+          <View style={styles.logoutModalContent}>
+            <Text style={styles.logoutModalText}>Are you sure you want to log out?</Text>
+            <View style={styles.logoutModalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelLogout}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.logoutButtonModal}
+                onPress={handleLogout}
+              >
+                <Text style={styles.buttonText}>Log out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* Main Content */}
@@ -230,18 +304,22 @@ const styles = StyleSheet.create({
   },
   activeDrawerItem: {
     backgroundColor: "rgba(104, 194, 255, 0.5)", // Active background color with 50% opacity
+    borderRadius: 40,
   },
   activeDrawerItemText: {
     color: "black", // Active text color
   },
   drawerItemLogout: {
+    width: "90%",
     padding: 15,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#EF5B5B", // Default background
     justifyContent: 'center',
-    marginHorizontal: 30,
+    marginHorizontal: 15,
     borderRadius: 30,
+    position: 'absolute', //Here is the trick
+    bottom: 30, //Here is the trick
   },
   drawerItemLogoutText: {
     fontSize: 16,
@@ -251,6 +329,51 @@ const styles = StyleSheet.create({
   },
   activeDrawerItemLogoutText: {
     color: "black", // Active text color
+  },
+  logoutModalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  logoutModalContent: {
+    width: "80%",
+    backgroundColor: "#68C2FF",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+  },
+  logoutModalText: {
+    fontSize: 18,
+    fontFamily: "Lilita",
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  logoutModalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  cancelButton: {
+    backgroundColor: "#444",
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginRight: 5,
+    alignItems: "center",
+  },
+  logoutButtonModal: {
+    backgroundColor: "#EF5B5B",
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginLeft: 5,
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
   },
 });
 

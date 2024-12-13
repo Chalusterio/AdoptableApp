@@ -9,7 +9,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 export default function Screening() {
   const navigation = useNavigation();
   const route = useRoute(); // Use useRoute to get the params
-  const { adopterEmail, petRequestId } = route.params; // Get parameters from route params
+  const { adopterEmail, petRequestId, petName } = route.params; // Get parameters from route params
   const [adopter, setAdopter] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,27 +37,47 @@ export default function Screening() {
     fetchAdopterDetails();
   }, [adopterEmail]); // Re-run the effect when adopterEmail changes
 
-  // Function to update the pet request status
-  const updatePetRequestStatus = async (status) => {
-    try {
-      const petRequestRef = doc(db, "pet_request", petRequestId); // Reference to the pet request document
-      await updateDoc(petRequestRef, {
-        status: status, // Update the status to either 'accepted' or 'rejected'
-      });
-      console.log(`Pet request status updated to ${status}`);
-    } catch (error) {
-      console.error("Error updating pet request status: ", error);
+  // Function to update the pet request status and store the respective date field
+const updatePetRequestStatus = async (status) => {
+  try {
+    const petRequestRef = doc(db, "pet_request", petRequestId); // Reference to the pet request document
+    const actionDate = new Date(); // Get the current date
+
+    const updateData = {
+      status: status, // Update the status to either 'accepted' or 'rejected'
+    };
+
+    if (status === "Accepted") {
+      updateData.acceptDate = actionDate; // Store the acceptance date
+    } else if (status === "Rejected") {
+      updateData.rejectDate = actionDate; // Store the rejection date
     }
-  };
+
+    // Update the document in Firestore
+    await updateDoc(petRequestRef, updateData);
+
+    console.log(`Pet request status updated to ${status}`);
+  } catch (error) {
+    console.error("Error updating pet request status: ", error);
+  }
+};
 
   const handleAcceptAdoption = async () => {
     await updatePetRequestStatus("Accepted"); // Update the status to 'accepted'
-    navigation.navigate("AcceptAdoption"); // Navigate to the accept adoption screen
+    navigation.navigate("AcceptAdoption", {
+      adopterEmail,
+      petRequestId,
+      petName, // Pass petName to RejectAdoption
+    });
   };
 
   const handleRejectAdoption = async () => {
     await updatePetRequestStatus("Rejected"); // Update the status to 'rejected'
-    navigation.navigate("RejectAdoption"); // Navigate to the reject adoption screen
+    navigation.navigate("RejectAdoption", {
+      adopterEmail,
+      petRequestId,
+      petName, // Pass petName to RejectAdoption
+    });
   };
 
   if (loading) {
@@ -92,7 +112,7 @@ export default function Screening() {
             </View>
 
             <Image
-              source={adopter.profilePicture ? { uri: adopter.profilePicture } : require("../assets/Notification/adopterImage.png")}
+              source={adopter.profilePicture ? { uri: adopter.profilePicture } : require("../assets/Profile/dp.png")}
               style={styles.adopterImage}
             />
 
@@ -109,7 +129,7 @@ export default function Screening() {
 
             <View style={styles.detailsContainer}>
               <Icon name="phone" size={24} color="#444444" style={styles.icon} />
-              <Text style={styles.detailsText}>{adopter.phone || "Not provided"}</Text>
+              <Text style={styles.detailsText}>{adopter.contactNumber || "Not provided"}</Text>
             </View>
 
             {/* Horizontal Line */}
@@ -133,7 +153,7 @@ export default function Screening() {
 
             <View style={styles.detailsContainer}>
               <Icon name="pets" size={24} color="#444444" style={styles.icon} />
-              <Text style={styles.detailsText}>Has a pet</Text>
+              <Text style={styles.detailsText}>Not Provided</Text>
             </View>
 
             {/* Horizontal Line */}

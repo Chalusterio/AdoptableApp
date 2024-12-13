@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import {
   View,
   Text,
@@ -32,6 +32,7 @@ const Feed = () => {
   const { pets } = usePets(); // Access shared pets state
   const router = useRouter(); // For navigation
   const { filteredPets, setFilteredPets } = usePets(); // Added
+  const [loading, setLoading] = useState(true); // Loading state
   const [selectedItem, setSelectedItem] = useState("Main");
 
   // Parse the selectedImages string back into an array
@@ -80,6 +81,8 @@ const Feed = () => {
           }
         } catch (error) {
           console.error("Error fetching user favorites:", error);
+        } finally {
+          setLoading(false); // Set loading to false when fetching is done
         }
       }
     };
@@ -94,9 +97,9 @@ const Feed = () => {
       console.log("User is not logged in. Cannot toggle favorite.");
       return;
     }
-  
+
     const userFavoritesRef = doc(db, "users", userId); // User's favorites document reference
-  
+
     // Toggle the favorite status locally
     setFavoritedPets((prevState) => {
       const newState = { ...prevState };
@@ -167,7 +170,7 @@ const Feed = () => {
               )}
             </View>
           </View>
-          <Text style={styles.age}>{item.petAge}</Text>
+          <Text style={styles.age}>{item.petAge} Years Old</Text>
         </View>
       </TouchableOpacity>
     );
@@ -186,6 +189,10 @@ const Feed = () => {
             numColumns={2}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.container}
+            initialNumToRender={10} // Render 6 items initially
+            maxToRenderPerBatch={10} // Render 10 items in each batch
+            windowSize={5} // Keep 5 items in memory (default: 21)
+            removeClippedSubviews={true} // Remove off-screen items
           />
         ) : (
           <View style={styles.noPetsContainer}>
@@ -289,6 +296,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#999",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: "Lato",
+    color: "#68C2FF",
+  },
 });
 
-export default Feed;
+export default memo(Feed);

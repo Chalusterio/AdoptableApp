@@ -7,6 +7,10 @@ import {
   updateDoc,
   arrayUnion,
   arrayRemove,
+  query,
+  where,
+  addDoc,
+  getDocs,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
@@ -14,8 +18,9 @@ const PetContext = createContext();
 
 export const PetProvider = ({ children }) => {
   const [pets, setPets] = useState([]); // State for all pets
-  const [filteredPets, setFilteredPets] = useState([]);
-  const [favoritedPets, setFavoritedPets] = useState([]); // Store full pet objects
+  const [filteredPets, setFilteredPets] = useState([]); // State for filtered pets
+  const [favoritedPets, setFavoritedPets] = useState([]); // Store full pet objects for favorites
+  const [requestedPets, setRequestedPets] = useState([]); // Store pets with pending requests
   const db = getFirestore(); // Firestore instance
   const auth = getAuth();
   const user = auth.currentUser;
@@ -39,53 +44,113 @@ export const PetProvider = ({ children }) => {
     });
 
     // Real-time listener for user's favorites
-    const unsubscribeFavorites = onSnapshot(doc(db, "users", user.uid), (userDoc) => {
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setFavoritedPets(data.favorites || []); // Set favorited pets if they exist
+    const unsubscribeFavorites = onSnapshot(
+      doc(db, "users", user.uid),
+      (userDoc) => {
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setFavoritedPets(data.favorites || []); // Set favorited pets if they exist
+        }
       }
+    );
+
+    // Real-time listener for pet requests from the current logged-in user
+    const petRequestCollection = collection(db, "pet_request");
+    const petRequestQuery = query(
+      petRequestCollection,
+      where("userId", "==", user.uid) // Filter by userId to get only the requested pets
+    );
+
+    const unsubscribeRequests = onSnapshot(petRequestQuery, (snapshot) => {
+      const requestedPetList = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setRequestedPets(requestedPetList); // Set requested pets to state
     });
 
     // Cleanup the listeners on component unmount
     return () => {
       unsubscribePets(); // Unsubscribe from pets collection listener
       unsubscribeFavorites(); // Unsubscribe from user's favorites listener
+      unsubscribeRequests(); // Unsubscribe from pet requests listener
     };
   }, [db, user]);
 
-  // Function to toggle favorite status of a pet
-  const toggleFavorite = async (petId, petData) => {
-    if (!user) {
-      console.log("User is not logged in. Cannot toggle favorite.");
-      return;
-    }
+  // Function to add a new pet to the Firestore and global state
+  const addPet = async (newPet) => {
+    try {
+      // Add the new pet to Firestore collection
+      const petCollection = collection(db, "listed_pets");
+      const docRef = await addDoc(petCollection, newPet);
 
-    const userRef = doc(db, "users", user.uid); // Reference to the user's document
-
-    if (favoritedPets.some((favPet) => favPet.id === petId)) {
-      // If already favorited, remove it
-      await updateDoc(userRef, {
-        favorites: arrayRemove(petData), // Remove from favorites
-      });
-      setFavoritedPets((prevFavorited) =>
-        prevFavorited.filter((favPet) => favPet.id !== petId)
-      );
-    } else {
-      // If not favorited, add it
-      await updateDoc(userRef, {
-        favorites: arrayUnion(petData), // Add to favorites
-      });
-      setFavoritedPets((prevFavorited) => [...prevFavorited, petData]);
+      // Once added to Firestore, update local state (global state)
+      setPets((prevPets) => [...prevPets, { id: docRef.id, ...newPet }]);
+      setFilteredPets((prevPets) => [
+        ...prevPets,
+        { id: docRef.id, ...newPet },
+      ]);
+    } catch (error) {
+      console.error("Error adding pet: ", error);
     }
   };
 
-  // Function to add a new pet locally (optional)
-  const addPet = (pet) => {
-    setPets((prevPets) => {
-      const updatedPets = [...prevPets, pet];
-      setFilteredPets(updatedPets); // Update filteredPets with new pet
-      return updatedPets;
-    });
+  const cancelRequest = async (petName) => {
+    if (!user) return;
+
+    const requestsRef = collection(db, "pet_request");
+    const q = query(
+      requestsRef,
+      where("adopterEmail", "==", user.email),
+      where("petName", "==", petName),
+      where("status", "==", "Pending")
+    );
+
+    try {
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const docId = querySnapshot.docs[0].id; // Get the first matching document's ID
+        const requestRef = doc(db, "pet_request", docId);
+
+        // Update the status to "Canceled"
+        await updateDoc(requestRef, { status: "Canceled" });
+
+        // Remove the canceled request from the local state
+        setRequestedPets((prevRequests) =>
+          prevRequests.filter((pet) => pet.petName !== petName)
+        );
+      } else {
+        console.error("No pending request found for petName:", petName);
+      }
+    } catch (error) {
+      console.error("Error canceling request: ", error);
+    }
+  };
+
+  // Function to toggle favorite status
+  const toggleFavorite = async (petId, petData) => {
+    if (!user) return;
+
+    const userRef = doc(db, "users", user.uid);
+
+    if (favoritedPets.some((favPet) => favPet.id === petId)) {
+      await updateDoc(userRef, {
+        favorites: arrayRemove(petData),
+      });
+      setFavoritedPets((prev) => prev.filter((favPet) => favPet.id !== petId));
+    } else {
+      await updateDoc(userRef, {
+        favorites: arrayUnion(petData),
+      });
+      // Ensure the pet is not already in the favoritedPets state
+      setFavoritedPets((prev) => {
+        if (prev.some((favPet) => favPet.id === petId)) {
+          return prev;
+        }
+        return [...prev, petData];
+      });
+    }
   };
 
   // Apply filters to the pets list
@@ -110,9 +175,7 @@ export const PetProvider = ({ children }) => {
 
     if (filters.personality && filters.personality.length > 0) {
       filtered = filtered.filter((pet) =>
-        filters.personality.some((trait) =>
-          pet.petPersonality.includes(trait)
-        )
+        filters.personality.some((trait) => pet.petPersonality.includes(trait))
       );
     }
 
@@ -126,10 +189,17 @@ export const PetProvider = ({ children }) => {
       filtered = filtered.filter((pet) => pet.petType === filters.petType);
     }
 
-    if (filters.price) {
-      filtered = filtered.filter(
-        (pet) => Number(pet.price) <= Number(filters.price)
-      );
+    if (filters.adoptionFee) {
+      if (filters.adoptionFee === "1001-1200") {
+        filtered = filtered.filter((pet) => Number(pet.adoptionFee) > 1000);
+      } else {
+        const [minFee, maxFee] = filters.adoptionFee.split("-").map(Number);
+        filtered = filtered.filter(
+          (pet) =>
+            Number(pet.adoptionFee) >= minFee &&
+            Number(pet.adoptionFee) <= maxFee
+        );
+      }
     }
 
     setFilteredPets(filtered); // Update filtered pets list
@@ -141,11 +211,15 @@ export const PetProvider = ({ children }) => {
         pets,
         filteredPets,
         setPets,
-        addPet,
         applyFilters,
         setFilteredPets,
         favoritedPets,
+        setFavoritedPets,
         toggleFavorite,
+        requestedPets, // Provide requested pets (filtered by the current user)
+        setRequestedPets,
+        cancelRequest,
+        addPet, // Provide addPet function to add a new pet
       }}
     >
       {children}

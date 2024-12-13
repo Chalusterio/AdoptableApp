@@ -157,26 +157,6 @@ const Profile = () => {
     setModalVisible(true);
   };
 
-  const handleLogoutConfirm = () => {
-    setLogoutConfirmVisible(true);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth); // Sign out from Firebase
-      console.log("User logged out");
-      router.push("/Login"); // Ensure the route is correct (if you use a different path for login, change this)
-    } catch (error) {
-      console.error("Error logging out: ", error.message);
-    } finally {
-      setLogoutConfirmVisible(false); // Close logout confirmation modal
-    }
-  };
-
-  const handleCancelLogout = () => {
-    setLogoutConfirmVisible(false);
-  };
-
   const handleCancelEdit = () => {
     setEditConfirmVisible(false);
   };
@@ -265,13 +245,6 @@ const Profile = () => {
             </Text>
           </View>
           <View style={styles.horizontalLine}></View>
-
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogoutConfirm}
-          >
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
 
           {/* Edit Modal */}
           <Modal
@@ -455,36 +428,6 @@ const Profile = () => {
               </View>
             </View>
           </Modal>
-
-          {/* Logout Confirmation Modal */}
-          <Modal
-            visible={isLogoutConfirmVisible}
-            animationType="fade"
-            transparent={true}
-            onRequestClose={handleCancelLogout}
-          >
-            <View style={styles.logoutModalContainer}>
-              <View style={styles.logoutModalContent}>
-                <Text style={styles.logoutModalText}>
-                  Are you sure you want to log out?
-                </Text>
-                <View style={styles.logoutModalButtons}>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={handleCancelLogout}
-                  >
-                    <Text style={styles.buttonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.logoutButtonModal}
-                    onPress={handleLogout}
-                  >
-                    <Text style={styles.buttonText}>Log out</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -578,6 +521,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.5)",
+    zIndex: 9999,
   },
   modalContent: {
     width: "90%", // Adjust the width as needed
@@ -634,11 +578,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 5,
   },
-  buttonText: {
-    color: "#fff",
-    textAlign: "center",
-    fontSize: 14,
-  },
   logoutModalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -671,6 +610,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 5,
     alignItems: "center",
+  },
+  buttonText: {
+    color: "#fff",
+    textAlign: "center",
+    fontSize: 14,
   },
   cancelButton: {
     backgroundColor: "#444",

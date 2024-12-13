@@ -1,39 +1,56 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Image, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  SafeAreaView,
+  ActivityIndicator,
+} from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import SideBar from "../components/SideBar";
+import { Surface } from "react-native-paper";
 import { usePets } from "../context/PetContext"; // Adjust the path as needed
 import { db, auth } from "../../firebase"; // Ensure `auth` and `db` are imported from Firebase
-import { Surface } from "react-native-paper";
 import { doc, getDoc } from "firebase/firestore"; // Import Firestore functions
 
 const Favorites = () => {
-  const { favoritedPets, setFilteredPets, pets, toggleFavorite, } = usePets(); // Use favoritedPets from context
+  const { favoritedPets, setFilteredPets, pets, toggleFavorite } = usePets(); // Use favoritedPets from context
   const router = useRouter();
   const [selectedItem, setSelectedItem] = useState("Favorites");
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
 
   // Fetch the current user's favorites
   useEffect(() => {
     const fetchUserFavorites = async () => {
+      setIsLoading(true); // Start loading
       const user = auth.currentUser;
       if (user) {
-        // Get the user's document from the Firestore 'users' collection
-        const userRef = doc(db, "users", user.uid);
-        const userDoc = await getDoc(userRef);
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userRef);
 
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          const userFavorites = userData.favorites || [];
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const userFavorites = userData.favorites || [];
 
-          // Filter the pets based on the user’s favorites
-          const favoritePets = pets.filter((pet) => userFavorites.includes(pet.id));
+            // Filter the pets based on the user’s favorites
+            const favoritePets = pets.filter((pet) =>
+              userFavorites.includes(pet.id)
+            );
 
-          // Set the filtered pets as favorited pets for the current user
-          setFilteredPets(favoritePets);
+            // Set the filtered pets as favorited pets for the current user
+            setFilteredPets(favoritePets);
+          }
+        } catch (error) {
+          console.error("Error fetching user favorites:", error);
         }
       }
+      setIsLoading(false); // Stop loading
     };
 
     fetchUserFavorites();
@@ -81,7 +98,7 @@ const Favorites = () => {
               )}
             </View>
           </View>
-          <Text style={styles.age}>{item.petAge}</Text>
+          <Text style={styles.age}>{item.petAge} Years Old</Text>
         </View>
       </TouchableOpacity>
     );
@@ -94,7 +111,12 @@ const Favorites = () => {
           <Text style={styles.title}>Your Favorite Pets</Text>
         </Surface>
 
-        {favoritedPets.length > 0 ? (
+        {isLoading ? ( // Display loading text while fetching data
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#68C2FF" />
+            <Text style={styles.loadingText}>Loading favorites...</Text>
+          </View>
+        ) : favoritedPets.length > 0 ? (
           <FlatList
             data={favoritedPets} // Display only favorited pets
             keyExtractor={(item) => item.id}
@@ -119,11 +141,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   titleContainer: {
-    width: '100%',
+    width: "100%",
     height: 95,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'white',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "white",
     borderBottomEndRadius: 30,
     borderBottomLeftRadius: 30,
   },
@@ -136,17 +158,17 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   row: {
-    justifyContent: "space-between", // Evenly distribute the cards within a row
+    justifyContent: "space-between",
     marginBottom: 10,
   },
   card: {
-    width: "47%", // Each card occupies 48% of the row width
-    marginBottom: 16, // Spacing between rows
+    width: "47%",
+    marginBottom: 16,
     borderRadius: 20,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     height: 230,
-    shadowColor: "#000", // Shadow color for iOS
+    shadowColor: "#000",
     shadowOpacity: 0.3,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 0 },
@@ -154,12 +176,12 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     flexDirection: "row",
-    flexWrap: "wrap", // Allow images to wrap into new rows
+    flexWrap: "wrap",
   },
   favoriteIconButton: {
     width: 30,
     height: 30,
-    backgroundColor: "rgba(128, 128, 128, 0.7)", // Gray with 70% opacity
+    backgroundColor: "rgba(128, 128, 128, 0.7)",
     borderRadius: 5,
     alignItems: "center",
     justifyContent: "center",
@@ -171,10 +193,8 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: 160,
-    borderTopLeftRadius: 20, // Top-left corner radius
-    borderTopRightRadius: 20, // Top-right corner radius
-    borderBottomLeftRadius: 0, // Bottom-left corner radius
-    borderBottomRightRadius: 0, // Bottom-right corner radius
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   petDetailsContainer: {
     flex: 1,
@@ -182,24 +202,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   nameGenderContainer: {
-    flexDirection: "row", // Make name and gender appear on the same line
-    alignItems: "center", // Vertically align the text and icon
-    marginBottom: 5, // Optional spacing between name and gender
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 5,
   },
   name: {
     fontSize: 16,
     fontFamily: "LatoBold",
     color: "black",
-    marginRight: 8, // Adds spacing between name and gender icon
-  },
-  genderContainer: {
-    flexDirection: "row", // Arrange the icon and text in a row
-    alignItems: "center", // Center the icon vertically
-  },
-  gender: {
-    fontSize: 16,
-    fontFamily: "Lato",
-    color: "#C2C2C2",
+    marginRight: 8,
   },
   age: {
     fontSize: 16,
@@ -207,15 +218,26 @@ const styles = StyleSheet.create({
     color: "#C2C2C2",
   },
   noPetsContainer: {
-    flex: 1, // Allow the container to take full height
-    justifyContent: "center", // Center content vertically
-    alignItems: "center", // Center content horizontally
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   noPetsText: {
     textAlign: "center",
     fontFamily: "Lato",
     fontSize: 16,
     color: "#999",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: "Lato",
+    color: "#68C2FF",
   },
 });
 
