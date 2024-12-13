@@ -144,7 +144,6 @@ const Requests = () => {
       <SafeAreaView style={styles.safeArea}>
         <Surface style={styles.titleContainer} elevation={3}>
           <Text style={styles.title}>Your Pending Requested Pets</Text>
-          <Text style={styles.instruction}>Press and hold the pet card to cancel your request.</Text>
         </Surface>
 
         {isLoading ? ( // Display loading spinner while fetching data
@@ -191,11 +190,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Lilita",
     fontSize: 24,
-    color: "#68C2FF",
-  },
-  instruction: {
-    fontFamily: "Lato",
-    fontSize: 16,
     color: "#68C2FF",
   },
   container: {
