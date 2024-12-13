@@ -1,63 +1,305 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import {
+  collection,
+  query,
+  getDocs,
+  where,
+  onSnapshot,
+  setDoc,
+  doc,
+} from "firebase/firestore";
+import { db, auth } from "../../../firebase";
 import { FontAwesome } from "@expo/vector-icons";
-import { useNotifications } from "../../context/NotificationContext"; // Adjust the path as needed
+import moment from "moment";
 
 const Notification = () => {
-  const { notifications, unreadCount, markAsRead } = useNotifications(); // Use context to get notifications
   const router = useRouter();
+  const [notifications, setNotifications] = useState([]);
+  const [users, setUsers] = useState({});
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // If there are no notifications, show loading text or a message.
-  if (notifications.length === 0) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          <View style={styles.centeredContainer}>
-            <Text style={styles.loadingText}>No notifications available</Text>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+  useEffect(() => {
+    const user = auth.currentUser;
+    setCurrentUser(user);
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const petRequestsQuery = query(
+      collection(db, "pet_request"),
+      where("status", "in", ["Pending", "Accepted", "Rejected"])
     );
-  }
+
+    const unsubscribe = onSnapshot(petRequestsQuery, async (querySnapshot) => {
+      const notificationsList = [];
+
+      querySnapshot.forEach((doc) => {
+        const petRequest = doc.data();
+
+        if (!users[petRequest.adopterEmail]) {
+          fetchUserDetails(petRequest.adopterEmail).then((userDetails) => {
+            if (userDetails) {
+              setUsers((prev) => ({
+                ...prev,
+                [petRequest.adopterEmail]: userDetails,
+              }));
+            }
+          });
+        }
+
+        if (!users[petRequest.listedBy]) {
+          fetchUserDetails(petRequest.listedBy).then((userDetails) => {
+            if (userDetails) {
+              setUsers((prev) => ({
+                ...prev,
+                [petRequest.listedBy]: userDetails,
+              }));
+            }
+          });
+        }
+
+        const adopter = users[petRequest.adopterEmail] || {};
+        const petLister = users[petRequest.listedBy] || {};
+
+        let formattedTime = "";
+        if (petRequest.status === "Pending") {
+          formattedTime = moment(
+            petRequest.requestDate.seconds * 1000
+          ).fromNow();
+        } else if (petRequest.status === "Accepted") {
+          formattedTime = moment(
+            petRequest.acceptDate.seconds * 1000
+          ).fromNow();
+        } else if (petRequest.status === "Rejected") {
+          formattedTime = moment(
+            petRequest.rejectDate.seconds * 1000
+          ).fromNow();
+        }
+
+        if (
+          petRequest.status === "Pending" &&
+          currentUser.email === petRequest.listedBy
+        ) {
+          const notification = {
+            id: doc.id,
+            image: adopter.profilePicture
+              ? { uri: adopter.profilePicture }
+              : null,
+            name: adopter.name || "Adopter",
+            content: (
+              <Text>
+                {adopter.name || "Adopter"} has requested to adopt your pet{" "}
+                <Text style={styles.boldText}>{petRequest.petName}</Text>.
+              </Text>
+            ),
+            time: formattedTime,
+            action: () =>
+              router.push({
+                pathname: "/Screening",
+                params: {
+                  adopterEmail: petRequest.adopterEmail,
+                  petRequestId: doc.id,
+                  petName: petRequest.petName,
+                },
+              }),
+          };
+
+          notificationsList.push(notification);
+          storeNotification(doc.id, petRequest, currentUser.email);
+        }
+
+        if (
+          currentUser.email === petRequest.listedBy &&
+          ["Accepted", "Rejected"].includes(petRequest.status)
+        ) {
+          const message =
+            petRequest.status === "Accepted" ? (
+              <Text>
+                You have accepted {adopter.name || "the adopter"}'s request to adopt{" "}
+                <Text style={styles.boldText}>{petRequest.petName}</Text>.
+              </Text>
+            ) : (
+              <Text>
+                You have rejected {adopter.name || "the adopter"}'s request to adopt{" "}
+                <Text style={styles.boldText}>{petRequest.petName}</Text>.
+              </Text>
+            );
+
+          notificationsList.push({
+            id: `${doc.id}-${petRequest.status}`,
+            image: require("../../assets/Icon_white.png"),
+            name: "System Notification",
+            content: message,
+            time: formattedTime,
+            action: null,
+          });
+
+          storeNotification(`${doc.id}-${petRequest.status}`, petRequest, currentUser.email);
+        }
+
+        if (
+          petRequest.status === "Accepted" &&
+          currentUser.email === petRequest.adopterEmail
+        ) {
+          const notification = {
+            id: doc.id,
+            image: petLister.profilePicture
+              ? { uri: petLister.profilePicture }
+              : null,
+            name: petLister.name || "Pet Lister",
+            content: (
+              <Text>
+                {petLister.name || "Pet Lister"} has accepted your request to
+                adopt <Text style={styles.boldText}>{petRequest.petName}.</Text>
+                <Text style={styles.linkText}>
+                  {"\n\n"}Click here for more details.
+                </Text>
+              </Text>
+            ),
+            time: formattedTime,
+            action: () =>
+              router.push({
+                pathname: "/ApproveAdoption",
+                params: {
+                  petRequestId: doc.id,
+                  petName: petRequest.petName,
+                  listedBy: petRequest.listedBy,
+                },
+              }),
+          };
+
+          notificationsList.push(notification);
+          storeNotification(doc.id, petRequest, currentUser.email);
+        }
+
+        if (
+          petRequest.status === "Rejected" &&
+          currentUser.email === petRequest.adopterEmail
+        ) {
+          const notification = {
+            id: doc.id,
+            image: petLister.profilePicture
+              ? { uri: petLister.profilePicture }
+              : null,
+            name: petLister.name || "Pet Lister",
+            content: (
+              <Text>
+                {petLister.name || "Pet Lister"} has rejected your adoption
+                request for{" "}
+                <Text style={styles.boldText}>{petRequest.petName}</Text>.
+              </Text>
+            ),
+            time: formattedTime,
+            action: null,
+          };
+
+          notificationsList.push(notification);
+          storeNotification(doc.id, petRequest, currentUser.email);
+        }
+      });
+
+      notificationsList.sort((a, b) => b.time.localeCompare(a.time));
+      setNotifications(notificationsList);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, users]);
+
+  const fetchUserDetails = async (email) => {
+    try {
+      const usersQuery = query(
+        collection(db, "users"),
+        where("email", "==", email)
+      );
+      const querySnapshot = await getDocs(usersQuery);
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0].data();
+        return {
+          name: userDoc.name,
+          profilePicture: userDoc.profilePicture || null,
+        };
+      } else {
+        console.log("User not found for email:", email);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching user details: ", error);
+      return null;
+    }
+  };
+
+  const storeNotification = async (notificationId, petRequest, userEmail) => {
+    try {
+      const notificationRef = doc(db, "notifications", notificationId);
+      await setDoc(notificationRef, {
+        petRequestId: notificationId,
+        status: petRequest.status,
+        userEmail: userEmail,
+        petName: petRequest.petName,
+        timestamp: petRequest.requestDate || new Date(),
+        read: false, // Mark as unread initially
+      });
+    } catch (error) {
+      console.error("Error storing notification: ", error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        {notifications.map((notif) => (
-          <View key={notif.id}>
-            <TouchableOpacity
-              style={styles.notifButton}
-              onPress={notif.action}
-              disabled={!notif.action}
-            >
-              {notif.image ? (
-                <Image style={styles.notifImage} source={notif.image} />
-              ) : (
-                <View style={styles.iconContainer}>
-                  <FontAwesome name="user-circle" size={70} color="#333" />
-                </View>
-              )}
-              <View style={styles.notificationContainer}>
-                <View style={styles.notifTextContainer}>
-                  <Text style={styles.notifName}>{notif.name}</Text>
-                  <Text style={styles.notifContent}>{notif.content}</Text>
-                </View>
-                <View style={styles.timeContainer}>
-                  <Text style={styles.notifTime}>{notif.time}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
 
-            <View style={styles.horizontalLine}></View>
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {notifications.length === 0 ? (
+          <View style={styles.centeredContainer}>
+            <Text style={styles.loadingText}>No notifications available</Text>
           </View>
-        ))}
+        ) : (
+          notifications.map((notif) => (
+            <View key={notif.id}>
+              <TouchableOpacity
+                style={styles.notifButton}
+                onPress={notif.action}
+                disabled={!notif.action}
+              >
+                {notif.image ? (
+                  <Image style={styles.notifImage} source={notif.image} />
+                ) : (
+                  <View style={styles.iconContainer}>
+                    <FontAwesome name="user-circle" size={70} color="#333" />
+                  </View>
+                )}
+                <View style={styles.notificationContainer}>
+                  <View style={styles.notifTextContainer}>
+                    <Text style={styles.notifName}>{notif.name}</Text>
+                    <Text style={styles.notifContent}>{notif.content}</Text>
+                  </View>
+                  <View style={styles.timeContainer}>
+                    <Text style={styles.notifTime}>{notif.time}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.horizontalLine}></View>
+            </View>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -103,8 +345,8 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   timeContainer: {
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
+    justifyContent: "flex-end", // Keeps the content at the end of the container
+    alignItems: "flex-end", // Aligns the content (text) to the right
   },
   notifTime: {
     fontFamily: "Lato",
@@ -117,6 +359,28 @@ const styles = StyleSheet.create({
     backgroundColor: "black",
     alignSelf: "stretch",
   },
+  noNotificationsText: {
+    fontFamily: "Lato",
+    fontSize: 18,
+    textAlign: "center",
+    justifyContent: "center",
+    marginTop: 20,
+    color: "#888",
+  },
+  messageContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  boldText: {
+    fontWeight: "bold",
+    color: "#EF5B5B",
+  },
+  linkText: {
+    textDecorationLine: "underline",
+    color: "#084C8F",
+  },
   centeredContainer: {
     flex: 1,
     justifyContent: "center",
@@ -127,7 +391,6 @@ const styles = StyleSheet.create({
     fontFamily: "Lato",
     fontSize: 18,
     textAlign: "center",
-    alignItems: "center",
     color: "#888",
   },
 });
