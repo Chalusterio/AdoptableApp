@@ -53,8 +53,6 @@ export default function RootLayout() {
           <UserProvider>
             <PetProvider>
               <NotificationProvider>
-                {" "}
-                {/* Add NotificationProvider */}
                 <Stack
                   screenOptions={{
                     headerShown: false,
