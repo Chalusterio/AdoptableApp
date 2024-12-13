@@ -6,18 +6,16 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
-  Modal,
-  ActivityIndicator, // Import ActivityIndicator
+  Dimensions, Modal, modalVisible
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { usePets } from '../context/PetContext'; // Import the context
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { db, auth } from "../../firebase"; // Ensure `auth` is imported from Firebase
+import { useNotifications } from '../context/NotificationContext';  // Import the hook
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -33,7 +31,6 @@ const PetDetails = () => {
     petDescription,
     petIllnessHistory,
     petVaccinated,
-    adoptionFee,
     images,
     username,
     profileImage,
@@ -49,17 +46,13 @@ const PetDetails = () => {
   const scrollViewRef = useRef(null);
   const [imageURLs, setImageURLs] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [hasPendingRequest, setHasPendingRequest] = useState(false); // Track pending request
-  const [isSubmitting, setIsSubmitting] = useState(false); // State to track submission status
-  const [currentUserEmail, setCurrentUserEmail] = useState(null);
-  const { addPetRequest } = usePets();
+
 
   useEffect(() => {
     // Check if the user is logged in
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setIsLoggedIn(true); // Set login status to true if the user is logged in
-        setCurrentUserEmail(user.email); // Store the current user's email
       } else {
         setIsLoggedIn(false); // Set login status to false if the user is not logged in
       }
@@ -98,33 +91,6 @@ const PetDetails = () => {
     fetchUserName();
   }, [listedBy, isLoggedIn]); // Dependency on `isLoggedIn` ensures fetch happens only if logged in
 
-  useEffect(() => {
-    const checkPendingRequest = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          const petRequestQuery = query(
-            collection(db, "pet_request"),
-            where("adopterEmail", "==", user.email),
-            where("petName", "==", petName),
-            where("status", "==", "Pending")
-          );
-          const querySnapshot = await getDocs(petRequestQuery);
-
-          if (!querySnapshot.empty) {
-            setHasPendingRequest(true); // User has a pending request
-          } else {
-            setHasPendingRequest(false); // No pending request
-          }
-        } catch (error) {
-          console.error("Error checking pending request: ", error);
-        }
-      }
-    };
-
-    checkPendingRequest();
-  }, [petName]);
-
   const toggleFavorite = () => {
     setIsFavorited(!isFavorited);
   };
@@ -133,54 +99,41 @@ const PetDetails = () => {
     setModalVisible(true);
   };
 
-  const handleAdoptConfirmation = async () => {
-    try {
-      setIsSubmitting(true); // Set submitting state to true
+ // Remove the declaration of `notification` if not needed
+const handleAdoptConfirmation = async () => {
+  try {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not logged in");
 
-      const user = auth.currentUser;
-      if (!user) throw new Error("User not logged in");
+    const adoptionRequest = {
+      petName,
+      adopterEmail: user.email,
+      listedBy, // Pet lister's email
+      requestDate: new Date(),
+      status: "Pending",
+    };
 
-      // Pet details to include in the adoption request
-      const petDetail = {
-        adoptionFee,
-        images: parsedImages, // Using parsed images
-        listedBy,
-        petAge,
-        petDescription,
-        petGender,
-        petIllnessHistory,
-        petName,
-        petPersonality,
-        petType,
-        petVaccinated,
-        petWeight,
-      };
+    // Add the adoption request to Firestore
+    const petRequestDoc = await addDoc(collection(db, "pet_request"), adoptionRequest);
 
-      const adoptionRequest = {
-        petName,
-        adopterEmail: user.email,
-        listedBy,
-        requestDate: new Date(),
-        status: "Pending",
-        petDetail, // Adding the petDetail object
-      };
+    // Get the storeNotification function from the context
+    const { storeNotification } = useNotifications();
 
-      // Add the adoption request
-      await addDoc(collection(db, "pet_request"), adoptionRequest);
+    // Store the notification in Firestore using the context function
+    await storeNotification(petRequestDoc.id, adoptionRequest, listedBy, false);
 
-      // Immediately update the pending request status
-      setHasPendingRequest(true);
+    // Show alert
+    Alert.alert("Success", "We've notified the pet lister about your request!");
 
-      alert("Success: We've notified the pet lister about your request!");
-      setModalVisible(false);
-    } catch (error) {
-      alert("Error: Failed to submit adoption request. Please try again.");
-      setModalVisible(false);
-    } finally {
-      setIsSubmitting(false); // Reset submitting state after action completes
-    }
-  };
+    // Delay closing the modal slightly
+    setTimeout(() => setModalVisible(false), 500);
+  } catch (error) {
+    Alert.alert("Error", "Failed to submit adoption request. Please try again.");
+    setTimeout(() => setModalVisible(false), 500); // Also delay in the catch block
+  }
+};
 
+  
   const onScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const imageWidth = Dimensions.get("window").width;
@@ -227,8 +180,6 @@ const PetDetails = () => {
       </View>
     );
   }
-
-  const isOwnPet = currentUserEmail === listedBy; // Check if the current user posted the pet
 
   return (
     <View style={styles.container}>
@@ -303,16 +254,12 @@ const PetDetails = () => {
               />
             </TouchableOpacity>
           </View>
-          <Text
-            style={styles.subText}
-          >{`${petAge} Years | ${petWeight} kg`}</Text>
+          <Text style={styles.subText}>{`${petAge} | ${petWeight}`}</Text>
           <Text style={styles.personalityText}>
             {petPersonality
-              ? petPersonality
-                  .split(",")
-                  .map((trait) => trait.trim())
-                  .join("     ●     ")
-              : "No personality traits available"}
+              .split(",")
+              .map((trait) => trait.trim())
+              .join("     ●     ")}
           </Text>
           <Text style={styles.description}>{petDescription}</Text>
           <Text style={styles.sectionTitle}>Health History:</Text>
@@ -326,7 +273,6 @@ const PetDetails = () => {
               </Text>
             ))}
           </View>
-          <Text style={styles.adoptionFee}>₱ {adoptionFee}</Text>
         </View>
 
         {/* "Posted By" */}
@@ -343,6 +289,9 @@ const PetDetails = () => {
           <View style={styles.usernameContainer}>
             <Text style={styles.usernameText}>{userName}</Text>
           </View>
+          <TouchableOpacity style={styles.donateButton}>
+            <Text style={styles.donateButtonText}>Donate</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -355,26 +304,8 @@ const PetDetails = () => {
           >
             <FontAwesome name="arrow-left" size={20} color="#FFF" />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.adoptButton,
-              {
-                backgroundColor:
-                  isOwnPet || hasPendingRequest ? "#C4C4C4" : "#EF5B5B",
-              }, // Updated condition for background color
-            ]}
-            onPress={
-              isOwnPet || hasPendingRequest ? null : handleAdopt // Combined check for both conditions
-            }
-            disabled={isOwnPet || hasPendingRequest} // Disable if either condition is true
-          >
-            <Text style={styles.adoptButtonText}>
-              {isOwnPet
-                ? "You can't adopt your own pet"
-                : hasPendingRequest
-                ? "Adoption Request Pending"
-                : "Adopt Now"}
-            </Text>
+          <TouchableOpacity style={styles.adoptButton} onPress={handleAdopt}>
+            <Text style={styles.adoptButtonText}>Adopt Me</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -401,18 +332,14 @@ const PetDetails = () => {
               <TouchableOpacity
                 style={styles.confirmButton}
                 onPress={handleAdoptConfirmation}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#FFF" /> // Show ActivityIndicator when submitting
-                ) : (
-                  <Text style={styles.confirmButtonText}>Yes</Text>
-                )}
+            >
+                <Text style={styles.confirmButtonText}>Yes</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
     </View>
   );
 };
@@ -472,12 +399,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between", // Distribute space evenly between items
     alignItems: "center", // Align items vertically in the center
   },
-  adoptionFee: {
-    fontSize: 40,
-    fontFamily: "Lilita",
-    color: "#333",
-    marginRight: 10, // Add some right margin if necessary
-  },
   petName: {
     fontSize: 24,
     fontFamily: "Lilita",
@@ -513,12 +434,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "LatoBold",
     color: "#333",
-    marginTop: 30,
-  },
-  adoptionFee: {
-    fontSize: 24,
-    fontFamily: "Lilita",
-    color: "#EF5B5B",
     marginTop: 30,
   },
   bulletText: {
@@ -624,10 +539,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#FFF",
   },
-  disabledButton: {
-    backgroundColor: "#FF6B6B",
-    opacity: 0.6,
-  },
   // Modal styles
   modalOverlay: {
     flex: 1,
@@ -637,15 +548,14 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: "80%",
-    backgroundColor: "#68C2FF",
+    backgroundColor: "#FFF",
     borderRadius: 10,
     padding: 20,
     alignItems: "center",
   },
   modalTitle: {
     fontSize: 18,
-    fontFamily: "Lilita",
-    color: "#fff",
+    color: "#333",
     textAlign: "center",
     marginBottom: 20,
   },
@@ -655,30 +565,25 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   cancelButton: {
-    backgroundColor: "#444",
+    flex: 1,
+    backgroundColor: "#DDD",
     padding: 10,
     borderRadius: 5,
-    flex: 1,
-    marginRight: 5,
-    alignItems: "center",
+    marginRight: 10,
   },
   cancelButtonText: {
-    color: "#fff",
     textAlign: "center",
-    fontSize: 14,
+    color: "#555",
   },
   confirmButton: {
-    backgroundColor: "#EF5B5B",
+    flex: 1,
+    backgroundColor: "#68C2FF",
     padding: 10,
     borderRadius: 5,
-    flex: 1,
-    marginLeft: 5,
-    alignItems: "center",
   },
   confirmButtonText: {
-    color: "#fff",
     textAlign: "center",
-    fontSize: 14,
+    color: "#FFF",
   },
 });
 

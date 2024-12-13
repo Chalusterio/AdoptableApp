@@ -37,18 +37,30 @@ export default function Screening() {
     fetchAdopterDetails();
   }, [adopterEmail]); // Re-run the effect when adopterEmail changes
 
-  // Function to update the pet request status
-  const updatePetRequestStatus = async (status) => {
-    try {
-      const petRequestRef = doc(db, "pet_request", petRequestId); // Reference to the pet request document
-      await updateDoc(petRequestRef, {
-        status: status, // Update the status to either 'accepted' or 'rejected'
-      });
-      console.log(`Pet request status updated to ${status}`);
-    } catch (error) {
-      console.error("Error updating pet request status: ", error);
+  // Function to update the pet request status and store the respective date field
+const updatePetRequestStatus = async (status) => {
+  try {
+    const petRequestRef = doc(db, "pet_request", petRequestId); // Reference to the pet request document
+    const actionDate = new Date(); // Get the current date
+
+    const updateData = {
+      status: status, // Update the status to either 'accepted' or 'rejected'
+    };
+
+    if (status === "Accepted") {
+      updateData.acceptDate = actionDate; // Store the acceptance date
+    } else if (status === "Rejected") {
+      updateData.rejectDate = actionDate; // Store the rejection date
     }
-  };
+
+    // Update the document in Firestore
+    await updateDoc(petRequestRef, updateData);
+
+    console.log(`Pet request status updated to ${status}`);
+  } catch (error) {
+    console.error("Error updating pet request status: ", error);
+  }
+};
 
   const handleAcceptAdoption = async () => {
     await updatePetRequestStatus("Accepted"); // Update the status to 'accepted'
