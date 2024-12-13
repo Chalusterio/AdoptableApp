@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 25,
     padding: 10,
     alignItems: 'center',
-    paddingVertical: 100,
+    paddingVertical: 90,
   },
   supportHeader: {
     fontSize: 24,

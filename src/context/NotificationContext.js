@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-import { db, auth } from "../../../firebase";
+import { db, auth } from "../../firebase";
 import { collection, query, getDocs, where, onSnapshot, setDoc, doc } from "firebase/firestore";
 import { useRouter } from "expo-router";
 import moment from "moment";
@@ -93,7 +93,7 @@ const NotificationProvider = ({ children }) => {
 
           notificationsList.push({
             id: `${doc.id}-${petRequest.status}`,
-            image: require("../../assets/Icon_white.png"),
+            image: require("../assets/Icon_white.png"),
             name: "System Notification",
             content: message,
             time: formattedTime,

@@ -64,7 +64,9 @@ const TabBar = ({ state, descriptors, navigation, newNotification }) => {
               />
               {route.name === 'Notification' && newNotification && (
                 <View style={styles.badge} />
+                
               )}
+              
               {isFocused && route.name !== 'List' && (
                 <Text
                   style={[
