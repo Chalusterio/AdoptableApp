@@ -10,6 +10,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import PetProvider from "../context/PetContext";
 import UserProvider from "../context/UserContext";
+import NotificationProvider from "../context/NotificationContext"; // Import NotificationProvider
 
 // Define theme settings
 const theme = {
@@ -51,6 +52,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <UserProvider>
             <PetProvider>
+            <NotificationProvider> {/* Add NotificationProvider */}
               <Stack
                 screenOptions={{
                   headerShown: false,
@@ -74,6 +76,7 @@ export default function RootLayout() {
                   options={{ title: "ApproveAdoption" }}
                 />
               </Stack>
+              </NotificationProvider>
             </PetProvider>
           </UserProvider>
         </SafeAreaProvider>
