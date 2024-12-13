@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, Image, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Modal, TextInput } from "react-native";
+import { View, Text, Image, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Modal, TextInput, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
+import { MaterialIcons } from '@expo/vector-icons';
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { db } from "../../firebase"; // Ensure `db` is imported from Firebase
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { Picker } from "@react-native-picker/picker"; // Import Picker
+import * as ImagePicker from "expo-image-picker";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const screenWidth = Dimensions.get("window").width;
 
 const PetDetailsEdit = () => {
-  const {
-    petId,  // Assuming petId is passed in the params for the pet
-  } = useLocalSearchParams();
-  
-  const [petData, setPetData] = useState(null); // State to hold pet data
+  const { petId } = useLocalSearchParams();
+  const [petData, setPetData] = useState(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
@@ -29,6 +29,7 @@ const PetDetailsEdit = () => {
   const [editedPetType, setEditedPetType] = useState("");
   const [editedPetGender, setEditedPetGender] = useState("");
   const [editedAdoptionFee, setEditedAdoptionFee] = useState("");
+  const [editedImages, setEditedImages] = useState([]);
 
   const scrollViewRef = useRef(null);
   const router = useRouter();
@@ -41,7 +42,6 @@ const PetDetailsEdit = () => {
         if (petDoc.exists()) {
           const pet = petDoc.data();
           setPetData(pet);
-          // Set initial state with pet data
           setEditedPetName(pet.petName);
           setEditedPetAge(pet.petAge);
           setEditedPetWeight(pet.petWeight);
@@ -51,11 +51,12 @@ const PetDetailsEdit = () => {
           setEditedPetType(pet.petType);
           setEditedPetGender(pet.petGender);
           setEditedAdoptionFee(pet.adoptionFee);
+          setEditedImages(pet.images || []);
         } else {
           console.log("Pet not found!");
         }
       } catch (error) {
-        console.error("Error fetching pet data: ", error);
+        console.error("Error fetching pet data:", error);
       }
     };
 
@@ -84,7 +85,7 @@ const PetDetailsEdit = () => {
       alert("Pet deleted successfully!");
       router.back(); // Go back after deletion
     } catch (error) {
-      console.error("Error deleting pet: ", error);
+      console.error("Error deleting pet:", error);
       alert("Error deleting pet. Please try again.");
     }
   };
@@ -102,61 +103,100 @@ const PetDetailsEdit = () => {
         petType: editedPetType,
         petGender: editedPetGender,
         adoptionFee: editedAdoptionFee,
+        images: editedImages,
       };
+  
       await updateDoc(petRef, updatedPetData);
-      alert("Pet details updated successfully!");
+  
+      Alert.alert("Success", "Pet details updated successfully!");
       setModalVisible(false);
+      setPetData((prev) => ({ ...prev, ...updatedPetData }));
     } catch (error) {
       console.error("Error updating pet: ", error);
-      alert("Error updating pet details. Please try again.");
+      Alert.alert("Error", "Failed to update pet details. Please try again.");
     }
   };
-
+  
   if (!petData) {
     return <Text>Loading...</Text>;
   }
+  
 
-  const { images } = petData; // Use images from pet data
+  const handleImagePick = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert("Permission Required", "Permission to access the media library is required.");
+      return;
+    }
+  
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: false,
+      quality: 1,
+    });
+  
+    if (!result.canceled) {
+      const imageUri = result.assets[0].uri;
+      const storage = getStorage();
+      const imageRef = ref(storage, `pets/${petId}/${Date.now()}.jpg`);
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+  
+      await uploadBytes(imageRef, blob);
+      const downloadURL = await getDownloadURL(imageRef);
+      setEditedImages((prevImages) => [...prevImages, downloadURL]);
+    }
+    if (editedImages.length < 5) {
+    // Logic to pick image and add it to the editedImages array
+    setEditedImages([...editedImages, newImageUri]); // newImageUri is the URI of the picked image
+  }
+  };
 
+// Remove image
+  const removeImage = (index) => {
+    const updatedImages = editedImages.filter((_, idx) => idx !== index);
+    setEditedImages(updatedImages);
+  };
+  
   return (
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {/* Horizontal Image Scroll */}
-        {images && images.length > 0 && (
-          <View>
-            <ScrollView
-              horizontal={true}
-              style={styles.imageScrollContainer}
-              ref={scrollViewRef}
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-              showsHorizontalScrollIndicator={false}
-              pagingEnabled={true}
-            >
-              {images.map((imageURL, index) => (
-                <View key={index} style={styles.petImageContainer}>
-                  <Image
-                    source={{ uri: imageURL }}
-                    style={styles.petImage}
-                  />
-                </View>
-              ))}
-            </ScrollView>
-
-            {/* Pagination Dots */}
-            <View style={styles.paginationContainer}>
-              {images.map((_, index) => (
-                <View
-                  key={index}
-                  style={[styles.paginationDot, index === currentIndex && styles.activeDot]}
-                />
-              ))}
+      {petData.images && petData.images.length > 0 && (
+        <View>
+        <ScrollView
+          horizontal={true}
+          style={styles.imageScrollContainer}
+          ref={scrollViewRef}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          showsHorizontalScrollIndicator={false}
+          pagingEnabled={true}
+        >
+          {petData.images.map((imageURL, index) => (
+            <View key={index} style={styles.petImageContainer}>
+              <Image
+                source={{ uri: imageURL }}
+                style={styles.petImage}
+              />
             </View>
-          </View>
-        )}
+          ))}
+        </ScrollView>
+
+        {/* Pagination Dots */}
+        <View style={styles.paginationContainer}>
+          {petData.images.map((_, index) => (
+            <View
+              key={index}
+              style={[styles.paginationDot, index === currentIndex && styles.activeDot]}
+            />
+          ))}
+        </View>
+      </View>
+    )}
+
 
         {/* Pet Details */}
         <View style={styles.card}>
@@ -181,7 +221,7 @@ const PetDetailsEdit = () => {
               </Text>
             </View>
           </View>
-          <Text style={styles.subText}>{`${petData.petAge} | ${petData.petWeight}`}</Text>
+          <Text style={styles.subText}>{`${petData.petAge} Years | ${petData.petWeight} kg`}</Text>
           <Text style={styles.personalityText}>
             {petData.petPersonality ? petData.petPersonality.split(",").join(" ● ") : "No personality traits available"}
           </Text>
@@ -390,6 +430,46 @@ const PetDetailsEdit = () => {
                 keyboardType="number-pad"
                 style={[styles.input, styles.adoptionFee]}
               />
+               {/* Upload Images */}
+                <Text style={styles.question}>Upload Image:</Text>
+                <TouchableOpacity
+                  style={styles.uploadButton}
+                  onPress={handleImagePick}
+                  disabled={editedImages.length >= 5} // Disable if 5 images already selected
+                >
+                </TouchableOpacity>
+
+                {/* Display Selected Images */}
+                <View style={styles.imagePreviewContainer}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.imageSlider}
+                  >
+                    {editedImages.map((img, index) => (
+                      <View key={index} style={styles.imagePreview}>
+                        <Image source={{ uri: img }} style={styles.previewImage} />
+                        <TouchableOpacity
+                          style={styles.removeButton}
+                          onPress={() => removeImage(index)}
+                        >
+                          <Text style={styles.removeButtonText}>Remove</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    
+                    {/* Add image button */}
+                    {editedImages.length < 5 && (
+                      <TouchableOpacity
+                        style={styles.addImageContainer}
+                        onPress={handleImagePick} // Function to pick a new image
+                      >
+                        <MaterialIcons name="add" size={50} color="gray" />
+                      </TouchableOpacity>
+                    )}
+                  </ScrollView>
+                </View>
+
 
             </ScrollView>
 
@@ -654,6 +734,44 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 30,
   },
+  imagePreviewContainer: {
+    flexDirection: "row",
+    marginTop: 10,
+    paddingBottom: 10,
+  },
+  imageSlider: {
+    alignItems: "center",
+  },
+  imagePreview: {
+    marginRight: 10,
+  },
+  previewImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  removeButton: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    backgroundColor: "#fff",
+    padding: 5,
+    borderRadius: 15,
+  },
+  removeButtonText: {
+    fontSize: 12,
+    color: "red",
+  },
+  addImageContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 10,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  
 });
 
 
