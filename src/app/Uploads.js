@@ -15,6 +15,7 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
+import { usePets } from "../context/PetContext";
 import { getAuth } from "firebase/auth";
 import SideBar from "../components/SideBar";
 import { FontAwesome } from "@expo/vector-icons";
@@ -27,15 +28,8 @@ const Upload = () => {
   const db = getFirestore();
   const auth = getAuth();
   const [selectedItem, setSelectedItem] = useState("Uploads");
-  const [favoritedPets, setFavoritedPets] = useState({});
   const [loading, setLoading] = useState(true);
-
-  const toggleFavorite = (petId) => {
-    setFavoritedPets((prevState) => ({
-      ...prevState,
-      [petId]: !prevState[petId],
-    }));
-  };
+  const { favoritedPets, toggleFavorite } = usePets();
 
   useEffect(() => {
     const fetchUserPets = async () => {
@@ -86,7 +80,7 @@ const Upload = () => {
     
 
   const renderItem = ({ item }) => {
-    const isFavorited = favoritedPets[item.id];
+    const isFavorited = favoritedPets.some((favPet) => favPet.id === item.id);
     return (
       <TouchableOpacity
         style={styles.card}
@@ -96,7 +90,7 @@ const Upload = () => {
         <View style={styles.imageContainer}>
           <TouchableOpacity
             style={styles.favoriteIconButton}
-            onPress={() => toggleFavorite(item.id)}
+            onPress={() => toggleFavorite(item.id, item)}
           >
             <FontAwesome
               name={isFavorited ? "heart" : "heart-o"}
