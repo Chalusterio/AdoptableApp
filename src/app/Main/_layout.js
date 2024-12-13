@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { db, auth } from '../../../firebase';
 import { collection, query, onSnapshot, where, updateDoc, doc } from 'firebase/firestore';
 import TabBar from '../../components/TabBar';
+import { } from "../../context/NotificationContext"; // Adjust the path as needed
 
 const Main = () => {
   const [newNotification, setNewNotification] = useState(false);

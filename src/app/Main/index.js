@@ -49,6 +49,7 @@ const Feed = () => {
     params.petPersonality &&
     params.petDescription &&
     params.petIllnessHistory &&
+    params.adoptionFee &&
     typeof params.petVaccinated !== "undefined" &&
     selectedImages.length > 0;
 
