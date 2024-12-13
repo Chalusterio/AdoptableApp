@@ -1,24 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  ScrollView,
-  Dimensions,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  Alert,
-} from "react-native";
+import { View, Text, Image, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Modal, TextInput, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons } from '@expo/vector-icons';
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { db } from "../../firebase"; // Ensure `db` is imported from Firebase
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { usePets } from "../context/PetContext";
+import { Picker } from "@react-native-picker/picker"; // Import Picker
 import * as ImagePicker from "expo-image-picker";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -27,7 +16,6 @@ const screenWidth = Dimensions.get("window").width;
 const PetDetailsEdit = () => {
   const { petId } = useLocalSearchParams();
   const [petData, setPetData] = useState(null);
-  const { favoritedPets, toggleFavorite } = usePets();
   const [isFavorited, setIsFavorited] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
@@ -75,25 +63,8 @@ const PetDetailsEdit = () => {
     fetchPetData();
   }, [petId]);
 
-  useEffect(() => {
-    if (petData && petData.petName) {
-      const isPetFavorited = favoritedPets.some(
-        (pet) => pet.petName === petData.petName
-      );
-      setIsFavorited(isPetFavorited);
-    }
-  }, [favoritedPets, petData]);
-
-  const handleFavoriteToggle = () => {
-    // Toggle the favorite status of the pet
-    toggleFavorite(petData.petName, {
-      petName,
-      petType,
-      petGender,
-      petAge,
-      petWeight,
-      petDescription,
-    });
+  const toggleFavorite = () => {
+    setIsFavorited(!isFavorited);
   };
 
   const onScroll = (event) => {
@@ -134,9 +105,9 @@ const PetDetailsEdit = () => {
         adoptionFee: editedAdoptionFee,
         images: editedImages,
       };
-
+  
       await updateDoc(petRef, updatedPetData);
-
+  
       Alert.alert("Success", "Pet details updated successfully!");
       setModalVisible(false);
       setPetData((prev) => ({ ...prev, ...updatedPetData }));
@@ -145,89 +116,87 @@ const PetDetailsEdit = () => {
       Alert.alert("Error", "Failed to update pet details. Please try again.");
     }
   };
-
+  
   if (!petData) {
     return <Text>Loading...</Text>;
   }
+  
 
   const handleImagePick = async () => {
-    const permissionResult =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert(
-        "Permission Required",
-        "Permission to access the media library is required."
-      );
+      Alert.alert("Permission Required", "Permission to access the media library is required.");
       return;
     }
-
+  
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: false,
       quality: 1,
     });
-
+  
     if (!result.canceled) {
       const imageUri = result.assets[0].uri;
       const storage = getStorage();
       const imageRef = ref(storage, `pets/${petId}/${Date.now()}.jpg`);
       const response = await fetch(imageUri);
       const blob = await response.blob();
-
+  
       await uploadBytes(imageRef, blob);
       const downloadURL = await getDownloadURL(imageRef);
       setEditedImages((prevImages) => [...prevImages, downloadURL]);
     }
     if (editedImages.length < 5) {
-      // Logic to pick image and add it to the editedImages array
-      setEditedImages([...editedImages, newImageUri]); // newImageUri is the URI of the picked image
-    }
+    // Logic to pick image and add it to the editedImages array
+    setEditedImages([...editedImages, newImageUri]); // newImageUri is the URI of the picked image
+  }
   };
 
-  // Remove image
+// Remove image
   const removeImage = (index) => {
     const updatedImages = editedImages.filter((_, idx) => idx !== index);
     setEditedImages(updatedImages);
   };
-
+  
   return (
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {petData.images && petData.images.length > 0 && (
-          <View>
-            <ScrollView
-              horizontal={true}
-              style={styles.imageScrollContainer}
-              ref={scrollViewRef}
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-              showsHorizontalScrollIndicator={false}
-              pagingEnabled={true}
-            >
-              {petData.images.map((imageURL, index) => (
-                <View key={index} style={styles.petImageContainer}>
-                  <Image source={{ uri: imageURL }} style={styles.petImage} />
-                </View>
-              ))}
-            </ScrollView>
-
-            {/* Pagination Dots */}
-            <View style={styles.paginationContainer}>
-              {petData.images.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.paginationDot,
-                    index === currentIndex && styles.activeDot,
-                  ]}
-                />
-              ))}
+      {petData.images && petData.images.length > 0 && (
+        <View>
+        <ScrollView
+          horizontal={true}
+          style={styles.imageScrollContainer}
+          ref={scrollViewRef}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          showsHorizontalScrollIndicator={false}
+          pagingEnabled={true}
+        >
+          {petData.images.map((imageURL, index) => (
+            <View key={index} style={styles.petImageContainer}>
+              <Image
+                source={{ uri: imageURL }}
+                style={styles.petImage}
+              />
             </View>
-          </View>
-        )}
+          ))}
+        </ScrollView>
+
+        {/* Pagination Dots */}
+        <View style={styles.paginationContainer}>
+          {petData.images.map((_, index) => (
+            <View
+              key={index}
+              style={[styles.paginationDot, index === currentIndex && styles.activeDot]}
+            />
+          ))}
+        </View>
+      </View>
+    )}
+
 
         {/* Pet Details */}
         <View style={styles.card}>
@@ -242,12 +211,7 @@ const PetDetailsEdit = () => {
                 )}
               </Text>
               <Text
-                style={[
-                  styles.petGender,
-                  {
-                    color: petData.petGender === "Male" ? "#68C2FF" : "#EF5B5B",
-                  },
-                ]}
+                style={[styles.petGender, { color: petData.petGender === "Male" ? "#68C2FF" : "#EF5B5B" }]}
               >
                 {petData.petGender === "Male" ? (
                   <Foundation name="male-symbol" size={24} color="#68C2FF" />
@@ -256,29 +220,16 @@ const PetDetailsEdit = () => {
                 )}
               </Text>
             </View>
-            <TouchableOpacity onPress={handleFavoriteToggle}>
-              <FontAwesome
-                name={isFavorited ? "heart" : "heart-o"}
-                size={24}
-                color="#FF6B6B"
-              />
-            </TouchableOpacity>
           </View>
-          <Text
-            style={styles.subText}
-          >{`${petData.petAge} Years | ${petData.petWeight} kg`}</Text>
+          <Text style={styles.subText}>{`${petData.petAge} Years | ${petData.petWeight} kg`}</Text>
           <Text style={styles.personalityText}>
-            {petData.petPersonality
-              ? petData.petPersonality.split(",").join(" ● ")
-              : "No personality traits available"}
+            {petData.petPersonality ? petData.petPersonality.split(",").join(" ● ") : "No personality traits available"}
           </Text>
           <Text style={styles.description}>{petData.petDescription}</Text>
           <Text style={styles.sectionTitle}>Health History:</Text>
           <View>
             <Text style={styles.bulletText}>
-              {petData.petVaccinated === "Yes"
-                ? "• Vaccinated"
-                : "• Not Vaccinated"}
+              {petData.petVaccinated === "Yes" ? "• Vaccinated" : "• Not Vaccinated"}
             </Text>
             {petData.petIllnessHistory.split(",").map((illness, index) => (
               <Text key={index} style={styles.bulletText}>
@@ -301,7 +252,10 @@ const PetDetailsEdit = () => {
           </TouchableOpacity>
 
           {/* Edit Button */}
-          <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={handleEdit}
+          >
             <Text style={styles.buttonText}>Edit</Text>
           </TouchableOpacity>
 
@@ -339,10 +293,7 @@ const PetDetailsEdit = () => {
               <Text style={styles.question}>Pet Type:</Text>
               <View style={styles.optionRow}>
                 <TouchableOpacity
-                  style={[
-                    styles.optionButton,
-                    editedPetType === "Cat" && styles.selectedOptionButton,
-                  ]}
+                  style={[styles.optionButton, editedPetType === "Cat" && styles.selectedOptionButton]}
                   onPress={() => setEditedPetType("Cat")}
                 >
                   <MaterialCommunityIcons
@@ -351,20 +302,14 @@ const PetDetailsEdit = () => {
                     color={editedPetType === "Cat" ? "#68C2FF" : "#C2C2C2"}
                   />
                   <Text
-                    style={[
-                      styles.optionText,
-                      editedPetType === "Cat" && styles.selectedOptionText,
-                    ]}
+                    style={[styles.optionText, editedPetType === "Cat" && styles.selectedOptionText]}
                   >
                     Cat
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[
-                    styles.optionButton,
-                    editedPetType === "Dog" && styles.selectedOptionButton,
-                  ]}
+                  style={[styles.optionButton, editedPetType === "Dog" && styles.selectedOptionButton]}
                   onPress={() => setEditedPetType("Dog")}
                 >
                   <MaterialCommunityIcons
@@ -373,10 +318,7 @@ const PetDetailsEdit = () => {
                     color={editedPetType === "Dog" ? "#68C2FF" : "#C2C2C2"}
                   />
                   <Text
-                    style={[
-                      styles.optionText,
-                      editedPetType === "Dog" && styles.selectedOptionText,
-                    ]}
+                    style={[styles.optionText, editedPetType === "Dog" && styles.selectedOptionText]}
                   >
                     Dog
                   </Text>
@@ -387,10 +329,7 @@ const PetDetailsEdit = () => {
               <Text style={styles.question}>Gender:</Text>
               <View style={styles.optionRow}>
                 <TouchableOpacity
-                  style={[
-                    styles.optionButton,
-                    editedPetGender === "Female" && styles.selectedOptionButton,
-                  ]}
+                  style={[styles.optionButton, editedPetGender === "Female" && styles.selectedOptionButton]}
                   onPress={() => setEditedPetGender("Female")}
                 >
                   <Foundation
@@ -399,19 +338,13 @@ const PetDetailsEdit = () => {
                     color={editedPetGender === "Female" ? "#68C2FF" : "#C2C2C2"}
                   />
                   <Text
-                    style={[
-                      styles.optionText,
-                      editedPetGender === "Female" && styles.selectedOptionText,
-                    ]}
+                    style={[styles.optionText, editedPetGender === "Female" && styles.selectedOptionText]}
                   >
                     Female
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[
-                    styles.optionButton,
-                    editedPetGender === "Male" && styles.selectedOptionButton,
-                  ]}
+                  style={[styles.optionButton, editedPetGender === "Male" && styles.selectedOptionButton]}
                   onPress={() => setEditedPetGender("Male")}
                 >
                   <Foundation
@@ -420,10 +353,7 @@ const PetDetailsEdit = () => {
                     color={editedPetGender === "Male" ? "#68C2FF" : "#C2C2C2"}
                   />
                   <Text
-                    style={[
-                      styles.optionText,
-                      editedPetGender === "Male" && styles.selectedOptionText,
-                    ]}
+                    style={[styles.optionText, editedPetGender === "Male" && styles.selectedOptionText]}
                   >
                     Male
                   </Text>
@@ -471,35 +401,21 @@ const PetDetailsEdit = () => {
               <Text style={styles.question}>Is the pet vaccinated?</Text>
               <View style={styles.optionRow}>
                 <TouchableOpacity
-                  style={[
-                    styles.optionButton,
-                    editedPetVaccinated === "Yes" &&
-                      styles.selectedOptionButton,
-                  ]}
+                  style={[styles.optionButton, editedPetVaccinated === "Yes" && styles.selectedOptionButton]}
                   onPress={() => setEditedPetVaccinated("Yes")}
                 >
                   <Text
-                    style={[
-                      styles.optionText,
-                      editedPetVaccinated === "Yes" &&
-                        styles.selectedOptionText,
-                    ]}
+                    style={[styles.optionText, editedPetVaccinated === "Yes" && styles.selectedOptionText]}
                   >
                     Yes
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[
-                    styles.optionButton,
-                    editedPetVaccinated === "No" && styles.selectedOptionButton,
-                  ]}
+                  style={[styles.optionButton, editedPetVaccinated === "No" && styles.selectedOptionButton]}
                   onPress={() => setEditedPetVaccinated("No")}
                 >
                   <Text
-                    style={[
-                      styles.optionText,
-                      editedPetVaccinated === "No" && styles.selectedOptionText,
-                    ]}
+                    style={[styles.optionText, editedPetVaccinated === "No" && styles.selectedOptionText]}
                   >
                     No
                   </Text>
@@ -514,47 +430,47 @@ const PetDetailsEdit = () => {
                 keyboardType="number-pad"
                 style={[styles.input, styles.adoptionFee]}
               />
-              {/* Upload Images */}
-              <Text style={styles.question}>Upload Image:</Text>
-              <TouchableOpacity
-                style={styles.uploadButton}
-                onPress={handleImagePick}
-                disabled={editedImages.length >= 5} // Disable if 5 images already selected
-              ></TouchableOpacity>
-
-              {/* Display Selected Images */}
-              <View style={styles.imagePreviewContainer}>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.imageSlider}
+               {/* Upload Images */}
+                <Text style={styles.question}>Upload Image:</Text>
+                <TouchableOpacity
+                  style={styles.uploadButton}
+                  onPress={handleImagePick}
+                  disabled={editedImages.length >= 5} // Disable if 5 images already selected
                 >
-                  {editedImages.map((img, index) => (
-                    <View key={index} style={styles.imagePreview}>
-                      <Image
-                        source={{ uri: img }}
-                        style={styles.previewImage}
-                      />
-                      <TouchableOpacity
-                        style={styles.removeButton}
-                        onPress={() => removeImage(index)}
-                      >
-                        <Text style={styles.removeButtonText}>Remove</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
+                </TouchableOpacity>
 
-                  {/* Add image button */}
-                  {editedImages.length < 5 && (
-                    <TouchableOpacity
-                      style={styles.addImageContainer}
-                      onPress={handleImagePick} // Function to pick a new image
-                    >
-                      <MaterialIcons name="add" size={50} color="gray" />
-                    </TouchableOpacity>
-                  )}
-                </ScrollView>
-              </View>
+                {/* Display Selected Images */}
+                <View style={styles.imagePreviewContainer}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.imageSlider}
+                  >
+                    {editedImages.map((img, index) => (
+                      <View key={index} style={styles.imagePreview}>
+                        <Image source={{ uri: img }} style={styles.previewImage} />
+                        <TouchableOpacity
+                          style={styles.removeButton}
+                          onPress={() => removeImage(index)}
+                        >
+                          <Text style={styles.removeButtonText}>Remove</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    
+                    {/* Add image button */}
+                    {editedImages.length < 5 && (
+                      <TouchableOpacity
+                        style={styles.addImageContainer}
+                        onPress={handleImagePick} // Function to pick a new image
+                      >
+                        <MaterialIcons name="add" size={50} color="gray" />
+                      </TouchableOpacity>
+                    )}
+                  </ScrollView>
+                </View>
+
+
             </ScrollView>
 
             <View style={styles.modalButtons}>
@@ -564,7 +480,10 @@ const PetDetailsEdit = () => {
               >
                 <Text style={styles.buttonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSave}
+              >
                 <Text style={styles.buttonText}>Save</Text>
               </TouchableOpacity>
             </View>
@@ -574,6 +493,7 @@ const PetDetailsEdit = () => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -705,7 +625,6 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 12,
   },
   deleteButton: {
     flex: 1,
@@ -852,6 +771,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
   },
+  
 });
+
 
 export default PetDetailsEdit;
