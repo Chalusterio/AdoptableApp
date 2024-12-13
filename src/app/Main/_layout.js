@@ -2,7 +2,6 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { useNotifications } from '../../context/NotificationContext'; // Adjust path
 import TabBar from '../../components/TabBar';
-import { } from "../../context/NotificationContext"; // Adjust the path as needed
 
 const Main = () => {
   const { unreadCount, markAsRead } = useNotifications();
