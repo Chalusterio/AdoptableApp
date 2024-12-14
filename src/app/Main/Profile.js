@@ -35,6 +35,7 @@ const Profile = () => {
     address: "",
     houseType: "Not Indicated",
     hasPet: "Not Indicated",
+    bio: null,
   });
   const [editableInfo, setEditableInfo] = useState(profileInfo);
   const [isModalVisible, setModalVisible] = useState(false);
@@ -157,25 +158,6 @@ const Profile = () => {
     setModalVisible(true);
   };
 
-  const handleLogoutConfirm = () => {
-    setLogoutConfirmVisible(true);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth); // Sign out from Firebase
-      console.log("User logged out");
-      router.push("/Login"); // Ensure the route is correct (if you use a different path for login, change this)
-    } catch (error) {
-      console.error("Error logging out: ", error.message);
-    } finally {
-      setLogoutConfirmVisible(false); // Close logout confirmation modal
-    }
-  };
-
-  const handleCancelLogout = () => {
-    setLogoutConfirmVisible(false);
-  };
 
   const handleCancelEdit = () => {
     setEditConfirmVisible(false);
@@ -216,7 +198,7 @@ const Profile = () => {
           </TouchableOpacity>
 
           <View style={styles.header}>
-             {/* Default Cover Photo */}
+            {/* Default Cover Photo */}
             <Image
               style={styles.coverImage}
               source={require("../../assets/Profile/default1.png")}
@@ -231,7 +213,9 @@ const Profile = () => {
             />
 
             <Text style={styles.profileName}>{profileInfo.name}</Text>
-            <Text style={styles.profileStatus}>Active • Devoted Pet Owner</Text>
+            <Text style={styles.profileStatus}>
+              {profileInfo.bio || "Add Bio"} 
+            </Text>
           </View>
 
           {/* Profile Details */}
@@ -271,12 +255,6 @@ const Profile = () => {
           </View>
           <View style={styles.horizontalLine}></View>
 
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogoutConfirm}
-          >
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
 
           {/* Edit Modal */}
           <Modal
@@ -327,6 +305,17 @@ const Profile = () => {
                     activeOutlineColor="#68C2FF"
                     autoCapitalize="words"
                   />
+                  <TextInput
+                  style={styles.input}
+                  placeholder="Add a bio"
+                  value={editableInfo.bio || ""} // Show empty input if bio is null
+                  onChangeText={(text) =>
+                    setEditableInfo((prevState) => ({ ...prevState, bio: text }))
+                  }
+                  mode="outlined"
+                  outlineColor="transparent"
+                  activeOutlineColor="#68C4AF"
+                />
                   <TextInput
                     style={styles.input}
                     placeholder="Email"
@@ -461,35 +450,6 @@ const Profile = () => {
             </View>
           </Modal>
 
-          {/* Logout Confirmation Modal */}
-          <Modal
-            visible={isLogoutConfirmVisible}
-            animationType="fade"
-            transparent={true}
-            onRequestClose={handleCancelLogout}
-          >
-            <View style={styles.logoutModalContainer}>
-              <View style={styles.logoutModalContent}>
-                <Text style={styles.logoutModalText}>
-                  Are you sure you want to log out?
-                </Text>
-                <View style={styles.logoutModalButtons}>
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={handleCancelLogout}
-                  >
-                    <Text style={styles.buttonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.logoutButtonModal}
-                    onPress={handleLogout}
-                  >
-                    <Text style={styles.buttonText}>Log out</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -539,7 +499,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lilita",
     fontSize: 24,
     textAlign: "center",
-    marginTop: 30
+    marginTop: 10,
   },
   profileStatus: {
     fontFamily: "Lilita",
@@ -697,7 +657,7 @@ const styles = StyleSheet.create({
   profileImageContainer: {
     width: 244,
     height: 244,
-    borderRadius: 100,
+    borderRadius: 122,
     borderWidth: 4,
     borderColor: "#fff",
     justifyContent: "center",
@@ -707,7 +667,6 @@ const styles = StyleSheet.create({
     bottom: -50,
     alignSelf: "center",
     overflow: "hidden",
-
   },
   profileImage: {
     width: 240,
