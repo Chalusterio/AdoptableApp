@@ -6,8 +6,7 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Modal,
-  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import {
   getFirestore,
@@ -15,26 +14,22 @@ import {
   query,
   where,
   getDocs,
-} from "firebase/firestore"; // Firestore functions
-import { getAuth } from "firebase/auth"; // To get the current user
-import SideBar from "../components/SideBar"; // Importing the SideBar component
-import { FontAwesome } from "@expo/vector-icons"; // Import FontAwesome for heart icons
-import { Foundation } from "@expo/vector-icons"; // Import Foundation icons
-import { useRouter } from "expo-router"; // Get params and router for navigation
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import SideBar from "../components/SideBar";
+import { FontAwesome } from "@expo/vector-icons";
+import { Foundation } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 const Upload = () => {
   const router = useRouter();
-  const [pets, setPets] = useState([]); // State to store fetched pets
-  const db = getFirestore(); // Initialize Firestore
-  const auth = getAuth(); // Initialize Firebase Auth
-  const [isModalVisible, setIsModalVisible] = useState(false); // State for modal visibility
-  const [selectedPet, setSelectedPet] = useState(null); // State to store selected pet details
+  const [pets, setPets] = useState([]);
+  const db = getFirestore();
+  const auth = getAuth();
   const [selectedItem, setSelectedItem] = useState("Uploads");
-
-  // State to track favorited pets by their IDs
   const [favoritedPets, setFavoritedPets] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  // Function to toggle favorite status of a pet
   const toggleFavorite = (petId) => {
     setFavoritedPets((prevState) => ({
       ...prevState,
@@ -44,71 +39,69 @@ const Upload = () => {
 
   useEffect(() => {
     const fetchUserPets = async () => {
-      const currentUser = auth.currentUser; // Get the logged-in user
-
+      const currentUser = auth.currentUser;
       if (!currentUser) {
         console.warn("No user is logged in.");
+        setLoading(false);
         return;
       }
-
       try {
-        const petsCollection = collection(db, "listed_pets"); // Reference to Firestore collection
-        const q = query(
-          petsCollection,
-          where("listedBy", "==", currentUser.email)
-        ); // Filter by current user's email
+        const petsCollection = collection(db, "listed_pets");
+        const q = query(petsCollection, where("listedBy", "==", currentUser.email));
         const snapshot = await getDocs(q);
         const petsData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        setPets(petsData); // Update state with fetched data
+        setPets(petsData);
       } catch (error) {
         console.error("Error fetching pets:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUserPets();
-  }, []); // Run only once when the component mounts
-
-  // Open the modal and set the selected pet
-  const openModal = (pet) => {
-    setSelectedPet(pet);
-    setIsModalVisible(true);
-  };
-
-  // Close the modal
-  const closeModal = () => {
-    setIsModalVisible(false);
-    setSelectedPet(null);
-  };
+  }, []);
 
   const handlePetDetailsEdit = (pet) => {
     router.push({
       pathname: "/PetDetailsEdit",
-      params: { petId: pet.id },
+      params: {
+        petId: pet.id,
+        petName: pet.petName,
+        petType: pet.petType,
+        petGender: pet.petGender,
+        petAge: pet.petAge,
+        petWeight: pet.petWeight,
+        petPersonality: pet.petPersonality,
+        petDescription: pet.petDescription,
+        petIllnessHistory: pet.petIllnessHistory,
+        petVaccinated: pet.petVaccinated,
+        adoptionFee: pet.adoptionFee,
+        images: JSON.stringify(pet.images),
+      },
     });
   };
+    
 
-  // Render pet item
   const renderItem = ({ item }) => {
-    const isFavorited = favoritedPets[item.id]; // Check if this pet is favorited
-
+    const isFavorited = favoritedPets[item.id];
     return (
       <TouchableOpacity
         style={styles.card}
         activeOpacity={0.7}
-        onPress={() => handlePetDetailsEdit(item)} // Pass the selected pet as a parameter
+        onPress={() => handlePetDetailsEdit(item)}
       >
         <View style={styles.imageContainer}>
           <TouchableOpacity
             style={styles.favoriteIconButton}
-            onPress={() => toggleFavorite(item.id)} // Toggle the favorite for this pet
+            onPress={() => toggleFavorite(item.id)}
           >
             <FontAwesome
               name={isFavorited ? "heart" : "heart-o"}
               size={20}
-              color={isFavorited ? "#FF6B6B" : "#FFFFFF"} // Red for heart, white for heart-o
+              color={isFavorited ? "#FF6B6B" : "#FFFFFF"}
             />
           </TouchableOpacity>
           <Image source={{ uri: item.images[0] }} style={styles.image} />
@@ -124,7 +117,7 @@ const Upload = () => {
               )}
             </View>
           </View>
-          <Text style={styles.age}>{item.petAge}</Text>
+          <Text style={styles.age}>{`${item.petAge} years old`}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -134,7 +127,9 @@ const Upload = () => {
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
       <View style={styles.container}>
         <Text style={styles.titleText}>Uploads</Text>
-        {pets.length > 0 ? (
+        {loading ? (
+          <ActivityIndicator size="large" color="#68C2FF" />
+        ) : pets.length > 0 ? (
           <FlatList
             data={pets}
             keyExtractor={(item) => item.id}
@@ -145,52 +140,10 @@ const Upload = () => {
           />
         ) : (
           <View style={styles.noPetsContainer}>
-            <Text style={styles.noPetsText}>
-              You haven't uploaded any pets yet.
-            </Text>
+            <Text style={styles.noPetsText}>You haven't uploaded any pets yet.</Text>
           </View>
         )}
       </View>
-
-      {/* Pet Details Modal */}
-      {selectedPet && (
-        <Modal
-          visible={isModalVisible}
-          transparent={true}
-          animationType="slide"
-        >
-          <View style={styles.modalBackdrop}>
-            <View style={styles.modalContainer}>
-              <ScrollView contentContainerStyle={styles.modalContent}>
-                <Image
-                  source={{ uri: selectedPet.images[0] }}
-                  style={styles.modalImage}
-                />
-                <Text style={styles.modalTitle}>{selectedPet.petName}</Text>
-                <Text style={styles.modalDescription}>
-                  {selectedPet.petDescription}
-                </Text>
-                <View style={styles.modalInfoContainer}>
-                  <Text style={styles.modalAge}>
-                    {selectedPet.petAge} years old
-                  </Text>
-                  <Text style={styles.modalGender}>
-                    {selectedPet.petGender === "Female" ? "Female" : "Male"}
-                  </Text>
-                </View>
-                <View style={styles.modalButtonContainer}>
-                  <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={closeModal}
-                  >
-                    <Text style={styles.closeButtonText}>Close</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
-      )}
     </SideBar>
   );
 };
@@ -287,61 +240,6 @@ const styles = StyleSheet.create({
     fontFamily: "Lato",
     fontSize: 16,
     color: "#999",
-  },
-  // Modal styles
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Backdrop color
-  },
-  modalContainer: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    width: "80%", // Same width as pet card
-  },
-  modalContent: {
-    alignItems: "center",
-  },
-  modalImage: {
-    width: "100%",
-    height: 200,
-    borderRadius: 10,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginVertical: 10,
-  },
-  modalDescription: {
-    fontSize: 14,
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  modalInfoContainer: {
-    marginBottom: 20,
-  },
-  modalAge: {
-    fontSize: 16,
-    color: "#555",
-  },
-  modalGender: {
-    fontSize: 16,
-    color: "#555",
-  },
-  modalButtonContainer: {
-    alignItems: "center",
-  },
-  closeButton: {
-    backgroundColor: "#68C2FF",
-    padding: 10,
-    borderRadius: 5,
-    width: "80%",
-  },
-  closeButtonText: {
-    color: "white",
-    textAlign: "center",
   },
 });
 

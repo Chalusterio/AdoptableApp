@@ -59,7 +59,7 @@ const Feed = () => {
   // Load the user's favorites when the component mounts
   useEffect(() => {
     const fetchUserFavorites = async () => {
-      const user = auth.currentUser; // Get the current logged-in user
+      const user = auth.currentUser; // Get the current logged-in user 
       if (user) {
         try {
           const userRef = collection(db, "users");

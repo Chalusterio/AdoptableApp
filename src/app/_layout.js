@@ -10,6 +10,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import PetProvider from "../context/PetContext";
 import UserProvider from "../context/UserContext";
+import { NotificationProvider } from "../context/NotificationContext"; // Import NotificationProvider
 
 // Define theme settings
 const theme = {
@@ -51,29 +52,31 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <UserProvider>
             <PetProvider>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                }}
-              >
-                <Stack.Screen name="index" options={{ title: "Splash" }} />
-                <Stack.Screen name="Login" options={{ title: "Login" }} />
-                <Stack.Screen name="Signup" options={{ title: "Signup" }} />
-                <Stack.Screen name="Options" options={{ title: "Options" }} />
-                <Stack.Screen
-                  name="Lifestyle"
-                  options={{ title: "Lifestyle" }}
-                />
-                <Stack.Screen
-                  name="Preferences"
-                  options={{ title: "Preferences" }}
-                />
-                <Stack.Screen name="Main" options={{ title: "Main" }} />
-                <Stack.Screen
-                  name="ApproveAdoption"
-                  options={{ title: "ApproveAdoption" }}
-                />
-              </Stack>
+              <NotificationProvider>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                  }}
+                >
+                  <Stack.Screen name="index" options={{ title: "Splash" }} />
+                  <Stack.Screen name="Login" options={{ title: "Login" }} />
+                  <Stack.Screen name="Signup" options={{ title: "Signup" }} />
+                  <Stack.Screen name="Options" options={{ title: "Options" }} />
+                  <Stack.Screen
+                    name="Lifestyle"
+                    options={{ title: "Lifestyle" }}
+                  />
+                  <Stack.Screen
+                    name="Preferences"
+                    options={{ title: "Preferences" }}
+                  />
+                  <Stack.Screen name="Main" options={{ title: "Main" }} />
+                  <Stack.Screen
+                    name="ApproveAdoption"
+                    options={{ title: "ApproveAdoption" }}
+                  />
+                </Stack>
+              </NotificationProvider>
             </PetProvider>
           </UserProvider>
         </SafeAreaProvider>
@@ -81,4 +84,3 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
-

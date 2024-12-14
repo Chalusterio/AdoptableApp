@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Image, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  SafeAreaView,
+  ActivityIndicator,
+} from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import SideBar from "../components/SideBar";
+import { Surface } from "react-native-paper";
 import { usePets } from "../context/PetContext"; // Adjust the path as needed
 import { db, auth } from "../../firebase"; // Ensure `auth` and `db` are imported from Firebase
-import { Surface } from "react-native-paper";
 import { doc, getDoc } from "firebase/firestore"; // Import Firestore functions
 
 const Favorites = () => {
@@ -30,7 +39,9 @@ const Favorites = () => {
             const userFavorites = userData.favorites || [];
 
             // Filter the pets based on the user’s favorites
-            const favoritePets = pets.filter((pet) => userFavorites.includes(pet.id));
+            const favoritePets = pets.filter((pet) =>
+              userFavorites.includes(pet.id)
+            );
 
             // Set the filtered pets as favorited pets for the current user
             setFilteredPets(favoritePets);
@@ -87,7 +98,7 @@ const Favorites = () => {
               )}
             </View>
           </View>
-          <Text style={styles.age}>{item.petAge}</Text>
+          <Text style={styles.age}>{item.petAge} Years Old</Text>
         </View>
       </TouchableOpacity>
     );

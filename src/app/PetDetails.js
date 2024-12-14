@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { usePets } from '../context/PetContext'; // Import the context
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { db, auth } from "../../firebase"; // Ensure `auth` is imported from Firebase
@@ -51,6 +52,7 @@ const PetDetails = () => {
   const [hasPendingRequest, setHasPendingRequest] = useState(false); // Track pending request
   const [isSubmitting, setIsSubmitting] = useState(false); // State to track submission status
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
+  const { addPetRequest } = usePets();
 
   useEffect(() => {
     // Check if the user is logged in
@@ -138,12 +140,29 @@ const PetDetails = () => {
       const user = auth.currentUser;
       if (!user) throw new Error("User not logged in");
 
+      // Pet details to include in the adoption request
+      const petDetail = {
+        adoptionFee,
+        images: parsedImages, // Using parsed images
+        listedBy,
+        petAge,
+        petDescription,
+        petGender,
+        petIllnessHistory,
+        petName,
+        petPersonality,
+        petType,
+        petVaccinated,
+        petWeight,
+      };
+
       const adoptionRequest = {
         petName,
         adopterEmail: user.email,
         listedBy,
         requestDate: new Date(),
         status: "Pending",
+        petDetail, // Adding the petDetail object
       };
 
       // Add the adoption request
@@ -289,9 +308,11 @@ const PetDetails = () => {
           >{`${petAge} Years | ${petWeight} kg`}</Text>
           <Text style={styles.personalityText}>
             {petPersonality
-              .split(",")
-              .map((trait) => trait.trim())
-              .join("     ●     ")}
+              ? petPersonality
+                  .split(",")
+                  .map((trait) => trait.trim())
+                  .join("     ●     ")
+              : "No personality traits available"}
           </Text>
           <Text style={styles.description}>{petDescription}</Text>
           <Text style={styles.sectionTitle}>Health History:</Text>
@@ -337,7 +358,10 @@ const PetDetails = () => {
           <TouchableOpacity
             style={[
               styles.adoptButton,
-              { backgroundColor: isOwnPet || hasPendingRequest ? "#C4C4C4" : "#EF5B5B" }, // Updated condition for background color
+              {
+                backgroundColor:
+                  isOwnPet || hasPendingRequest ? "#C4C4C4" : "#EF5B5B",
+              }, // Updated condition for background color
             ]}
             onPress={
               isOwnPet || hasPendingRequest ? null : handleAdopt // Combined check for both conditions
@@ -449,7 +473,7 @@ const styles = StyleSheet.create({
     alignItems: "center", // Align items vertically in the center
   },
   adoptionFee: {
-    fontSize: 24,
+    fontSize: 40,
     fontFamily: "Lilita",
     color: "#333",
     marginRight: 10, // Add some right margin if necessary
@@ -613,14 +637,15 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: "80%",
-    backgroundColor: "#FFF",
+    backgroundColor: "#68C2FF",
     borderRadius: 10,
     padding: 20,
     alignItems: "center",
   },
   modalTitle: {
     fontSize: 18,
-    color: "#333",
+    fontFamily: "Lilita",
+    color: "#fff",
     textAlign: "center",
     marginBottom: 20,
   },
@@ -630,25 +655,30 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   cancelButton: {
-    flex: 1,
-    backgroundColor: "#DDD",
+    backgroundColor: "#444",
     padding: 10,
     borderRadius: 5,
-    marginRight: 10,
+    flex: 1,
+    marginRight: 5,
+    alignItems: "center",
   },
   cancelButtonText: {
+    color: "#fff",
     textAlign: "center",
-    color: "#555",
+    fontSize: 14,
   },
   confirmButton: {
-    flex: 1,
-    backgroundColor: "#68C2FF",
+    backgroundColor: "#EF5B5B",
     padding: 10,
     borderRadius: 5,
+    flex: 1,
+    marginLeft: 5,
+    alignItems: "center",
   },
   confirmButtonText: {
+    color: "#fff",
     textAlign: "center",
-    color: "#FFF",
+    fontSize: 14,
   },
 });
 

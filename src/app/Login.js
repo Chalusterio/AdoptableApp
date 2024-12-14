@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ImageBackground,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import {
   useTheme,
@@ -140,6 +141,7 @@ export default function Login() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <ScrollView>
       <View style={styles.container}>
         <View style={styles.backgroundContainer}>
           <ImageBackground
@@ -267,6 +269,7 @@ export default function Login() {
           </Dialog>
         </Portal>
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

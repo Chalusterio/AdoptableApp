@@ -154,22 +154,22 @@ const List = () => {
       setDialogVisible(true);
       return;
     }
-
+  
     setIsLoading(true); // Start loading
-
+  
     try {
       const auth = getAuth();
       const user = auth.currentUser;
-
+  
       if (!user) {
         alert("Please log in to list a pet.");
         setIsLoading(false);
         return;
       }
-
+  
       const storage = getStorage();
       const db = getFirestore();
-
+  
       const newPet = {
         petName,
         petType,
@@ -185,11 +185,11 @@ const List = () => {
         createdAt: new Date().toISOString(),
         listedBy: user.email,
       };
-
+  
       const petCollection = collection(db, "listed_pets");
       const docRef = await addDoc(petCollection, newPet);
       const petId = docRef.id;
-
+  
       const imageUploadPromises = selectedImages.map(async (image, index) => {
         const response = await fetch(image.uri);
         const blob = await response.blob();
@@ -200,11 +200,30 @@ const List = () => {
         await uploadBytes(imageRef, blob);
         return getDownloadURL(imageRef);
       });
-
+  
       const uploadedImages = await Promise.all(imageUploadPromises);
-
+  
+      // Update the Firestore document with the uploaded image URLs
       await updateDoc(docRef, { images: uploadedImages });
-
+  
+      // Add the pet to the global state using addPet
+      addPet({
+        id: petId,
+        petName,
+        petType,
+        petGender,
+        petAge,
+        petWeight,
+        petPersonality,
+        petDescription,
+        petIllnessHistory,
+        petVaccinated,
+        adoptionFee,
+        images: uploadedImages,
+        createdAt: new Date().toISOString(),
+        listedBy: user.email,
+      });
+  
       alert("Pet listed successfully!");
       resetForm();
       router.push("/Main");
@@ -214,7 +233,7 @@ const List = () => {
     } finally {
       setIsLoading(false); // Stop loading
     }
-  };
+  }  
 
   const resetForm = () => {
     setAdoptionFee("");

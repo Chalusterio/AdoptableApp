@@ -13,127 +13,159 @@ import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import SideBar from "../components/SideBar";
-import { usePets } from "../context/PetContext";
-import { db, auth } from "../../firebase"; // Firebase imports
 import { Surface } from "react-native-paper";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { usePets } from "../context/PetContext"; // Adjust the path as needed
+import { db, auth } from "../../firebase"; // Ensure `auth` and `db` are imported from Firebase
+import { collection, query, where, getDocs } from "firebase/firestore"; // Import Firestore functions
 
 const Requests = () => {
-  const { toggleFavorite, favoritedPets, requestedPets, setRequestedPets } = usePets(); // Context hooks
+  const { favoritedPets, cancelRequest, pets, toggleFavorite } = usePets();
   const router = useRouter();
   const [selectedItem, setSelectedItem] = useState("Requests");
-  const [isLoading, setIsLoading] = useState(true); // Loading state
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
+  const [requestedPets, setRequestedPets] = useState([]); // State to hold filtered requested pets
+  const [longPressedPetId, setLongPressedPetId] = useState(null);
 
+  // Fetch the current user's pending requests
   useEffect(() => {
-    const fetchRequestedPets = async () => {
-      setIsLoading(true); // Start loading
+    const fetchUserRequests = async () => {
+      setIsLoading(true);
       const user = auth.currentUser;
 
       if (user) {
         try {
-          // Fetch pet requests for the current user
-          const petRequestsRef = collection(db, "pet_request");
+          const requestsRef = collection(db, "pet_request");
           const q = query(
-            petRequestsRef,
+            requestsRef,
             where("adopterEmail", "==", user.email),
-            where("status", "==", "Pending")
+            where("status", "==", "Pending") // Only fetch "Pending" requests
           );
+
           const querySnapshot = await getDocs(q);
+          const requestedPetNames = querySnapshot.docs.map(
+            (doc) => doc.data().petName
+          );
 
-          const fetchedRequests = [];
-          querySnapshot.forEach((doc) => {
-            fetchedRequests.push(doc.data());
-          });
+          // Filter the `pets` array to show only those that match the requested pet names
+          const pendingPets = pets.filter((pet) =>
+            requestedPetNames.includes(pet.petName)
+          );
 
-          setRequestedPets(fetchedRequests); // Set the filtered pets to the state
+          setRequestedPets(pendingPets); // Update the state with the filtered pets
         } catch (error) {
-          console.error("Error fetching requested pets:", error);
+          console.error("Error fetching user requests:", error);
         }
       }
-      setIsLoading(false); // Stop loading
+      setIsLoading(false);
     };
 
-    fetchRequestedPets();
-  }, []); // Empty dependency array ensures this only runs once when the component mounts
+    fetchUserRequests();
+  }, [pets]); // Re-run only when `pets` changes
+
+  const handleLongPress = (petName) => {
+    setLongPressedPetId(petName);
+  };
+
+  const handleCancelRequest = () => {
+    if (longPressedPetId) {
+      cancelRequest(longPressedPetId); // Perform the cancel operation
+
+      // Optimistically update the requestedPets state
+      setRequestedPets((prevRequestedPets) =>
+        prevRequestedPets.filter((pet) => pet.petName !== longPressedPetId)
+      );
+
+      setLongPressedPetId(null); // Reset the long-press state
+    }
+  };
 
   // Render pet item
   const renderItem = ({ item }) => {
-  // Ensure images is defined and not empty
-  const images = Array.isArray(item.images) && item.images.length > 0 ? item.images : ["default_image_url"]; // Default image if none
+    const isFavorited = favoritedPets.some((favPet) => favPet.id === item.id);
+    const isLongPressed = longPressedPetId === item.petName; // Check petName for long-press
 
-  // Check if the pet is already favorited by the current user
-  const isFavorited = favoritedPets.some(
-    (favPet) => favPet.id === item.petId
-  );
-
-  return (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.7}
-      onPress={() => {
-        router.push({
-          pathname: "/PetDetails",
-          params: {
-            ...item,
-            images: JSON.stringify(images), // Pass valid images array
-          },
-        });
-      }}
-    >
-      <View style={styles.imageContainer}>
+    return (
+      <View style={styles.cardContainer}>
         <TouchableOpacity
-          style={styles.favoriteIconButton}
-          onPress={() => toggleFavorite(item.petId, item)} // Pass pet data to toggleFavorite
+          style={[styles.card, { opacity: isLongPressed ? 0.5 : 1 }]}
+          activeOpacity={0.7}
+          onPress={() => {
+            router.push({
+              pathname: "/PetDetails",
+              params: {
+                ...item,
+                images: JSON.stringify(item.images),
+              },
+            });
+          }}
+          onLongPress={() => handleLongPress(item.petName)} // Pass petName
         >
-          <FontAwesome
-            name={isFavorited ? "heart" : "heart-o"}
-            size={20}
-            color={isFavorited ? "#FF6B6B" : "#FFFFFF"} // Red for heart, white for heart-o
-          />
-        </TouchableOpacity>
-        <Image source={{ uri: images[0] }} style={styles.image} />
-      </View>
-      <View style={styles.petDetailsContainer}>
-        <View style={styles.nameGenderContainer}>
-          <Text style={styles.name}>{item.petName}</Text>
-          <View style={styles.genderContainer}>
-            {item.petGender === "Female" ? (
-              <Foundation name="female-symbol" size={24} color="#EF5B5B" />
-            ) : (
-              <Foundation name="male-symbol" size={24} color="#68C2FF" />
-            )}
+          <View style={styles.imageContainer}>
+            <TouchableOpacity
+              style={styles.favoriteIconButton}
+              onPress={() => toggleFavorite(item.id, item)}
+            >
+              <FontAwesome
+                name={isFavorited ? "heart" : "heart-o"}
+                size={20}
+                color={isFavorited ? "#FF6B6B" : "#FFFFFF"}
+              />
+            </TouchableOpacity>
+            <Image source={{ uri: item.images[0] }} style={styles.image} />
           </View>
-        </View>
-        <Text style={styles.age}>{item.petAge}</Text>
+          <View style={styles.petDetailsContainer}>
+            <View style={styles.nameGenderContainer}>
+              <Text style={styles.name}>{item.petName}</Text>
+              <View style={styles.genderContainer}>
+                {item.petGender === "Female" ? (
+                  <Foundation name="female-symbol" size={24} color="#EF5B5B" />
+                ) : (
+                  <Foundation name="male-symbol" size={24} color="#68C2FF" />
+                )}
+              </View>
+            </View>
+            <Text style={styles.age}>{item.petAge} Years Old</Text>
+          </View>
+        </TouchableOpacity>
+        {isLongPressed && (
+          <View style={styles.cancelRequestContainer}>
+            <TouchableOpacity onPress={handleCancelRequest}>
+              <Text style={styles.cancelRequestText}>Cancel Request</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
-    </TouchableOpacity>
-  );
-};
+    );
+  };
 
+  // Return JSX
   return (
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
       <SafeAreaView style={styles.safeArea}>
         <Surface style={styles.titleContainer} elevation={3}>
-          <Text style={styles.title}>Your Requested Pets</Text>
+          <Text style={styles.title}>Your Pending Requested Pets</Text>
         </Surface>
 
-        {isLoading ? (
+        {isLoading ? ( // Display loading spinner while fetching data
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#68C2FF" />
             <Text style={styles.loadingText}>Loading requests...</Text>
           </View>
         ) : requestedPets.length > 0 ? (
           <FlatList
-            data={requestedPets}
-            keyExtractor={(item) => item.petId}
+            data={requestedPets} // Display only requested pets that are pending
+            keyExtractor={(item) => item.id}
             renderItem={renderItem}
+            onLongPress={() => handleLongPress(item.id)}
             numColumns={2}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.container}
           />
         ) : (
           <View style={styles.noPetsContainer}>
-            <Text style={styles.noPetsText}>No pending requests available.</Text>
+            <Text style={styles.noPetsText}>
+              No pending pet requests available.
+            </Text>
           </View>
         )}
       </SafeAreaView>
@@ -167,8 +199,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 10,
   },
-  card: {
+  cardContainer: {
+    position: "relative", // Allows positioning of the Cancel Request button
     width: "47%",
+    marginBottom: 16,
+  },
+  card: {
+    width: "100%",
     marginBottom: 16,
     borderRadius: 20,
     alignItems: "center",
@@ -202,15 +239,35 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
+  cancelRequestContainer: {
+    position: "absolute", // Ensures it overlays the card
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2, // Ensures it's above the semi-transparent card
+    backgroundColor: "rgba(255, 255, 255, 0.3)", // Optional semi-transparent overlay
+  },
+  cancelRequestText: {
+    textAlign: "center",
+    color: "white",
+    fontFamily: "LatoBold",
+    fontSize: 20,
+    backgroundColor: "#EF5B5B",
+    padding: 10,
+    borderRadius: 5,
+    elevation: 5, // Adds a slight shadow for better visibility
+  },
   petDetailsContainer: {
     flex: 1,
-    margin: 13,
     alignItems: "center",
+    marginVertical: 15,
   },
   nameGenderContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 5,
   },
   name: {
     fontSize: 16,

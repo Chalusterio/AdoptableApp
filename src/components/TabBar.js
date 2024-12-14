@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 
-const TabBar = ({ state, descriptors, navigation }) => {
+const TabBar = ({ state, descriptors, navigation, newNotification }) => {
   const activeColor = '#68C2FF';
   const inactiveColor = '#FFF';
 
@@ -12,7 +12,7 @@ const TabBar = ({ state, descriptors, navigation }) => {
   });
 
   if (!fontsLoaded) {
-    return null; 
+    return null;
   }
 
   const icons = {
@@ -62,6 +62,11 @@ const TabBar = ({ state, descriptors, navigation }) => {
                 size={30}
                 color={isFocused ? activeColor : inactiveColor}
               />
+              {route.name === 'Notification' && newNotification && (
+                <View style={styles.badge} />
+                
+              )}
+              
               {isFocused && route.name !== 'List' && (
                 <Text
                   style={[
@@ -115,10 +120,24 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     color: '#68C2FF',
   },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    width: 12,
+    height: 12,
+    zIndex: 1,
+  },
 });
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 export default TabBar;
 =======
 export default TabBar;
 >>>>>>> Stashed changes
+=======
+export default TabBar;
+>>>>>>> main

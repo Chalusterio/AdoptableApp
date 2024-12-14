@@ -146,21 +146,6 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigateTo("Donate")}
-            style={[styles.drawerItem, selectedItem === "Donate" && styles.activeDrawerItem]}
-          >
-            <MaterialCommunityIcons
-              name={selectedItem === "Donate" ? "hand-coin" : "hand-coin-outline"}
-              size={24}
-              color={selectedItem === "Donate" ? "black" : "gray"}
-            />
-            <Text
-              style={[styles.drawerItemText, selectedItem === "Donate" && styles.activeDrawerItemText]}
-            >
-              Donate
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             onPress={() => navigateTo("Uploads")}
             style={[styles.drawerItem, selectedItem === "Uploads" && styles.activeDrawerItem]}
           >
@@ -188,6 +173,21 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
               style={[styles.drawerItemText, selectedItem === "Requests" && styles.activeDrawerItemText]}
             >
               Requests
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigateTo("Donate")}
+            style={[styles.drawerItem, selectedItem === "Donate" && styles.activeDrawerItem]}
+          >
+            <MaterialCommunityIcons
+              name={selectedItem === "Donate" ? "hand-coin" : "hand-coin-outline"}
+              size={24}
+              color={selectedItem === "Donate" ? "black" : "gray"}
+            />
+            <Text
+              style={[styles.drawerItemText, selectedItem === "Donate" && styles.activeDrawerItemText]}
+            >
+              Donate
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
