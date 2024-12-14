@@ -8,9 +8,9 @@ import {
   Dimensions,
   TouchableOpacity,
   Modal,
-  TextInput,
   Alert,
 } from "react-native";
+import { TextInput,} from "react-native-paper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
@@ -37,6 +37,7 @@ const PetDetailsEdit = () => {
   const [editedPetWeight, setEditedPetWeight] = useState("");
   const [editedPetPersonality, setEditedPetPersonality] = useState("");
   const [editedPetDescription, setEditedPetDescription] = useState("");
+  const [editedPetIllnessHistory, setEditedPetIllnessHistory] = useState("");
   const [editedPetVaccinated, setEditedPetVaccinated] = useState("");
   const [editedPetType, setEditedPetType] = useState("");
   const [editedPetGender, setEditedPetGender] = useState("");
@@ -59,6 +60,7 @@ const PetDetailsEdit = () => {
           setEditedPetWeight(pet.petWeight);
           setEditedPetPersonality(pet.petPersonality);
           setEditedPetDescription(pet.petDescription);
+          setEditedPetIllnessHistory(pet.petIllnessHistory);
           setEditedPetVaccinated(pet.petVaccinated);
           setEditedPetType(pet.petType);
           setEditedPetGender(pet.petGender);
@@ -128,6 +130,7 @@ const PetDetailsEdit = () => {
         petWeight: editedPetWeight,
         petPersonality: editedPetPersonality,
         petDescription: editedPetDescription,
+        petIllnessHistory: editedPetIllnessHistory,
         petVaccinated: editedPetVaccinated,
         petType: editedPetType,
         petGender: editedPetGender,
@@ -299,12 +302,7 @@ const PetDetailsEdit = () => {
           >
             <FontAwesome name="arrow-left" size={20} color="#FFF" />
           </TouchableOpacity>
-
-          {/* Edit Button */}
-          <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-            <Text style={styles.buttonText}>Edit</Text>
-          </TouchableOpacity>
-
+          
           {/* Delete Button */}
           <TouchableOpacity
             style={styles.deleteButton}
@@ -312,8 +310,15 @@ const PetDetailsEdit = () => {
           >
             <Text style={styles.buttonText}>Delete</Text>
           </TouchableOpacity>
+
+          {/* Edit Button */}
+          <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+            <Text style={styles.buttonText}>Edit</Text>
+          </TouchableOpacity>
+
         </View>
       </View>
+
       {/* Edit Modal */}
       <Modal
         visible={modalVisible}
@@ -333,8 +338,12 @@ const PetDetailsEdit = () => {
                 value={editedPetName}
                 onChangeText={setEditedPetName}
                 style={[styles.input]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
               />
-
+              
               {/* Pet Type - Side by side Buttons */}
               <Text style={styles.question}>Pet Type:</Text>
               <View style={styles.optionRow}>
@@ -437,6 +446,11 @@ const PetDetailsEdit = () => {
                 value={editedPetAge}
                 onChangeText={setEditedPetAge}
                 style={[styles.input]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
+                keyboardType="number-pad"
               />
 
               {/* Weight (kg) */}
@@ -445,8 +459,12 @@ const PetDetailsEdit = () => {
                 placeholder="e.g., 25"
                 value={editedPetWeight}
                 onChangeText={setEditedPetWeight}
-                keyboardType="number-pad"
                 style={[styles.input]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
+                keyboardType="number-pad"
               />
 
               {/* Personality */}
@@ -454,8 +472,29 @@ const PetDetailsEdit = () => {
               <TextInput
                 placeholder="e.g., Friendly, Playful"
                 value={editedPetPersonality}
-                onChangeText={setEditedPetPersonality}
+                onChangeText={(text) => {
+                  // Remove spaces and trim the input
+                  const cleanedText = text.replace(/\s+/g, "").trim();
+
+                  // Filter out any non-alphabetic characters except commas
+                  const validText = cleanedText.replace(/[^a-zA-Z,-]/g, "");
+
+                  // Split the input by commas
+                  const words = validText.split(",");
+
+                  // If there are more than 3 words, limit the input to the first 3 words
+                  if (words.length > 3) {
+                    setEditedPetPersonality(words.slice(0, 3).join(", "));
+                  } else {
+                    // Update state with the valid input
+                    setEditedPetPersonality(words.join(", "));
+                  }
+                }}
                 style={[styles.input]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
               />
 
               {/* Description */}
@@ -464,7 +503,30 @@ const PetDetailsEdit = () => {
                 placeholder="Briefly describe this pet"
                 value={editedPetDescription}
                 onChangeText={setEditedPetDescription}
-                style={[styles.input]}
+                style={[styles.input, styles.textArea,]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                multiline={true}
+                numberOfLines={7}
+                textAlignVertical="top"
+                autoCapitalize="sentences"
+              />
+
+              {/* Illness of History */}
+              <Text style={styles.question}>Health History:</Text>
+              <TextInput
+                placeholder="Mention if the pet has any history of illness (or write None)"
+                value={editedPetIllnessHistory}
+                onChangeText={setEditedPetIllnessHistory}
+                style={[styles.input, styles.textArea,]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                multiline={true}
+                numberOfLines={7}
+                textAlignVertical="top"
+                autoCapitalize="sentences"
               />
 
               {/* Vaccinated - Side by Side Buttons */}
@@ -472,7 +534,7 @@ const PetDetailsEdit = () => {
               <View style={styles.optionRow}>
                 <TouchableOpacity
                   style={[
-                    styles.optionButton,
+                    styles.optionButton1,
                     editedPetVaccinated === "Yes" &&
                       styles.selectedOptionButton,
                   ]}
@@ -490,7 +552,7 @@ const PetDetailsEdit = () => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
-                    styles.optionButton,
+                    styles.optionButton1,
                     editedPetVaccinated === "No" && styles.selectedOptionButton,
                   ]}
                   onPress={() => setEditedPetVaccinated("No")}
@@ -505,6 +567,7 @@ const PetDetailsEdit = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
+
               {/* Adoption Fee */}
               <Text style={styles.question}>Adoption Fee:</Text>
               <TextInput
@@ -512,7 +575,11 @@ const PetDetailsEdit = () => {
                 value={editedAdoptionFee}
                 onChangeText={setEditedAdoptionFee}
                 keyboardType="number-pad"
-                style={[styles.input, styles.adoptionFee]}
+                style={[styles.input]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
               />
               {/* Upload Images */}
               <Text style={styles.question}>Upload Image:</Text>
@@ -699,7 +766,7 @@ const styles = StyleSheet.create({
   },
   editButton: {
     flex: 1,
-    backgroundColor: "#FF6B6B",
+    backgroundColor: "#EF5B5B",
     borderRadius: 20,
     padding: 10,
     marginLeft: 10,
@@ -709,12 +776,13 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     flex: 1,
-    backgroundColor: "#EF5B5B",
+    backgroundColor: "#444",
     borderRadius: 20,
     padding: 10,
     marginLeft: 10,
     justifyContent: "center",
     alignItems: "center",
+    paddingVertical: 12,
   },
   buttonText: {
     color: "#FFF",
@@ -731,6 +799,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
+    paddingVertical: 50,
   },
   modalContainer: {
     backgroundColor: "#fff",
@@ -753,7 +823,6 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     marginRight: 5,
-    marginBottom: 50,
   },
   saveButton: {
     flex: 1,
@@ -761,32 +830,49 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     marginLeft: 5,
-    marginBottom: 50,
+  },
+  question: {
+    marginTop: 35,
+    fontFamily: "Lato",
+    fontSize: 18,
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 15,
+    marginTop: 10,
+    marginBottom: 5,
+    backgroundColor: "#F5F5F5",
   },
   optionRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
   },
   optionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F5F5F5",
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#C2C2C2",
     borderRadius: 8,
     paddingVertical: 5,
     marginHorizontal: 5,
-    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+  },
+  optionButton1: {
     flex: 1,
-    marginHorizontal: 5,
     borderWidth: 1,
     borderColor: "#C2C2C2",
+    borderRadius: 8,
+    paddingVertical: 10,
+    marginHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+  },
+  textArea: {
+    height: 150,
   },
   optionText: {
     marginLeft: 10,
@@ -810,7 +896,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontFamily: "Lilita",
-    fontWeight: "bold",
+    color: '#68C2FF',
     marginBottom: 20,
     textAlign: "center",
     marginTop: 30,
