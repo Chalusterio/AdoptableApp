@@ -1,24 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image, TextInput,
-  Modal, Dimensions,
+  Image,
+  Modal,
+  Dimensions,
   TouchableWithoutFeedback,
 } from "react-native";
+import { TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Icon from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
-import { collection, getDocs, query, where, doc, updateDoc, getDoc, addDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  updateDoc,
+  getDoc,
+  addDoc,
+} from "firebase/firestore";
 import { db, auth } from "../../firebase";
 import { getStorage, ref, getDownloadURL } from "firebase/storage"; // Firebase storage import
 
-const screenWidth = Dimensions.get("window").width;
+const screenWidth = Dimensions.get("window").width; // Full screen width
+const adjustedWidth = screenWidth - 40; // Subtract 20 padding on both sides
 
 export default function ApproveAdoption() {
   const router = useRouter();
@@ -40,11 +52,16 @@ export default function ApproveAdoption() {
   ]);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedDeliveryType, setSelectedDeliveryType] = useState("Motor Delivery");
+  const [selectedDeliveryType, setSelectedDeliveryType] =
+    useState("Motor Delivery");
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [newAddress, setNewAddress] = useState(adopterDetails.address || "");
-  const [newPhoneNumber, setNewPhoneNumber] = useState(adopterDetails.contactNumber || "");
-  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [newPhoneNumber, setNewPhoneNumber] = useState(
+    adopterDetails.contactNumber || ""
+  );
+  const [confirmationModalVisible, setConfirmationModalVisible] =
+    useState(false);
+  const scrollViewRef = useRef(null);
 
   // State for image URLs and scroll functionality
   const [imageURLs, setImageURLs] = useState([]);
@@ -64,7 +81,7 @@ export default function ApproveAdoption() {
     // Get the day and month names for both dates
     const dayMin = minDate.getDate();
     const dayMax = maxDate.getDate();
-    const month = minDate.toLocaleString('default', { month: 'long' }); // Gets the full month name (e.g., 'December')
+    const month = minDate.toLocaleString("default", { month: "long" }); // Gets the full month name (e.g., 'December')
 
     // Return the formatted string, for example: "December 20 - 23"
     return `${month} ${dayMin} - ${dayMax}`;
@@ -73,26 +90,25 @@ export default function ApproveAdoption() {
   const expectedDate = getEstimatedDeliveryDate();
 
   const fetchImageURLs = async (imagePaths) => {
-    console.log("Fetching image URLs...");  // Log before fetching
+    console.log("Fetching image URLs..."); // Log before fetching
     const storage = getStorage();
 
     try {
       const imageURLs = await Promise.all(
         imagePaths.map(async (imagePath) => {
-          console.log(`Fetching URL for image path: ${imagePath}`);  // Log the path being fetched
+          console.log(`Fetching URL for image path: ${imagePath}`); // Log the path being fetched
           const imageRef = ref(storage, imagePath);
           const url = await getDownloadURL(imageRef);
-          console.log(`Image URL fetched: ${url}`);  // Log the URL once fetched
+          console.log(`Image URL fetched: ${url}`); // Log the URL once fetched
           return url;
         })
       );
-      setImageURLs(imageURLs);  // Save URLs to state
+      setImageURLs(imageURLs); // Save URLs to state
     } catch (error) {
-      console.error("Error fetching image URLs: ", error);  // Log any error encountered
-      setImageURLs([]);  // Handle error gracefully
+      console.error("Error fetching image URLs: ", error); // Log any error encountered
+      setImageURLs([]); // Handle error gracefully
     }
   };
-
 
   useEffect(() => {
     const fetchPetDetails = async () => {
@@ -179,7 +195,10 @@ export default function ApproveAdoption() {
     try {
       // Query Firestore to get the adopter document based on the email
       const userRef = collection(db, "users");
-      const q = query(userRef, where("email", "==", adopterDetails.adopterEmail)); // Use adopter email for querying
+      const q = query(
+        userRef,
+        where("email", "==", adopterDetails.adopterEmail)
+      ); // Use adopter email for querying
 
       const querySnapshot = await getDocs(q);
 
@@ -205,7 +224,10 @@ export default function ApproveAdoption() {
         // Close the edit modal
         setEditModalVisible(false);
       } else {
-        console.log("Adopter not found with email:", adopterDetails.adopterEmail);
+        console.log(
+          "Adopter not found with email:",
+          adopterDetails.adopterEmail
+        );
         alert("Adopter not found.");
       }
     } catch (error) {
@@ -213,8 +235,6 @@ export default function ApproveAdoption() {
       alert("Error updating details. Please try again.");
     }
   };
-
-
 
   const handleDeliveryOptionSelect = (option) => {
     let cost = 0;
@@ -232,7 +252,7 @@ export default function ApproveAdoption() {
     setConfirmationModalVisible(true);
   };
 
-  const handleConfirmFinalization  = async () => {
+  const handleConfirmFinalization = async () => {
     if (!adopterDetails.address) {
       alert("Can't proceed without address");
       return;
@@ -271,23 +291,36 @@ export default function ApproveAdoption() {
     setCurrentIndex(index);
   };
 
-  if (!petDetails || !adopterDetails || !petDetails.petName || !adopterDetails.name) {
+  if (
+    !petDetails ||
+    !adopterDetails ||
+    !petDetails.petName ||
+    !adopterDetails.name
+  ) {
     return <Text>Loading...</Text>;
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollViewContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.container}>
           {/* Back Button */}
           <View style={styles.buttonTitleImageContainer}>
             <View style={styles.backButtonContainer}>
-              <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
+              >
                 <Icon name="arrow-back" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.titleText}>Ready to adopt {petDetails.petName}?</Text>
+            <Text style={styles.titleText}>
+              Ready to adopt {petDetails.petName}?
+            </Text>
 
             {/* Horizontal Image Scroll with Pagination */}
             {imageURLs.length > 0 && (
@@ -295,19 +328,17 @@ export default function ApproveAdoption() {
                 <ScrollView
                   horizontal={true}
                   style={styles.imageScrollContainer}
-                  contentContainerStyle={styles.imageContentContainer}
+                  ref={scrollViewRef}
                   onScroll={onScroll}
                   scrollEventThrottle={16}
                   showsHorizontalScrollIndicator={false}
                   pagingEnabled={true}
-                  decelerationRate="fast"
                 >
                   {imageURLs.map((imageURL, index) => (
                     <View key={index} style={styles.petImageContainer}>
                       <Image
                         source={{ uri: imageURL }}
                         style={styles.petImage}
-                        onError={() => console.log("Image failed to load")}
                       />
                     </View>
                   ))}
@@ -318,7 +349,10 @@ export default function ApproveAdoption() {
                   {imageURLs.map((_, index) => (
                     <View
                       key={index}
-                      style={[styles.paginationDot, index === currentIndex && styles.activeDot]}
+                      style={[
+                        styles.paginationDot,
+                        index === currentIndex && styles.activeDot,
+                      ]}
                     />
                   ))}
                 </View>
@@ -334,11 +368,18 @@ export default function ApproveAdoption() {
             <View style={styles.adopterDetailsContainer}>
               <View style={styles.row}>
                 <Text style={styles.adopterName}>{adopterDetails.name}</Text>
-                <Text style={styles.adopterContactNumber}>{adopterDetails.contactNumber}</Text>
+                <Text style={styles.adopterContactNumber}>
+                  {adopterDetails.contactNumber}
+                </Text>
               </View>
-              <Text style={styles.adopterAddress}>{adopterDetails.address || "Address not provided"}</Text>
+              <Text style={styles.adopterAddress}>
+                {adopterDetails.address || "Address not provided"}
+              </Text>
             </View>
-            <TouchableOpacity style={styles.editButton} onPress={() => setEditModalVisible(true)}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => setEditModalVisible(true)}
+            >
               <MaterialIcons name="edit" size={24} color="black" />
             </TouchableOpacity>
           </View>
@@ -356,17 +397,23 @@ export default function ApproveAdoption() {
             </View>
             <View style={styles.deliveryInfoMainContainer}>
               <View style={styles.deliveryInfoContainer}>
-                <Text style={styles.deliveryTypeText}>{selectedDeliveryType}</Text>
+                <Text style={styles.deliveryTypeText}>
+                  {selectedDeliveryType}
+                </Text>
                 <View style={styles.truckDateContainer}>
                   {selectedDeliveryType === "Motor Delivery" ? (
                     <FontAwesome5 name="motorcycle" size={16} color="black" />
                   ) : (
                     <FontAwesome5 name="truck" size={16} color="black" />
                   )}
-                  <Text style={styles.expectedDeliveryDateText}>Receive By {expectedDate}</Text>
+                  <Text style={styles.expectedDeliveryDateText}>
+                    Receive By {expectedDate}
+                  </Text>
                 </View>
               </View>
-              <Text style={styles.deliveryAmountText}>₱{deliveryDetails.cost.toFixed(2)}</Text>
+              <Text style={styles.deliveryAmountText}>
+                ₱{deliveryDetails.cost.toFixed(2)}
+              </Text>
             </View>
           </View>
 
@@ -389,12 +436,16 @@ export default function ApproveAdoption() {
               {transactionSummary.map((item, index) => (
                 <View style={styles.transactionTextContainer} key={index}>
                   <Text style={styles.titleSummaryText}>{item.title}</Text>
-                  <Text style={styles.amountSummaryText}>₱{item.amount.toFixed(2)}</Text>
+                  <Text style={styles.amountSummaryText}>
+                    ₱{item.amount.toFixed(2)}
+                  </Text>
                 </View>
               ))}
               <View style={styles.transactionTextContainer}>
                 <Text style={styles.titleSummaryText}>Total VAT included</Text>
-                <Text style={styles.amountSummaryText}>₱{calculateTotal().toFixed(2)}</Text>
+                <Text style={styles.amountSummaryText}>
+                  ₱{calculateTotal().toFixed(2)}
+                </Text>
               </View>
             </View>
           </View>
@@ -404,15 +455,18 @@ export default function ApproveAdoption() {
 
           {/* Payment Section */}
           <View style={styles.paymentSectionContainer}>
-            <Text style={styles.paymentTotalText}>Total: ₱{calculateTotal().toFixed(2)}</Text>
-            <TouchableOpacity style={styles.finalizeButton} onPress={handleShowConfirmationModal}>
+            <Text style={styles.paymentTotalText}>
+              Total: ₱{calculateTotal().toFixed(2)}
+            </Text>
+            <TouchableOpacity
+              style={styles.finalizeButton}
+              onPress={handleShowConfirmationModal}
+            >
               <Text style={styles.finalizeButtonText}>Finalize Adoption</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-
-
 
       {/* Edit Details Modal */}
       <Modal
@@ -429,40 +483,51 @@ export default function ApproveAdoption() {
           <Text style={styles.modalTitle}>Edit Address and Phone Number</Text>
 
           {/* Address Input */}
+          <Text style={styles.question}>Address:</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter new address"
             value={newAddress}
             onChangeText={setNewAddress}
+            mode="outlined"
+            outlineColor="transparent"
+            activeOutlineColor="#68C2FF"
+            autoCapitalize="words"
           />
 
           {/* Phone Number Input */}
+          <Text style={styles.question}>Phone Number:</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter new phone number"
             value={newPhoneNumber}
             onChangeText={setNewPhoneNumber}
-            keyboardType="phone-pad"
+            keyboardType="number-pad"
+            mode="outlined"
+            outlineColor="transparent"
+            activeOutlineColor="#68C2FF"
+            autoCapitalize="words"
           />
 
-          {/* Save Button */}
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleEditDetails}
-          >
-            <Text style={styles.saveButtonText}>Save</Text>
-          </TouchableOpacity>
+          <View style={styles.editAdopterContainer}>
+            {/* Cancel Button */}
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setEditModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
 
-          {/* Cancel Button */}
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => setEditModalVisible(false)}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
+            {/* Save Button */}
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleEditDetails}
+            >
+              <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
-
 
       {/* Modal for Delivery Options */}
       <Modal
@@ -498,7 +563,9 @@ export default function ApproveAdoption() {
         animationType="fade"
         onRequestClose={() => setConfirmationModalVisible(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setConfirmationModalVisible(false)}>
+        <TouchableWithoutFeedback
+          onPress={() => setConfirmationModalVisible(false)}
+        >
           <View style={styles.modalOverlay}></View>
         </TouchableWithoutFeedback>
 
@@ -523,11 +590,9 @@ export default function ApproveAdoption() {
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 }
-
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -536,7 +601,6 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     paddingBottom: 0,
-
   },
   container: {
     width: "100%",
@@ -563,7 +627,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   petImage: {
-    width: screenWidth,
+    width: adjustedWidth,
     height: 400,
     borderRadius: 20,
     marginBottom: 20,
@@ -575,9 +639,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   imageContentContainer: {
-
-    flexDirection: 'row', // Ensure images are laid out horizontally in a row
-    alignItems: 'flex-start', // Align items to the start of the container (no space on left)
+    flexDirection: "row", // Ensure images are laid out horizontally in a row
+    alignItems: "flex-start", // Align items to the start of the container (no space on left)
   },
   petImageContainer: {
     flexDirection: "row",
@@ -586,7 +649,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: -20,
+    marginTop: -40,
   },
   paginationDot: {
     width: 8,
@@ -605,6 +668,96 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   // Modal Styles
+  question: {
+    marginTop: 10,
+    fontFamily: "Lato",
+    fontSize: 16,
+  },
+  input: {
+    marginTop: 10,
+    marginBottom: 5,
+    backgroundColor: "#F5F5F5",
+  },
+  editAdopterContainer: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#68C2FF',
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    marginLeft: 5,
+  },
+  saveButtonText: {
+    fontSize: 18,
+    fontFamily: "LatoBold",
+    color: "#fff",
+    textAlign: "center",
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#444',
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    marginRight: 5,
+  },
+  cancelButtonText: {
+    fontSize: 18,
+    fontFamily: "LatoBold",
+    color: "#fff",
+    textAlign: "center",
+  },
+  modalMessage: {
+    fontFamily: "Lato",
+    fontSize: 16,
+  },
+  modalButtonContainer: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#444',
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    marginRight: 5,
+  },
+  cancelButtonText: {
+    fontSize: 18,
+    fontFamily: "LatoBold",
+    color: "#fff",
+    textAlign: "center",
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: '#68C2FF',
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    marginLeft: 5,
+  },
+  confirmButtonText: {
+    fontSize: 18,
+    fontFamily: "LatoBold",
+    color: "#fff",
+    textAlign: "center",
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -755,7 +908,7 @@ const styles = StyleSheet.create({
   },
   transactionSummaryMainContainer: {
     width: "100%",
-    flexDirection: 'column',
+    flexDirection: "column",
   },
   transactionSummaryContainer: {
     flex: 1,
@@ -763,7 +916,7 @@ const styles = StyleSheet.create({
   },
   transactionTextContainer: {
     flexDirection: "row",
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     marginVertical: 10,
   },
   titleSummaryText: {
@@ -777,29 +930,29 @@ const styles = StyleSheet.create({
   paymentSectionContainer: {
     flex: 1,
     marginTop: 70,
-    backgroundColor: '#68C2FF',
+    backgroundColor: "#68C2FF",
     padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
   },
   paymentTotalText: {
     fontFamily: "LatoBold",
     fontSize: 16,
-    color: 'white',
+    color: "white",
     marginRight: 20,
   },
   finalizeButton: {
     width: 160,
     height: 50,
-    backgroundColor: '#EF5B5B',
+    backgroundColor: "#EF5B5B",
     borderRadius: 30,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   finalizeButtonText: {
     fontFamily: "LatoBold",
     fontSize: 16,
-    color: 'white',
-    textAlign: 'center',
+    color: "white",
+    textAlign: "center",
   },
 });
