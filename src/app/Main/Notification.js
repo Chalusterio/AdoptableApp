@@ -208,13 +208,14 @@ const Notification = () => {
             notificationsList.push({
               id: `${doc.id}-finalized-adopter`,
               image: require("../../assets/Icon_white.png"),
-              name: "System Notif",
+              name: "System Notification",
               content: (
                 <Text>
-                Congratulations, ${data.petRequestDetails.name}! The adoption of  <Text style={styles.boldText}>{petRequestDetails.petName}</Text>. has been finalized. Track their journey here.
+                  Congratulations, {data.petRequestDetails.name}! The adoption of{" "}
+                  <Text style={styles.boldText}>{data.petRequestDetails.petName}</Text> {" "}
+                  has been finalized. Track their journey here.
                 </Text>
               ),
-  
               time: formattedTime,
               action: () => router.push("/Main/Track"),
             });
