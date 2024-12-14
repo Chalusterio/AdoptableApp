@@ -159,19 +159,25 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'Lilita',
     color: '#68C2FF',
-    marginTop: 30,
-    marginBottom: 20,
+    marginTop: 50,
+    marginBottom: 30,
   },
   petCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    marginBottom: 30,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 1,
+  backgroundColor: '#FFFFFF',
+  borderRadius: 10,
+  marginBottom: 30,
+  padding: 20,
+  // Shadow for iOS
+  shadowColor: '#000', 
+  shadowOffset: {
+    width: 0,   
+    height: 0, 
   },
+  shadowOpacity: 0.2,  
+  shadowRadius: 6,    
+  // Shadow for Android
+  elevation: 5,  
+},
   rowContainer: {
     flexDirection: 'row',  
   },
@@ -181,8 +187,10 @@ const styles = StyleSheet.create({
   },
   petImage: {
     width: '100%',
-    height: '100%',
+    height: undefined,
+    aspectRatio: 1,
     borderRadius: 10,
+    resizeMode: 'cover',
   },
   petDetailsContainer: {
     flex: 2,
