@@ -110,16 +110,38 @@ const PetDetailsEdit = () => {
   };
 
   const handleDelete = async () => {
-    try {
-      const petRef = doc(db, "listed_pets", petId); // Reference to the pet document
-      await deleteDoc(petRef);
-      alert("Pet deleted successfully!");
-      router.back(); // Go back after deletion
-    } catch (error) {
-      console.error("Error deleting pet:", error);
-      alert("Error deleting pet. Please try again.");
+    if (!petId) {
+      Alert.alert("Error", "Invalid pet ID. Unable to delete.");
+      return;
     }
+  
+    Alert.alert(
+      "Confirm Deletion",
+      "Are you sure you want to delete this pet? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const petRef = doc(db, "listed_pets", petId); // Reference to the pet document
+              await deleteDoc(petRef); // Delete the document from Firestore
+              Alert.alert("Success", "Pet deleted successfully!");
+              router.back(); // Navigate back after deletion
+            } catch (error) {
+              console.error("Error deleting pet:", error);
+              Alert.alert("Error", "Failed to delete the pet. Please try again.");
+            }
+          },
+        },
+      ]
+    );
   };
+  
 
   const handleSave = async () => {
     try {
@@ -306,10 +328,11 @@ const PetDetailsEdit = () => {
           {/* Delete Button */}
           <TouchableOpacity
             style={styles.deleteButton}
-            onPress={() => setDeleteModalVisible(true)}
+            onPress={handleDelete} // Trigger delete confirmation and action
           >
             <Text style={styles.buttonText}>Delete</Text>
           </TouchableOpacity>
+
 
           {/* Edit Button */}
           <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
