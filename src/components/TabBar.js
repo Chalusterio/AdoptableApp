@@ -132,12 +132,4 @@ const styles = StyleSheet.create({
   },
 });
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
 export default TabBar;
-=======
-export default TabBar;
->>>>>>> Stashed changes
-=======
-export default TabBar;
->>>>>>> main

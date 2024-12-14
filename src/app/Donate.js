@@ -1,9 +1,6 @@
-<<<<<<< Updated upstream
-import React, { useState } from 'react';
-=======
 import React, { useState } from "react";
->>>>>>> Stashed changes
 import {
+  ScrollView,
   View,
   Text,
   StyleSheet,
@@ -11,19 +8,6 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
-<<<<<<< Updated upstream
-  TouchableWithoutFeedback,
-  Keyboard,ScrollView
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import SideBar from "../components/SideBar";
-
-const Donate = () => {
-  const router = useRouter();
-  const [cashModalVisible, setCashModalVisible] = useState(false);
-  const [suppliesModalVisible, setSuppliesModalVisible] = useState(false);
-  const [donationAmount, setDonationAmount] = useState('');
-=======
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import SideBar from "../components/SideBar";
@@ -32,7 +16,6 @@ const Donate = () => {
   const [cashModalVisible, setCashModalVisible] = useState(false);
   const [suppliesModalVisible, setSuppliesModalVisible] = useState(false);
   const [donationAmount, setDonationAmount] = useState("");
->>>>>>> Stashed changes
   const [activeMethod, setActiveMethod] = useState(null);
   const [selectedItem, setSelectedItem] = useState("Donate");
 
@@ -44,209 +27,136 @@ const Donate = () => {
     setSuppliesModalVisible(true);
     setTimeout(() => {
       setSuppliesModalVisible(false);
-<<<<<<< Updated upstream
-    }, 3000); // Auto-close after 3 seconds
-=======
     }, 3000);
->>>>>>> Stashed changes
   };
 
   return (
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
       <ScrollView>
-      <View style={styles.container}>
-        {/* Header Section */}
-        <Text style={styles.headerText}>Your Kindness, Their Care</Text>
-        <Text style={styles.description}>
-          Every donation you make provides nutritious meals, life-saving medical care, and cozy, safe spaces for them.
-        </Text>
-<<<<<<< Updated upstream
-        <Image source={require('../assets/Donate/CatDog.png')} style={styles.image} />
-=======
-        <Image
-          source={require("../assets/Donate/CatDog.png")}
-          style={styles.image}
-        />
->>>>>>> Stashed changes
-
-        {/* Support Section */}
-        <View style={styles.supportContainer}>
-          <Text style={styles.supportHeader}>We’d love your support!</Text>
-          <Text style={styles.supportDescription}>
-            Together, we can ensure every animal gets the love and care they deserve.
+        <View style={styles.container}>
+          {/* Header Section */}
+          <Text style={styles.headerText}>Your Kindness, Their Care</Text>
+          <Text style={styles.description}>
+            Every donation you make provides nutritious meals, life-saving medical care, and cozy, safe spaces for them.
           </Text>
+          <Image
+            source={require("../assets/Donate/CatDog.png")}
+            style={styles.image}
+          />
 
-          {/* Button Container */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => setCashModalVisible(true)}
-            >
-              <Text style={styles.buttonText}>Cash</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleSuppliesDonation}
-            >
-              <Text style={styles.buttonText}>Supplies</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          {/* Support Section */}
+          <View style={styles.supportContainer}>
+            <Text style={styles.supportHeader}>We’d love your support!</Text>
+            <Text style={styles.supportDescription}>
+              Together, we can ensure every animal gets the love and care they deserve.
+            </Text>
 
-        {/* Modal for Cash Donation */}
-        <Modal
-          visible={cashModalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setCashModalVisible(false)}
-        >
-<<<<<<< Updated upstream
-          <TouchableWithoutFeedback onPress={() => setCashModalVisible(false)}>
-            <View style={styles.modalContainer}>
-              <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalHeader}>Enter your desired amount</Text>
-                  <TextInput
-                    placeholder="e.g., 1000"
-                    value={donationAmount}
-                    onChangeText={setDonationAmount}
-                    style={styles.input}
-                    keyboardType="numeric"
-                  />
-
-                  <Text style={styles.modalText}>Choose your payment method</Text>
-                  <View style={styles.paymentButtonContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.paymentButton,
-                        activeMethod === 'G-Cash' && styles.activeButton,
-                      ]}
-                      onPress={() => handlePaymentMethod('G-Cash')}
-                    >
-                      <Text
-                        style={[
-                          styles.paymentButtonText,
-                          activeMethod === 'G-Cash' && styles.activeButtonText,
-                        ]}
-                      >
-                        G-Cash
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.paymentButton,
-                        activeMethod === 'Debit Card' && styles.activeButton,
-                      ]}
-                      onPress={() => handlePaymentMethod('Debit Card')}
-                    >
-                      <Text
-                        style={[
-                          styles.paymentButtonText,
-                          activeMethod === 'Debit Card' && styles.activeButtonText,
-                        ]}
-                      >
-                        Debit Card
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <TouchableOpacity style={styles.proceedButton}>
-                    <Text style={styles.proceedButtonText}>Proceed</Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-=======
-          <View style={styles.modalContainer}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => {
-                setCashModalVisible(false);
-                setActiveMethod(null);
-              }}
-            >
-              <Icon name="arrow-back" size={24} color="#FFF" />
-            </TouchableOpacity>
-
-            <View style={styles.modalContent}>
-              <Text style={styles.modalHeader}>Enter your desired amount</Text>
-              <TextInput
-                placeholder="e.g., 1000"
-                value={donationAmount}
-                onChangeText={setDonationAmount}
-                style={styles.input}
-                keyboardType="numeric"
-              />
-
-              <Text style={styles.modalText}>Choose your payment method</Text>
-              <View style={styles.paymentButtonContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.paymentButton,
-                    activeMethod === "G-Cash" && styles.activeButton,
-                  ]}
-                  onPress={() => handlePaymentMethod("G-Cash")}
-                >
-                  <Text
-                    style={[
-                      styles.paymentButtonText,
-                      activeMethod === "G-Cash" && styles.activeButtonText,
-                    ]}
-                  >
-                    G-Cash
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.paymentButton,
-                    activeMethod === "Debit Card" && styles.activeButton,
-                  ]}
-                  onPress={() => handlePaymentMethod("Debit Card")}
-                >
-                  <Text
-                    style={[
-                      styles.paymentButtonText,
-                      activeMethod === "Debit Card" && styles.activeButtonText,
-                    ]}
-                  >
-                    Debit Card
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity style={styles.proceedButton}>
-                <Text style={styles.proceedButtonText}>Proceed</Text>
+            {/* Button Container */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => setCashModalVisible(true)}
+              >
+                <Text style={styles.buttonText}>Cash</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={handleSuppliesDonation}
+              >
+                <Text style={styles.buttonText}>Supplies</Text>
               </TouchableOpacity>
             </View>
           </View>
->>>>>>> Stashed changes
-        </Modal>
 
-        {/* Modal for Supplies Donation */}
-        <Modal
-          visible={suppliesModalVisible}
-          animationType="fade"
-          transparent={true}
-        >
-          <View style={styles.suppliesModalContainer}>
-<<<<<<< Updated upstream
-            <Text style={styles.suppliesModalHeader}>Thank You for Your Generosity!</Text>
-            <Text style={styles.suppliesModalText}>
-              We’ll let the recipients know and send you a confirmation via email shortly!{"\n\n"}
-=======
-            <Text style={styles.suppliesModalHeader}>
-              Thank You for Your Generosity!
-            </Text>
-            <Text style={styles.suppliesModalText}>
-              We’ll let the recipients know and send you a confirmation via email shortly!
-              {"\n\n"}
->>>>>>> Stashed changes
-              Your kindness keeps them cared for and loved.
-            </Text>
-          </View>
-        </Modal>
-      </View>
+          {/* Modal for Cash Donation */}
+          <Modal
+            visible={cashModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setCashModalVisible(false)}
+          >
+            <View style={styles.modalContainer}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => {
+                  setCashModalVisible(false);
+                  setActiveMethod(null);
+                }}
+              >
+                <Icon name="arrow-back" size={24} color="#FFF" />
+              </TouchableOpacity>
+
+              <View style={styles.modalContent}>
+                <Text style={styles.modalHeader}>Enter your desired amount</Text>
+                <TextInput
+                  placeholder="e.g., 1000"
+                  value={donationAmount}
+                  onChangeText={setDonationAmount}
+                  style={styles.input}
+                  keyboardType="numeric"
+                />
+
+                <Text style={styles.modalText}>Choose your payment method</Text>
+                <View style={styles.paymentButtonContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentButton,
+                      activeMethod === "G-Cash" && styles.activeButton,
+                    ]}
+                    onPress={() => handlePaymentMethod("G-Cash")}
+                  >
+                    <Text
+                      style={[
+                        styles.paymentButtonText,
+                        activeMethod === "G-Cash" && styles.activeButtonText,
+                      ]}
+                    >
+                      G-Cash
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentButton,
+                      activeMethod === "Debit Card" && styles.activeButton,
+                    ]}
+                    onPress={() => handlePaymentMethod("Debit Card")}
+                  >
+                    <Text
+                      style={[
+                        styles.paymentButtonText,
+                        activeMethod === "Debit Card" && styles.activeButtonText,
+                      ]}
+                    >
+                      Debit Card
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity style={styles.proceedButton}>
+                  <Text style={styles.proceedButtonText}>Proceed</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          {/* Modal for Supplies Donation */}
+          <Modal
+            visible={suppliesModalVisible}
+            animationType="fade"
+            transparent={true}
+          >
+            <View style={styles.suppliesModalContainer}>
+              <Text style={styles.suppliesModalHeader}>
+                Thank You for Your Generosity!
+              </Text>
+              <Text style={styles.suppliesModalText}>
+                We’ll let the recipients know and send you a confirmation via email shortly!
+                {"\n\n"}
+                Your kindness keeps them cared for and loved.
+              </Text>
+            </View>
+          </Modal>
+        </View>
       </ScrollView>
     </SideBar>
   );
@@ -332,15 +242,12 @@ const styles = StyleSheet.create({
     width: '80%',
     alignItems: 'center',
   },
-<<<<<<< Updated upstream
-=======
   backButton: {
     position: 'absolute',
     top: 20,
     left: 20,
     zIndex: 10,
   },
->>>>>>> Stashed changes
   modalHeader: {
     fontSize: 24,
     fontFamily: 'Lilita',
