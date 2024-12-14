@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lilita",
     fontSize: 24,
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 20,
   },
   profileStatus: {
     fontFamily: "Lilita",
