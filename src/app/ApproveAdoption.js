@@ -37,7 +37,7 @@ export default function ApproveAdoption() {
   const { petRequestId } = useLocalSearchParams();
 
   // State for adopter and pet details
-  const [adopterDetails, setAdopterDetails] = useState({});
+  const [petRequestDetails, setPetRequestDetails] = useState({});
   const [petDetails, setPetDetails] = useState({});
   const [deliveryDetails, setDeliveryDetails] = useState({
     type: "Motor Delivery", // Default to Motor Delivery
@@ -55,13 +55,9 @@ export default function ApproveAdoption() {
   const [selectedDeliveryType, setSelectedDeliveryType] =
     useState("Motor Delivery");
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [newAddress, setNewAddress] = useState(adopterDetails.address || "");
-  const [newPhoneNumber, setNewPhoneNumber] = useState(
-    adopterDetails.contactNumber || ""
-  );
-  const [confirmationModalVisible, setConfirmationModalVisible] =
-    useState(false);
-  const scrollViewRef = useRef(null);
+  const [newAddress, setNewAddress] = useState(petRequestDetails.address || "");
+  const [newPhoneNumber, setNewPhoneNumber] = useState(petRequestDetails.contactNumber || "");
+  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
 
   // State for image URLs and scroll functionality
   const [imageURLs, setImageURLs] = useState([]);
@@ -130,15 +126,15 @@ export default function ApproveAdoption() {
       }
     };
 
-    const fetchAdopterDetails = async () => {
+    const fetchPetRequestDetails = async () => {
       if (petRequestId) {
         const requestDocRef = doc(db, "pet_request", petRequestId);
         const docSnap = await getDoc(requestDocRef);
 
         if (docSnap.exists()) {
-          const adopterData = docSnap.data();
-          const adopterEmail = adopterData.adopterEmail;
-          setAdopterDetails(adopterData);
+          const petRequestData = docSnap.data();
+          const adopterEmail = petRequestData.adopterEmail;
+          setPetRequestDetails(petRequestData);
           fetchUserDetails(adopterEmail);
         }
       }
@@ -150,7 +146,7 @@ export default function ApproveAdoption() {
         const q = query(userRef, where("email", "==", adopterEmail));
         const querySnapshot = await getDocs(q);
         querySnapshot.forEach((doc) => {
-          setAdopterDetails((prevDetails) => ({
+          setPetRequestDetails((prevDetails) => ({
             ...prevDetails,
             ...doc.data(),
           }));
@@ -161,7 +157,8 @@ export default function ApproveAdoption() {
     };
 
     fetchPetDetails();
-    fetchAdopterDetails();
+    fetchPetRequestDetails();
+
 
     // Set the estimated delivery date
     const estimatedDate = getEstimatedDeliveryDate();
@@ -195,10 +192,7 @@ export default function ApproveAdoption() {
     try {
       // Query Firestore to get the adopter document based on the email
       const userRef = collection(db, "users");
-      const q = query(
-        userRef,
-        where("email", "==", adopterDetails.adopterEmail)
-      ); // Use adopter email for querying
+      const q = query(userRef, where("email", "==", petRequestDetails.adopterEmail)); // Use adopter email for querying
 
       const querySnapshot = await getDocs(q);
 
@@ -215,7 +209,7 @@ export default function ApproveAdoption() {
         });
 
         // Update the local state with the new details
-        setAdopterDetails((prevDetails) => ({
+        setPetRequestDetails((prevDetails) => ({
           ...prevDetails,
           address: newAddress,
           contactNumber: newPhoneNumber,
@@ -224,10 +218,7 @@ export default function ApproveAdoption() {
         // Close the edit modal
         setEditModalVisible(false);
       } else {
-        console.log(
-          "Adopter not found with email:",
-          adopterDetails.adopterEmail
-        );
+        console.log("Adopter not found with email:", petRequestDetails.adopterEmail);
         alert("Adopter not found.");
       }
     } catch (error) {
@@ -252,8 +243,8 @@ export default function ApproveAdoption() {
     setConfirmationModalVisible(true);
   };
 
-  const handleConfirmFinalization = async () => {
-    if (!adopterDetails.address) {
+  const handleConfirmFinalization  = async () => {
+    if (!petRequestDetails.address) {
       alert("Can't proceed without address");
       return;
     }
@@ -261,8 +252,7 @@ export default function ApproveAdoption() {
     try {
       const finalizedAdoptionData = {
         petRequestId, // Reference to the original request
-        adopterDetails,
-        petDetails,
+        petRequestDetails,
         deliveryDetails,
         paymentMethod,
         transactionSummary,
@@ -291,12 +281,7 @@ export default function ApproveAdoption() {
     setCurrentIndex(index);
   };
 
-  if (
-    !petDetails ||
-    !adopterDetails ||
-    !petDetails.petName ||
-    !adopterDetails.name
-  ) {
+  if (!petDetails || !petRequestDetails || !petDetails.petName || !petRequestDetails.name) {
     return <Text>Loading...</Text>;
   }
 
@@ -364,17 +349,13 @@ export default function ApproveAdoption() {
           <View style={styles.horizontalLine}></View>
 
           {/* Adopter Details */}
-          <View style={styles.adopterDetailsButton}>
-            <View style={styles.adopterDetailsContainer}>
+          <View style={styles.petRequestDetailsButton}>
+            <View style={styles.petRequestDetailsContainer}>
               <View style={styles.row}>
-                <Text style={styles.adopterName}>{adopterDetails.name}</Text>
-                <Text style={styles.adopterContactNumber}>
-                  {adopterDetails.contactNumber}
-                </Text>
+                <Text style={styles.adopterName}>{petRequestDetails.name}</Text>
+                <Text style={styles.adopterContactNumber}>{petRequestDetails.contactNumber}</Text>
               </View>
-              <Text style={styles.adopterAddress}>
-                {adopterDetails.address || "Address not provided"}
-              </Text>
+              <Text style={styles.adopterAddress}>{petRequestDetails.address || "Address not provided"}</Text>
             </View>
             <TouchableOpacity
               style={styles.editButton}
@@ -787,7 +768,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lato",
     fontSize: 16,
   },
-  adopterDetailsButton: {
+  petRequestDetailsButton: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -795,7 +776,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 20,
   },
-  adopterDetailsContainer: {
+  petRequestDetailsContainer: {
     flex: 1,
   },
   row: {
