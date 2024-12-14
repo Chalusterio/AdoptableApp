@@ -58,6 +58,7 @@ export default function ApproveAdoption() {
   const [newAddress, setNewAddress] = useState(petRequestDetails.address || "");
   const [newPhoneNumber, setNewPhoneNumber] = useState(petRequestDetails.contactNumber || "");
   const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const scrollViewRef = useRef(null);
 
   // State for image URLs and scroll functionality
   const [imageURLs, setImageURLs] = useState([]);
