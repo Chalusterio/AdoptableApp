@@ -124,7 +124,7 @@ const Requests = () => {
                 )}
               </View>
             </View>
-            <Text style={styles.age}>{item.petAge} Years Old</Text>
+            <Text style={styles.age}>{item.petAge} years old</Text>
           </View>
         </TouchableOpacity>
         {isLongPressed && (
@@ -144,6 +144,7 @@ const Requests = () => {
       <SafeAreaView style={styles.safeArea}>
         <Surface style={styles.titleContainer} elevation={3}>
           <Text style={styles.title}>Your Pending Requested Pets</Text>
+          <Text style={styles.instruction}>Press and hold the pet card to cancel your request.</Text>
         </Surface>
 
         {isLoading ? ( // Display loading spinner while fetching data
@@ -191,6 +192,12 @@ const styles = StyleSheet.create({
     fontFamily: "Lilita",
     fontSize: 24,
     color: "#68C2FF",
+    marginBottom: 5,
+  },
+  instruction: {
+    fontFamily: "Lato",
+    fontSize: 16,
+    color: "#444444",
   },
   container: {
     padding: 16,
