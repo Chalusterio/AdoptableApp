@@ -185,9 +185,7 @@ const PetDetails = () => {
     } finally {
       setIsSubmitting(false); // Reset submitting state after action completes
     }
-  };
-
-  const onScroll = (event) => {
+  };  const onScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const imageWidth = Dimensions.get("window").width;
     const index = Math.round(contentOffsetX / imageWidth);
@@ -643,15 +641,14 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: "80%",
-    backgroundColor: "#68C2FF",
+    backgroundColor: "#FFF",
     borderRadius: 10,
     padding: 20,
     alignItems: "center",
   },
   modalTitle: {
     fontSize: 18,
-    fontFamily: "Lilita",
-    color: "#fff",
+    color: "#333",
     textAlign: "center",
     marginBottom: 20,
   },
@@ -661,30 +658,25 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   cancelButton: {
-    backgroundColor: "#444",
+    flex: 1,
+    backgroundColor: "#DDD",
     padding: 10,
     borderRadius: 5,
-    flex: 1,
-    marginRight: 5,
-    alignItems: "center",
+    marginRight: 10,
   },
   cancelButtonText: {
-    color: "#fff",
     textAlign: "center",
-    fontSize: 14,
+    color: "#555",
   },
   confirmButton: {
-    backgroundColor: "#EF5B5B",
+    flex: 1,
+    backgroundColor: "#68C2FF",
     padding: 10,
     borderRadius: 5,
-    flex: 1,
-    marginLeft: 5,
-    alignItems: "center",
   },
   confirmButtonText: {
-    color: "#fff",
     textAlign: "center",
-    fontSize: 14,
+    color: "#FFF",
   },
 });
 
