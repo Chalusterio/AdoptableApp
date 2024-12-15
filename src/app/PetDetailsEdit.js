@@ -334,11 +334,7 @@ const PetDetailsEdit = () => {
           {/* Delete Button */}
           <TouchableOpacity
             style={styles.deleteButton}
-<<<<<<< HEAD
             onPress={handleDelete} // Trigger delete confirmation and action
-=======
-            onPress={handleDelete}
->>>>>>> 9cf44a5cb5732feba183759d28b1e2362bd831fa
           >
             <Text style={styles.buttonText}>Delete</Text>
           </TouchableOpacity>
