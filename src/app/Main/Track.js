@@ -14,39 +14,48 @@ const PetCard = ({ pet, onToggle, isExpanded }) => {
   ];
 
   const smallSteps = {
-    Preparing: ['Adoption Request being reviewed', 'Preparing for delivery'],
-    Transporting: ['Car ready for delivery', 'Your pet has arrived in a resting stop'],
-    'Out for Delivery': [],
-    Delivered: [],
-  };
+  Preparing: [
+    { step: 'Adoption Request being reviewed', time: '10:00 AM', date: 'Dec 14, 2024' },
+    { step: 'Preparing for delivery', time: '12:00 PM', date: 'Dec 14, 2024' },
+  ],
+  Transporting: [
+    { step: 'Car ready for delivery', time: '2:00 PM', date: 'Dec 14, 2024' },
+    { step: 'Your pet has arrived in a resting stop', time: '4:00 PM', date: 'Dec 14, 2024' },
+  ],
+  'Out for Delivery': [],
+  Delivered: [],
+};
+
 
   return (
-    <View style={styles.petCard}>
-      {/* Pet and Delivery Info */}
-      <TouchableOpacity onPress={onToggle}>
-        <View style={styles.petInfoBox}>
-          <View>
-            <Text style={styles.petName}>{pet.name}</Text>
-            <Text style={styles.petDetails}>{pet.age} | {pet.weight}</Text>
-          </View>
+    <TouchableOpacity onPress={onToggle} style={styles.petCard}>
+      {/* Pet Image and Details in Row */}
+      <View style={styles.rowContainer}>
+        <View style={styles.petImageContainer}>
           <Image source={pet.image} style={styles.petImage} />
         </View>
-      </TouchableOpacity>
-      <View style={styles.deliveryBox}>
-        <View style={styles.deliveryDetailBox}>
-          <Text style={styles.deliveryDetails}>Delivery Type: {pet.deliveryType}</Text>
-        </View>
-        <View style={styles.deliveryDetailBox}>
-          <Text style={styles.deliveryDetails}>Amount: ₱ {pet.totalAmount}</Text>
+        
+        <View style={styles.petDetailsContainer}>
+          <Text style={styles.petName}>{pet.name}</Text>
+          <Text style={styles.petDetails}>{pet.age} | {pet.weight}</Text>
+          <View style={styles.deliveryBox}>
+            
+            <View style={styles.deliveryDetailBox}>
+              <Text style={styles.deliveryDetails}>Amount: ₱ {pet.totalAmount}</Text>
+            </View>
+          </View>
         </View>
       </View>
 
       {/* Tracking Steps (Expandable Section) */}
       {isExpanded && (
         <View style={styles.trackingContainer}>
+          <View style={styles.deliveryDetailsContainer}>
+            <Text style={styles.deliveryType}>Delivery Type: {pet.deliveryType}</Text>
+            <Text style={styles.trackingNumber}>Tracking Number: SPEAJB4562131</Text>
+          </View>
           {bigSteps.map((step, index) => (
             <View key={index} style={styles.bigStepContainer}>
-              {/* Big Step Row */}
               <View style={styles.bigStepRow}>
                 <View
                   style={[
@@ -60,29 +69,31 @@ const PetCard = ({ pet, onToggle, isExpanded }) => {
                 </View>
                 <Text style={styles.bigStepTitle}>{step.title}</Text>
               </View>
-
-              {/* Small Steps */}
               {index <= currentStep && smallSteps[step.title]?.length > 0 && (
                 <View style={styles.smallStepsContainer}>
                   {smallSteps[step.title].map((smallStep, i) => (
                     <View key={i} style={styles.smallStep}>
                       <View style={styles.smallStepDot} />
-                      <Text style={styles.smallStepText}>{smallStep}</Text>
+                      <View style={styles.textContainer}>
+                        <Text style={styles.smallStepText}>{smallStep.step}</Text>
+                        <Text style={styles.timeAndDate}>{`${smallStep.time}, ${smallStep.date}`}</Text>
+                      </View>
                     </View>
                   ))}
                 </View>
+
               )}
             </View>
           ))}
-          {/* Cancel Adoption Button */}
           <TouchableOpacity style={styles.cancelButton} onPress={() => alert('Adoption canceled')}>
             <Text style={styles.cancelButtonText}>Cancel Adoption</Text>
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 };
+
 
 const Track = () => {
   const [expandedCard, setExpandedCard] = useState(null);
@@ -138,39 +149,51 @@ const styles = StyleSheet.create({
     marginTop: 20,
     alignItems: 'center',
     justifyContent: 'center',
-},
-cancelButtonText: {
-  color: '#FFFFFF',
-  fontSize: 16,
-  fontWeight: 'bold',
-},
+  },
+  cancelButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   header: {
-    fontSize: 24,
+    fontSize: 25,
     fontFamily: 'Lilita',
     color: '#68C2FF',
     marginTop: 30,
-    marginBottom: 20,
+    marginBottom: 30,
   },
   petCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    marginBottom: 30,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 3,
+  backgroundColor: '#FFFFFF',
+  borderRadius: 10,
+  marginBottom: 30,
+  padding: 20,
+  // Shadow for iOS
+  shadowColor: '#000', 
+  shadowOffset: {
+    width: 0,   
+    height: 0, 
   },
-  petInfoBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+  shadowOpacity: 0.2,  
+  shadowRadius: 6,    
+  // Shadow for Android
+  elevation: 5,  
+},
+  rowContainer: {
+    flexDirection: 'row',  
+  },
+  petImageContainer: {
+    flex: 1,
+    marginRight: 20,
   },
   petImage: {
-    width: 75,
-    height: 75,
-    borderRadius: 50,
-    marginRight: 15,
+    width: '100%',
+    height: undefined,
+    aspectRatio: 1,
+    borderRadius: 10,
+    resizeMode: 'cover',
+  },
+  petDetailsContainer: {
+    flex: 2,
   },
   petName: {
     fontSize: 18,
@@ -181,18 +204,34 @@ cancelButtonText: {
     fontSize: 16,
     color: '#666',
   },
+    deliveryDetailsContainer: {
+      borderBottomWidth: 2,
+      borderBottomColor: '#C2C2C2',
+      paddingBottom: 10,
+      marginBottom: 20, // Optional: for spacing between elements
+  },
+  deliveryType: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  trackingNumber: {
+    fontSize: 14,
+    color: '#666',
+  },
   deliveryBox: {
-    marginTop: 30,
+    marginTop: 20,
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
+    justifyContent: 'space-between',
   },
   deliveryDetailBox: {
     borderWidth: 2,
     borderColor: '#68C2FF',
-    borderRadius: 20, // Makes the border rounded
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    marginHorizontal: 10, // Adds space between the boxes
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    flex: 1,
   },
   deliveryDetails: {
     fontSize: 16,
@@ -200,7 +239,7 @@ cancelButtonText: {
     textAlign: 'center',
   },
   trackingContainer: {
-    marginTop: 50,
+    marginTop: 50, 
   },
   bigStepContainer: {
     marginBottom: 20,
@@ -226,24 +265,32 @@ cancelButtonText: {
     color: '#333',
   },
   smallStepsContainer: {
-    paddingLeft: 15, 
+    paddingLeft: 15,
   },
   smallStep: {
-    flexDirection: 'row',
+    flexDirection: 'row', 
     alignItems: 'center',
-    marginBottom: 5,
+    marginVertical: 8, 
   },
   smallStepDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8, 
+    height: 8,
+    borderRadius: 4, 
     backgroundColor: '#68C2FF',
-    marginRight: 10,
+    marginRight: 10, 
+  },
+  textContainer: {
+    flexDirection: 'column', 
+    justifyContent: 'center',
   },
   smallStepText: {
     fontSize: 16,
     color: '#666',
-    marginLeft: 15,
+  },
+  timeAndDate: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2, 
   },
 });
 

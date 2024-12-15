@@ -98,7 +98,7 @@ const Favorites = () => {
               )}
             </View>
           </View>
-          <Text style={styles.age}>{item.petAge} Years Old</Text>
+          <Text style={styles.age}>{item.petAge} years old</Text>
         </View>
       </TouchableOpacity>
     );

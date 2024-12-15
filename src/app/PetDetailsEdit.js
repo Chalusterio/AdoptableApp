@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  ActivityIndicator, // Import ActivityIndicator
 } from "react-native";
 import { TextInput,} from "react-native-paper";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -29,6 +30,7 @@ const PetDetailsEdit = () => {
   const [petData, setPetData] = useState(null);
   const { favoritedPets, toggleFavorite } = usePets();
   const [isFavorited, setIsFavorited] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // State to track submission status
   const [currentIndex, setCurrentIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -145,6 +147,8 @@ const PetDetailsEdit = () => {
 
   const handleSave = async () => {
     try {
+      setIsSubmitting(true); // Set submitting state to true
+
       const petRef = doc(db, "listed_pets", petId);
       const updatedPetData = {
         petName: editedPetName,
@@ -168,6 +172,8 @@ const PetDetailsEdit = () => {
     } catch (error) {
       console.error("Error updating pet: ", error);
       Alert.alert("Error", "Failed to update pet details. Please try again.");
+    } finally {
+      setIsSubmitting(false); // Reset submitting state after action completes
     }
   };
 
@@ -328,7 +334,11 @@ const PetDetailsEdit = () => {
           {/* Delete Button */}
           <TouchableOpacity
             style={styles.deleteButton}
+<<<<<<< HEAD
             onPress={handleDelete} // Trigger delete confirmation and action
+=======
+            onPress={handleDelete}
+>>>>>>> 9cf44a5cb5732feba183759d28b1e2362bd831fa
           >
             <Text style={styles.buttonText}>Delete</Text>
           </TouchableOpacity>
@@ -823,7 +833,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: "100%",
-    paddingVertical: 50,
+    paddingVertical: 30,
   },
   modalContainer: {
     backgroundColor: "#fff",
@@ -842,7 +852,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: "#ccc",
+    backgroundColor: "#444",
     padding: 10,
     borderRadius: 5,
     marginRight: 5,
@@ -855,7 +865,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   question: {
-    marginTop: 35,
+    marginTop: 10,
     fontFamily: "Lato",
     fontSize: 18,
   },
