@@ -76,7 +76,7 @@ const PetCard = ({ pet, onToggle, isExpanded }) => {
                       <View style={styles.smallStepDot} />
                       <View style={styles.textContainer}>
                         <Text style={styles.smallStepText}>{smallStep.step}</Text>
-                        <Text style={styles.timeAndDate}>{`${smallStep.time}, ${smallStep.date}`}</Text>
+                        <Text style={styles.timeAndDate}>{`${smallStep.time} | ${smallStep.date}`}</Text>
                       </View>
                     </View>
                   ))}
@@ -163,21 +163,21 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   petCard: {
-  backgroundColor: '#FFFFFF',
-  borderRadius: 10,
-  marginBottom: 30,
-  padding: 20,
-  // Shadow for iOS
-  shadowColor: '#000', 
-  shadowOffset: {
-    width: 0,   
-    height: 0, 
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    marginBottom: 30,
+    padding: 20,
+    // Shadow for iOS
+    shadowColor: '#000', 
+    shadowOffset: {
+      width: 0,   
+      height: 0, 
+    },
+    shadowOpacity: 0.2,  
+    shadowRadius: 6,    
+    // Shadow for Android
+    elevation: 5,  
   },
-  shadowOpacity: 0.2,  
-  shadowRadius: 6,    
-  // Shadow for Android
-  elevation: 5,  
-},
   rowContainer: {
     flexDirection: 'row',  
   },
@@ -204,11 +204,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
-    deliveryDetailsContainer: {
-      borderBottomWidth: 2,
-      borderBottomColor: '#C2C2C2',
-      paddingBottom: 10,
-      marginBottom: 20, // Optional: for spacing between elements
+  deliveryDetailsContainer: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#C2C2C2',
+    paddingBottom: 10,
+    marginBottom: 20, // Optional: for spacing between elements
   },
   deliveryType: {
     fontSize: 16,
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#68C2FF',
     borderRadius: 20,
-    paddingVertical: 10,
+    paddingVertical: 10 ,
     paddingHorizontal: 10,
     flex: 1,
   },
@@ -247,7 +247,6 @@ const styles = StyleSheet.create({
   bigStepRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
   },
   iconContainer: {
     width: 40,
@@ -273,22 +272,22 @@ const styles = StyleSheet.create({
     marginVertical: 8, 
   },
   smallStepDot: {
-    width: 8, 
-    height: 8,
+    width: 9, 
+    height: 9,
     borderRadius: 4, 
     backgroundColor: '#68C2FF',
-    marginRight: 10, 
+    marginRight: 25, 
   },
   textContainer: {
     flexDirection: 'column', 
     justifyContent: 'center',
   },
   smallStepText: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#666',
   },
   timeAndDate: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#999',
     marginTop: 2, 
   },

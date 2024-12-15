@@ -117,7 +117,7 @@ export default function Login() {
         if (userData.role !== "admin") {
           router.push("Main"); // Redirect to Main screen for non-admin users
         } else {
-          router.push("ManageTrack"); // Redirect to Manage track for admins
+          router.push("/ManageTrack"); // Redirect to Manage track for admins
         }
         // Clear the input fields after successful login
         setEmail("");
