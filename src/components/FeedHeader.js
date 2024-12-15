@@ -11,15 +11,18 @@ import {
   ScrollView,
 } from "react-native";
 import { TextInput } from "react-native-paper";
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Picker } from "@react-native-picker/picker";
 import * as Location from "expo-location";
 import PetProvider, { usePets } from "../context/PetContext"; // Import the context
 import Feather from "@expo/vector-icons/Feather";
+import { useRouter } from "expo-router";
 
 const FeedHeader = ({}) => {
   // State for dropdown and filter options
+
+  const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -142,220 +145,243 @@ const FeedHeader = ({}) => {
 
   return (
     <PetProvider>
-      <View style={styles.headerContainer}>
-        {/* Search Bar */}
-        <View style={styles.searchBar}>
-          <Icon
-            name="search"
-            size={24}
-            color="#444444"
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search"
-            placeholderTextColor="#C2C2C2"
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-            mode="outlined"
-            outlineColor="transparent"
-          />
-          <TouchableOpacity
-            onPress={handleFilterClick}
-            style={styles.filterButton}
-          >
-            <FontAwesome name="filter" size={24} color="#444444" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Discover Pets Looking for Homes</Text>
-        </View>
-
-        {/* Location Info */}
-        <View style={styles.locationHeader}>
-          <View style={styles.locationContainer}>
-            <Icon name="location-on" size={20} color="#EF5B5B" />
-            <Text style={styles.locationText}>
-              {location
-                ? `${location.city}, ${location.region}, ${location.country}`
-                : "Loading location..."}
-            </Text>
-          </View>
-        </View>
-
-        {/* Modal for Filter Options */}
-
-        <Modal visible={modalVisible} transparent={true} animationType="fade">
-          <View style={styles.modalOverlay}>
-            <Animated.View
-              style={[
-                styles.modalContainer,
-                { transform: [{ translateX: slideAnim }] }, // Apply sliding animation
-              ]}
+      <ScrollView>
+        <View style={styles.headerContainer}>
+          {/* Search Bar */}
+          <View style={styles.searchBar}>
+            <Icon
+              name="search"
+              size={24}
+              color="#444444"
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search"
+              placeholderTextColor="#C2C2C2"
+              onChangeText={setSearchQuery}
+              value={searchQuery}
+              mode="outlined"
+              outlineColor="transparent"
+            />
+            <TouchableOpacity
+              onPress={handleFilterClick}
+              style={styles.filterButton}
             >
-              <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                <View style={styles.modalHeaderContainer}>
-                  <Text style={styles.modalTitle}>Filter Pets</Text>
-                  <TouchableOpacity
-                    style={styles.buttonStyle2}
-                    onPress={closeModal}
-                  >
-                    <Feather name="x" size={24} color="white" />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.horizontalLine}></View>
-
-                {/* Gender Filter */}
-                <Text style={styles.modalText}>Gender</Text>
-                <View style={styles.input2}>
-                  <Picker
-                    selectedValue={selectedGender}
-                    onValueChange={(itemValue) => setSelectedGender(itemValue)}
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Select Gender" value="" color="gray" />
-                    <Picker.Item label="Male" value="Male" />
-                    <Picker.Item label="Female" value="Female" />
-                  </Picker>
-                </View>
-
-                {/* Other Filters (Age, Weight, Personality, Vaccinated) */}
-                <Text style={styles.modalText}>Age (years)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter Age"
-                  placeholderTextColor={"gray"}
-                  fontFamily={"Lato"}
-                  keyboardType="numeric"
-                  value={selectedAge}
-                  onChangeText={(text) => setSelectedAge(text)}
-                  mode="outlined"
-                  outlineColor="transparent"
-                  activeOutlineColor="#68C2FF"
-                  autoCapitalize="sentences"
-                />
-
-                <Text style={styles.modalText}>Weight (kg)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter Weight"
-                  placeholderTextColor={"gray"}
-                  fontFamily={"Lato"}
-                  keyboardType="number-pad"
-                  value={selectedWeight}
-                  onChangeText={(text) => setSelectedWeight(text)}
-                  mode="outlined"
-                  outlineColor="transparent"
-                  activeOutlineColor="#68C2FF"
-                  autoCapitalize="sentences"
-                />
-
-                <Text style={styles.modalText}>Personality</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter Personality Traits"
-                  placeholderTextColor={"gray"}
-                  fontFamily={"Lato"}
-                  value={selectedPersonality.join(", ")}
-                  onChangeText={(text) =>
-                    setSelectedPersonality(
-                      text.split(",").map((item) => item.trim())
-                    )
-                  }
-                  mode="outlined"
-                  outlineColor="transparent"
-                  activeOutlineColor="#68C2FF"
-                  autoCapitalize="sentences"
-                />
-
-                <Text style={styles.modalText}>Vaccinated</Text>
-                <View style={styles.input2}>
-                  <Picker
-                    selectedValue={vaccinated}
-                    onValueChange={(itemValue) => setVaccinated(itemValue)}
-                    style={[styles.picker, { fontFamily: "Lato" }]}
-                  >
-                    <Picker.Item
-                      label="Select Vaccinated Status"
-                      value={null}
-                      color="gray"
-                      style={{ fontFamily: "Lato" }}
-                    />
-                    <Picker.Item
-                      label="Yes"
-                      value="Yes"
-                      style={{ fontFamily: "Lato" }}
-                    />
-                    <Picker.Item
-                      label="No"
-                      value="No"
-                      style={{ fontFamily: "Lato" }}
-                    />
-                  </Picker>
-                </View>
-
-                {/* Pet Type Filter */}
-                <Text style={styles.modalText}>Pet Type</Text>
-                <View style={styles.input2}>
-                  <Picker
-                    selectedValue={selectedPetType}
-                    onValueChange={(itemValue) => setSelectedPetType(itemValue)}
-                    style={styles.picker}
-                  >
-                    <Picker.Item
-                      label="Select Pet Type"
-                      value=""
-                      color="gray"
-                    />
-                    <Picker.Item label="Cat" value="Cat" />
-                    <Picker.Item label="Dog" value="Dog" />
-                  </Picker>
-                </View>
-
-                {/* Price Range Filter */}
-                <Text style={styles.modalText}>Adoption Fee Range (₱)</Text>
-                <View style={styles.input2}>
-                  <Picker
-                    selectedValue={selectedAdoptionFee}
-                    onValueChange={setSelectedAdoptionFee}
-                    style={styles.picker}
-                  >
-                    <Picker.Item
-                      label="Select Adoption Fee Range"
-                      value=""
-                      color="gray"
-                    />
-                    <Picker.Item label="₱0 - ₱200" value="0-200" />
-                    <Picker.Item label="₱201 - ₱400" value="201-400" />
-                    <Picker.Item label="₱401 - ₱600" value="401-600" />
-                    <Picker.Item label="₱601 - ₱800" value="601-800" />
-                    <Picker.Item label="₱801 - ₱1000" value="801-1000" />
-                    <Picker.Item label="₱1000+" value="1001-1200" />
-                  </Picker>
-                </View>
-
-                {/* Apply and Close Buttons */}
-                <View style={styles.buttonContainer}>
-                  <TouchableOpacity
-                    style={[styles.buttonStyle, isLoading && { opacity: 0.5 }]}
-                    onPress={applyFiltersToPets}
-                    disabled={isLoading} // Disable button while loading
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={styles.buttonText}>Apply Filters</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </Animated.View>
+              <FontAwesome name="filter" size={24} color="#444444" />
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </View>
+
+          {/* Title */}
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Discover Pets Looking for Homes</Text>
+          </View>
+
+          {/* Location Info */}
+          <View style={styles.locationHeader}>
+            <View style={styles.locationContainer}>
+              <Icon name="location-on" size={20} color="#EF5B5B" />
+              <Text style={styles.locationText}>
+                {location
+                  ? `${location.city}, ${location.region}, ${location.country}`
+                  : "Loading location..."}
+              </Text>
+            </View>
+          </View>
+
+          {/* Modal for Filter Options */}
+
+          <Modal visible={modalVisible} transparent={true} animationType="fade">
+            <View style={styles.modalOverlay}>
+              <Animated.View
+                style={[
+                  styles.modalContainer,
+                  { transform: [{ translateX: slideAnim }] }, // Apply sliding animation
+                ]}
+              >
+                <ScrollView contentContainerStyle={styles.scrollViewContent}>
+                  <View style={styles.modalHeaderContainer}>
+                    <Text style={styles.modalTitle}>Filter Pets</Text>
+                    <TouchableOpacity
+                      style={styles.buttonStyle2}
+                      onPress={closeModal}
+                    >
+                      <Feather name="x" size={24} color="white" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.horizontalLine}></View>
+
+                  {/* Gender Filter */}
+                  <Text style={styles.modalText}>Gender</Text>
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={selectedGender}
+                      onValueChange={(itemValue) =>
+                        setSelectedGender(itemValue)
+                      }
+                      style={styles.picker}
+                    >
+                      <Picker.Item
+                        label="Select Gender"
+                        value=""
+                        color="gray"
+                      />
+                      <Picker.Item label="Male" value="Male" />
+                      <Picker.Item label="Female" value="Female" />
+                    </Picker>
+                  </View>
+
+                  {/* Other Filters (Age, Weight, Personality, Vaccinated) */}
+                  <Text style={styles.modalText}>Age (years)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter Age"
+                    placeholderTextColor={"gray"}
+                    fontFamily={"Lato"}
+                    keyboardType="numeric"
+                    value={selectedAge}
+                    onChangeText={(text) => setSelectedAge(text)}
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="sentences"
+                  />
+
+                  <Text style={styles.modalText}>Weight (kg)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter Weight"
+                    placeholderTextColor={"gray"}
+                    fontFamily={"Lato"}
+                    keyboardType="number-pad"
+                    value={selectedWeight}
+                    onChangeText={(text) => setSelectedWeight(text)}
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="sentences"
+                  />
+
+                  <Text style={styles.modalText}>Personality</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter Personality Traits"
+                    placeholderTextColor={"gray"}
+                    fontFamily={"Lato"}
+                    value={selectedPersonality.join(", ")}
+                    onChangeText={(text) =>
+                      setSelectedPersonality(
+                        text.split(",").map((item) => item.trim())
+                      )
+                    }
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="sentences"
+                  />
+
+                  <Text style={styles.modalText}>Vaccinated</Text>
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={vaccinated}
+                      onValueChange={(itemValue) => setVaccinated(itemValue)}
+                      style={[styles.picker, { fontFamily: "Lato" }]}
+                    >
+                      <Picker.Item
+                        label="Select Vaccinated Status"
+                        value={null}
+                        color="gray"
+                        style={{ fontFamily: "Lato" }}
+                      />
+                      <Picker.Item
+                        label="Yes"
+                        value="Yes"
+                        style={{ fontFamily: "Lato" }}
+                      />
+                      <Picker.Item
+                        label="No"
+                        value="No"
+                        style={{ fontFamily: "Lato" }}
+                      />
+                    </Picker>
+                  </View>
+
+                  {/* Pet Type Filter */}
+                  <Text style={styles.modalText}>Pet Type</Text>
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={selectedPetType}
+                      onValueChange={(itemValue) =>
+                        setSelectedPetType(itemValue)
+                      }
+                      style={styles.picker}
+                    >
+                      <Picker.Item
+                        label="Select Pet Type"
+                        value=""
+                        color="gray"
+                      />
+                      <Picker.Item label="Cat" value="Cat" />
+                      <Picker.Item label="Dog" value="Dog" />
+                    </Picker>
+                  </View>
+
+                  {/* Price Range Filter */}
+                  <Text style={styles.modalText}>Adoption Fee Range (₱)</Text>
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={selectedAdoptionFee}
+                      onValueChange={setSelectedAdoptionFee}
+                      style={styles.picker}
+                    >
+                      <Picker.Item
+                        label="Select Adoption Fee Range"
+                        value=""
+                        color="gray"
+                      />
+                      <Picker.Item label="₱0 - ₱200" value="0-200" />
+                      <Picker.Item label="₱201 - ₱400" value="201-400" />
+                      <Picker.Item label="₱401 - ₱600" value="401-600" />
+                      <Picker.Item label="₱601 - ₱800" value="601-800" />
+                      <Picker.Item label="₱801 - ₱1000" value="801-1000" />
+                      <Picker.Item label="₱1000+" value="1001-1200" />
+                    </Picker>
+                  </View>
+
+                  {/* Apply and Close Buttons */}
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.buttonStyle,
+                        isLoading && { opacity: 0.5 },
+                      ]}
+                      onPress={applyFiltersToPets}
+                      disabled={isLoading} // Disable button while loading
+                    >
+                      {isLoading ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.buttonText}>Apply Filters</Text>
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Edit Preferences Button */}
+                    <TouchableOpacity
+                      style={styles.preferencesButton}
+                      onPress={() => router.push("Preferences")}
+                    >
+                      <Text style={styles.preferencesText}>
+                        Edit Preferences
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </Animated.View>
+            </View>
+          </Modal>
+        </View>
+      </ScrollView>
     </PetProvider>
   );
 };
@@ -502,6 +528,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#68C2FF",
   },
   buttonText: {
+    textAlign: "center",
+    color: "white",
+    fontFamily: "LatoBold",
+    fontSize: 16,
+  },
+  preferencesButton: {
+    justifyContent: "center", // Center vertically
+    alignItems: "center", // Center horizontally
+    width: "70%",
+    borderWidth: 1,
+    borderRadius: 30,
+    borderColor: "white",
+    height: 50,
+    backgroundColor: "#68C2FF",
+  },
+  preferencesText: {
     textAlign: "center",
     color: "white",
     fontFamily: "LatoBold",
