@@ -59,23 +59,19 @@ export default function Preferences() {
     return labels[2];
   };
 
-  const getPetSizeLabel = (value, selectedPet) => {
-    if (selectedPet === 'cat') {
-      if (value >= 1 && value <= 3) return 'Small (1-3 kg)';
-      if (value > 3 && value <= 5) return 'Average (3-5 kg)';
-      if (value > 5 && value <= 7) return 'Biggish (5-7 kg)';
-      if (value > 7 && value <= 10) return 'Very Big (7-10 kg)';
-      return 'Huge (10+ kg)';
-    } else if (selectedPet === 'dog') {
-      if (value >= 1 && value <= 5) return 'Tiny (1-5 kg)';
-      if (value > 5 && value <= 10) return 'Small (5-10 kg)';
-      if (value > 10 && value <= 15) return 'Average (10-15 kg)';
-      if (value > 15 && value <= 25) return 'Large (15-25 kg)';
-      if (value > 25 && value <= 39) return 'Extra Large (25-39 kg)';
-      return 'Giant (40+ kg)';
-    }
-    return '';
+  const petSizeLabels = {
+    cat: ["Small (1-3 kg)", "Average (3-5 kg)", "Biggish (5-7 kg)", "Very Big (7-10 kg)", "Huge (10+ kg)"],
+    dog: ["Tiny (1-5 kg)", "Small (5-10 kg)", "Average (10-15 kg)", "Large (15-25 kg)", "Extra Large (25-39 kg)", "Giant (40+ kg)"]
   };
+  
+  const getPetSizeLabel = (value, petType) => {
+    const thresholds = petType === "cat" ? [3, 5, 7, 10] : [5, 10, 15, 25, 39];
+    const labels = petSizeLabels[petType] || [];
+    for (let i = 0; i < thresholds.length; i++) {
+      if (value <= thresholds[i]) return labels[i];
+    }
+    return labels[labels.length - 1];
+  };  
 
   const getPersonalityLabel = (value) => {
     if (value <= 25) return 'Calm';
