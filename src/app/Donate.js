@@ -172,6 +172,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 5,
     marginBottom: 50,
+    marginHorizontal: 20,
   },
   image: {
     width: 300,
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 25,
     padding: 10,
     alignItems: 'center',
-    paddingVertical: 90,
+    paddingVertical: 100,
   },
   supportHeader: {
     fontSize: 24,
