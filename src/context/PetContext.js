@@ -130,28 +130,31 @@ export const PetProvider = ({ children }) => {
 
   // Function to toggle favorite status
   const toggleFavorite = async (petId, petData) => {
-    if (!user) return;
+  if (!user) return;
 
-    const userRef = doc(db, "users", user.uid);
+  const userRef = doc(db, "users", user.uid);
 
+  try {
     if (favoritedPets.some((favPet) => favPet.id === petId)) {
+      // Remove from favorites
       await updateDoc(userRef, {
         favorites: arrayRemove(petData),
       });
       setFavoritedPets((prev) => prev.filter((favPet) => favPet.id !== petId));
     } else {
+      // Add to favorites
       await updateDoc(userRef, {
         favorites: arrayUnion(petData),
       });
-      // Ensure the pet is not already in the favoritedPets state
       setFavoritedPets((prev) => {
-        if (prev.some((favPet) => favPet.id === petId)) {
-          return prev;
-        }
+        if (prev.some((favPet) => favPet.id === petId)) return prev; // Prevent duplicates
         return [...prev, petData];
       });
     }
-  };
+  } catch (error) {
+    console.error("Error toggling favorite:", error);
+  }
+};
 
   // Apply filters to the pets list
   const applyFilters = (filters) => {

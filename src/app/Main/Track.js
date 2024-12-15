@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import Bruno from '../../assets/Track/bruno.jpg';
