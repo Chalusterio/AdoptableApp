@@ -395,6 +395,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
     elevation: 10,
+    paddingBottom: 40,
   },
   locationHeader: {
     width: "100%",
