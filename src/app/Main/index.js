@@ -54,15 +54,16 @@ const Feed = () => {
 
   const [favoritedPets, setFavoritedPets] = useState({});
   const [userFavorites, setUserFavorites] = useState([]);
-  
+
   const [refreshing, setRefreshing] = useState(false); // State to handle refresh loading
 
- // Update this to fetch preferences and rank pets when refresh is triggered
- const onRefresh = async () => {
-  setRefreshing(true);
-  await fetchPreferencesAndRankPets(); // Refetch the pets when pulling down
-  setRefreshing(false);
-};
+  // Update this to fetch preferences and rank pets when refresh is triggered
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchPreferencesAndRankPets(true); // Pass `true` to indicate that it's a refresh
+    setRefreshing(false);
+  };
+
   useEffect(() => {
     const fetchUserFavorites = async () => {
       const user = auth.currentUser;
@@ -133,7 +134,8 @@ const Feed = () => {
       return newState;
     });
   };
-  const fetchPreferencesAndRankPets = async () => {
+
+  const fetchPreferencesAndRankPets = async (isRefresh = false) => {
     const user = auth.currentUser;
     if (!user) return;
   
@@ -142,57 +144,63 @@ const Feed = () => {
       const preferencesQuery = query(collection(db, "preferences"), where("userEmail", "==", user.email));
       const preferencesSnapshot = await getDocs(preferencesQuery);
   
-      if (!preferencesSnapshot.empty) {
+      let rankedPets = pets.map((pet) => {
+        let score = 0;
+  
+        if (preferencesSnapshot.empty) {
+          // No preferences, so just return the pet as is
+          return { ...pet, score: 0 }; // Default score 0 for no match
+        }
+  
         const userPreferences = preferencesSnapshot.docs[0].data();
   
-        const rankedPets = pets.map((pet) => {
-          let score = 0;
+        // Matching personality
+        if (pet.petPersonality && pet.petPersonality.includes(userPreferences.personalityLabel)) {
+          score += 1; // Add score for personality match
+        }
   
-          // Matching personality
-          if (pet.petPersonality && pet.petPersonality.includes(userPreferences.personalityLabel)) {
-            score += 1; // Add score for personality match
+        // Matching pet size based on weight and label
+        const petWeight = parseInt(pet.petWeight, 10);
+        let matchesSizeLabel = false;
+        const sizeRangeMatch = userPreferences.petSizeLabel.match(/(\d+)-(\d+)/);
+        if (sizeRangeMatch) {
+          const minSize = parseInt(sizeRangeMatch[1], 10);
+          const maxSize = parseInt(sizeRangeMatch[2], 10);
+          matchesSizeLabel = petWeight >= minSize && petWeight <= maxSize;
+          if (matchesSizeLabel) {
+            score += 1; // Add score for size match
           }
+        }
   
-          // Matching pet size based on weight and label
-          const petWeight = parseInt(pet.petWeight, 10);
-          let matchesSizeLabel = false;
-          const sizeRangeMatch = userPreferences.petSizeLabel.match(/(\d+)-(\d+)/);
-          if (sizeRangeMatch) {
-            const minSize = parseInt(sizeRangeMatch[1], 10);
-            const maxSize = parseInt(sizeRangeMatch[2], 10);
-            matchesSizeLabel = petWeight >= minSize && petWeight <= maxSize;
-            if (matchesSizeLabel) {
-              score += 1; // Add score for size match
-            }
-          }
+        // Matching gender
+        const matchesGender = userPreferences.selectedGender === "any" || (pet.petGender && pet.petGender.toLowerCase() === userPreferences.selectedGender.toLowerCase());
+        if (matchesGender) {
+          score += 1; // Add score for gender match
+        }
   
-          // Matching gender
-          const matchesGender = userPreferences.selectedGender === "any" || (pet.petGender && pet.petGender.toLowerCase() === userPreferences.selectedGender.toLowerCase());
-          if (matchesGender) {
-            score += 1; // Add score for gender match
-          }
+        // Matching pet type
+        const matchesPetType = userPreferences.selectedPet === "any" || (pet.petType && pet.petType.toLowerCase() === userPreferences.selectedPet.toLowerCase());
+        if (matchesPetType) {
+          score += 1; // Add score for pet type match
+        }
   
-          // Matching pet type
-          const matchesPetType = userPreferences.selectedPet === "any" || (pet.petType && pet.petType.toLowerCase() === userPreferences.selectedPet.toLowerCase());
-          if (matchesPetType) {
-            score += 1; // Add score for pet type match
-          }
+        // Add a ranking property to each pet for sorting
+        return { ...pet, score };
+      });
   
-          // Add a ranking property to each pet for sorting
-          return { ...pet, score };
-        });
-  
-        // Sort pets based on the score
-        const sortedPets = rankedPets.sort((a, b) => b.score - a.score);
-  
-        // Shuffle pets to randomize the order
-        const shuffledPets = shuffleArray(sortedPets);
-  
-        setFilteredPets(shuffledPets);
-        console.log(`Ranked pets: ${shuffledPets.length} pets ranked and shuffled based on preferences.`);
-      } else {
-        console.log("No preferences found for the current user.");
+      // If no preferences are matched, just return all pets as they are
+      if (preferencesSnapshot.empty) {
+        rankedPets = pets.map((pet) => ({ ...pet, score: 0 })); // Default score 0 for all pets
       }
+  
+      // Sort pets based on the score
+      rankedPets = rankedPets.sort((a, b) => b.score - a.score);
+  
+      // Shuffle pets only if it's a refresh
+      const shuffledPets = isRefresh ? shuffleArray(rankedPets) : rankedPets;
+  
+      setFilteredPets(shuffledPets);
+      console.log(`Ranked pets: ${shuffledPets.length} pets ranked and shuffled based on preferences.`);
     } catch (error) {
       console.error("Error fetching user preferences:", error);
     } finally {
@@ -209,10 +217,11 @@ const Feed = () => {
     }
     return shuffledArray;
   };
-  
+
   useEffect(() => {
     fetchPreferencesAndRankPets(); // Initial fetch when the component mounts
   }, [pets]); // Depend on pets so it re-runs when pets data changes
+
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets[item.id];
 
@@ -279,6 +288,7 @@ const Feed = () => {
     </SideBar>
   );
 };
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
