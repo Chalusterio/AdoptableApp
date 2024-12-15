@@ -2,31 +2,61 @@ import * as React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import Slider from "@react-native-community/slider";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import Icon from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Foundation from "@expo/vector-icons/Foundation";
-import { getFirestore, collection, setDoc, doc, updateDoc } from 'firebase/firestore'; // Firestore imports
+import { getFirestore, collection, getDoc, doc, setDoc } from 'firebase/firestore'; // Firestore imports
+import { getAuth } from 'firebase/auth'; // Firebase Authentication import
 
 export default function Preferences() {
   const router = useRouter();
-
-  // Use useLocalSearchParams to access local search params
-  const { userName, userEmail, userContactNumber } = useLocalSearchParams();
-
+  const [userName, setUserName] = React.useState(""); // State for user's name
   const [petSize, setPetSize] = React.useState(9);
   const [personality, setPersonality] = React.useState(50);
   const [selectedPet, setSelectedPet] = React.useState(null);
   const [selectedGender, setSelectedGender] = React.useState(null);
+  const [userUid, setUserUid] = React.useState(""); // Store UID of the current user
+
+  // Fetch current user details
+  React.useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setUserUid(user.uid); // Get the logged-in user's UID
+        fetchUserName(user.uid); // Fetch the user's name from Firestore
+      } else {
+        console.log("No user logged in");
+      }
+    });
+
+    return () => unsubscribe(); // Cleanup the listener
+  }, []);
+
+  // Fetch user name from Firestore based on the UID
+  const fetchUserName = async (uid) => {
+    const db = getFirestore();
+    const userRef = doc(db, "users", uid); // Use UID as the document ID
+    try {
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        setUserName(userDoc.data().name); // Set user name if document exists
+      } else {
+        console.log("No such user found!");
+      }
+    } catch (error) {
+      console.error("Error fetching user name:", error);
+    }
+  };
 
   const handleFindPet = async () => {
     if (selectedPet && selectedGender !== null) {
       // Save preferences to Firestore under 'preferences' collection
       const db = getFirestore();
-      const preferencesRef = doc(db, 'preferences', userEmail); // Using email as document ID
+      const preferencesRef = doc(db, 'preferences', userUid); // Using UID as document ID
 
       const preferenceData = {
-        userEmail,
+        userUid,
         selectedPet,
         selectedGender,
         petSize,
@@ -46,7 +76,7 @@ export default function Preferences() {
       // Navigate to the main screen
       router.push({
         pathname: "Main",
-        params: { userName, userEmail, userContactNumber }
+        params: { userName, userUid }
       });
     } else {
       alert('Please complete all selections.');
@@ -71,7 +101,7 @@ export default function Preferences() {
       if (value <= thresholds[i]) return labels[i];
     }
     return labels[labels.length - 1];
-  };  
+  };
 
   const getPersonalityLabel = (value) => {
     if (value <= 25) return 'Calm';
@@ -79,10 +109,9 @@ export default function Preferences() {
     if (value <= 75) return 'Moderately Playful';
     return 'Playful';
   };
-  
 
-const petSizeLabel = getPetSizeLabel(petSize, selectedPet);
-const personalityLabel = getPersonalityLabel(personality);
+  const petSizeLabel = getPetSizeLabel(petSize, selectedPet);
+  const personalityLabel = getPersonalityLabel(personality);
 
   const getSliderLabels = () => {
     if (selectedPet === "cat") {
