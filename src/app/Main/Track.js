@@ -303,6 +303,7 @@ const styles = StyleSheet.create({
   petDetails: {
     fontSize: 16,
     color: '#666',
+    marginBottom: 10,
   },
   deliveryDetailsContainer: {
     borderBottomWidth: 2,
@@ -320,8 +321,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#68C2FF',
     borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
   },
   deliveryDetails: {
