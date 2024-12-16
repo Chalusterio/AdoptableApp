@@ -131,6 +131,7 @@ const PetDetailsEdit = () => {
       ]
     );
   };
+  
 
   const handleSave = async () => {
     try {
@@ -314,10 +315,11 @@ const PetDetailsEdit = () => {
           {/* Delete Button */}
           <TouchableOpacity
             style={styles.deleteButton}
-            onPress={handleDelete}
+            onPress={handleDelete} // Trigger delete confirmation and action
           >
             <Text style={styles.buttonText}>Delete</Text>
           </TouchableOpacity>
+
 
           {/* Edit Button */}
           <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
