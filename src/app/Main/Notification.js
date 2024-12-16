@@ -17,6 +17,7 @@ import {
   onSnapshot,
   setDoc,
   doc,
+  deleteDoc, addDoc,
 } from "firebase/firestore";
 import Swipeable from "react-native-gesture-handler/Swipeable";
 import { db, auth } from "../../../firebase";

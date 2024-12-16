@@ -19,27 +19,26 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Font from "expo-font";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store"; // For storing credentials securely
 import { getUserData } from "../../firebase";
-import { auth, signInWithEmailAndPassword } from "../../firebase"; // Make sure to import Firebase auth methods
-import { persistSession } from "../../firebase"; // Make sure the path is correct
-
+import { auth, signInWithEmailAndPassword } from "../../firebase"; // Firebase imports
+import { persistSession } from "../../firebase";
 
 export default function Login() {
   const theme = useTheme();
   const [fontsLoaded, setFontsLoaded] = useState(false);
-
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [dialogVisible, setDialogVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
   const [errors, setErrors] = useState({
     email: "",
     password: "",
   });
+
+  const router = useRouter();
 
   useEffect(() => {
     const loadFonts = async () => {
@@ -49,6 +48,18 @@ export default function Login() {
       setFontsLoaded(true);
     };
     loadFonts();
+
+    // Check if "Remember Me" is stored in SecureStore
+    const checkRememberMe = async () => {
+      const storedEmail = await SecureStore.getItemAsync("email");
+      const storedPassword = await SecureStore.getItemAsync("password");
+      if (storedEmail && storedPassword) {
+        setEmail(storedEmail);
+        setPassword(storedPassword);
+        setRememberMe(true);
+      }
+    };
+    checkRememberMe();
   }, []);
 
   useFocusEffect(
@@ -91,39 +102,39 @@ export default function Login() {
     return valid;
   };
 
-  const handleRememberMe = () => {
+  const handleRememberMe = async () => {
+    if (rememberMe) {
+      await SecureStore.deleteItemAsync("email");
+      await SecureStore.deleteItemAsync("password");
+    } else {
+      await SecureStore.setItemAsync("email", email);
+      await SecureStore.setItemAsync("password", password);
+    }
     setRememberMe(!rememberMe);
   };
 
   const handleLogin = async () => {
     if (!validateInputs()) return;
 
-    setIsLoading(true); // Start loading
+    setIsLoading(true);
     try {
-      // Log in the user
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       await persistSession(user);
 
       // Fetch user data from Firestore
-      const userData = await getUserData(user.uid); // Using getUserData from your firebase.js
+      const userData = await getUserData(user.uid);
 
       if (userData) {
-        // Check the role and redirect
+        setDialogVisible(true); // Show success dialog on successful login
         if (userData.role !== "admin") {
-          router.push("Main"); // Redirect to Main screen for non-admin users
+          router.push("Main");
         } else {
-          router.push("ManageTrack"); // Redirect to Manage track for admins
+          router.push("ManageTrack");
         }
-        // Clear the input fields after successful login
         setEmail("");
         setPassword("");
       } else {
-        console.error("User data not found in Firestore");
         setErrors({
           ...errors,
           email: "User data not found. Contact support.",
@@ -133,7 +144,7 @@ export default function Login() {
       console.error("Error logging in:", error);
       setErrors({ ...errors, password: "Invalid email or password" });
     } finally {
-      setIsLoading(false); // Stop loading
+      setIsLoading(false);
     }
   };
 
@@ -142,138 +153,101 @@ export default function Login() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView>
-      <View style={styles.container}>
-        <View style={styles.backgroundContainer}>
-          <ImageBackground
-            source={require("../assets/Login/loginPawImage.png")}
-            style={styles.loginPawImage}
-            resizeMode="cover"
-          ></ImageBackground>
-        </View>
-
-        <View style={styles.textOverlayContainer}>
-          <Text style={styles.welcomeBackText}>Welcome Back!</Text>
-          <Text style={styles.loginText}>Login to your account</Text>
-        </View>
-
-        <View
-          style={[
-            styles.formContainer,
-            { backgroundColor: theme.colors.primary },
-          ]}
-        >
-          <View
-            style={[
-              styles.inputContainer,
-              { backgroundColor: theme.colors.primary },
-            ]}
-          >
-            <TextInput
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              left={<TextInput.Icon icon="email" />}
-              mode="flat"
-              activeUnderlineColor="gray"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={[styles.input, errors.email && styles.errorInput]}
-            />
-            {errors.email && (
-              <Text style={styles.errorText}>{errors.email}</Text>
-            )}
-
-            <TextInput
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!passwordVisible}
-              right={
-                <TextInput.Icon
-                  icon={passwordVisible ? "eye" : "eye-off"}
-                  onPress={() => setPasswordVisible(!passwordVisible)}
-                />
-              }
-              left={<TextInput.Icon icon="lock" />}
-              mode="flat"
-              autoCapitalize="none"
-              activeUnderlineColor="gray"
-              style={[styles.input, errors.password && styles.errorInput]}
-            />
-            {errors.password && (
-              <Text style={styles.errorText}>{errors.password}</Text>
-            )}
+        <View style={styles.container}>
+          <View style={styles.backgroundContainer}>
+            <ImageBackground
+              source={require("../assets/Login/loginPawImage.png")}
+              style={styles.loginPawImage}
+              resizeMode="cover"
+            ></ImageBackground>
           </View>
 
-          <View style={styles.rememberForgotContainer}>
-            <View style={styles.checkboxContainer}>
-              <TouchableOpacity
-                style={styles.rememberCheck}
-                onPress={handleRememberMe}
-              >
-                <Checkbox
-                  status={rememberMe ? "checked" : "unchecked"}
-                  onPress={handleRememberMe}
-                  color="gray"
-                  uncheckedColor="gray"
-                />
-                <Text style={styles.rememberText}>Remember me</Text>
+          <View style={styles.textOverlayContainer}>
+            <Text style={styles.welcomeBackText}>Welcome Back!</Text>
+            <Text style={styles.loginText}>Login to your account</Text>
+          </View>
+
+          <View style={[styles.formContainer, { backgroundColor: theme.colors.primary }]}>
+            <View style={styles.inputContainer}>
+              <TextInput
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                left={<TextInput.Icon icon="email" />}
+                mode="flat"
+                activeUnderlineColor="gray"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={[styles.input, errors.email && styles.errorInput]}
+              />
+              {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+
+              <TextInput
+                label="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!passwordVisible}
+                right={<TextInput.Icon icon={passwordVisible ? "eye" : "eye-off"} onPress={() => setPasswordVisible(!passwordVisible)} />}
+                left={<TextInput.Icon icon="lock" />}
+                mode="flat"
+                autoCapitalize="none"
+                activeUnderlineColor="gray"
+                style={[styles.input, errors.password && styles.errorInput]}
+              />
+              {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+            </View>
+
+            <View style={styles.rememberForgotContainer}>
+              <View style={styles.checkboxContainer}>
+                <TouchableOpacity style={styles.rememberCheck} onPress={handleRememberMe}>
+                  <Checkbox status={rememberMe ? "checked" : "unchecked"} onPress={handleRememberMe} color="gray" />
+                  <Text style={styles.rememberText}>Remember me</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity onPress={() => router.push("PasswordRecovery")}>
+                <Text style={styles.forgotText}>Forgot Password</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => router.push('PasswordRecovery')}>
-              <Text style={styles.forgotText}>Forgot Password</Text>
+
+            <TouchableOpacity
+              style={[styles.loginButton, isLoading && { opacity: 0.5 }]}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.loginButtonText}>Login</Text>}
             </TouchableOpacity>
-          </View>
 
-          <TouchableOpacity
-            style={[styles.loginButton, isLoading && { opacity: 0.5 }]}
-            onPress={handleLogin}
-            disabled={isLoading} // Disable button while loading
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>Login</Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.noAccountContainer}>
-            <Text style={styles.noAccountText}>Don't have an account?</Text>
-            <TouchableOpacity>
-              <Text
-                style={styles.signupButtonText}
-                onPress={() => router.push("Signup")}
-              >
-                Sign Up
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Dialog */}
-        <Portal>
-          <Dialog visible={dialogVisible} onDismiss={hideDialog}>
-            <Dialog.Icon icon="check-circle" color="#68C2FF" />
-            <Dialog.Title style={styles.dialogTitle}>Success</Dialog.Title>
-            <Dialog.Content style={styles.dialogContent}>
-              <Text style={styles.dialogText}>Logged in successfully!</Text>
-            </Dialog.Content>
-            <Dialog.Actions style={styles.dialogActions}>
-              <TouchableOpacity
-                onPress={hideDialog}
-                style={styles.dialogButton}
-              >
-                <Text style={styles.dialogButtonText}>Done</Text>
+            <View style={styles.noAccountContainer}>
+              <Text style={styles.noAccountText}>Don't have an account?</Text>
+              <TouchableOpacity onPress={() => router.push("Signup")}>
+                <Text style={styles.signupButtonText}>Sign Up</Text>
               </TouchableOpacity>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
-      </View>
+            </View>
+          </View>
+
+          {/* Dialog */}
+          <Portal>
+            <Dialog visible={dialogVisible} onDismiss={hideDialog}>
+              <Dialog.Icon icon="check-circle" color="#68C2FF" />
+              <Dialog.Title style={styles.dialogTitle}>Success</Dialog.Title>
+              <Dialog.Content style={styles.dialogContent}>
+                <Text style={styles.dialogText}>Logged in successfully!</Text>
+              </Dialog.Content>
+              <Dialog.Actions style={styles.dialogActions}>
+                <TouchableOpacity
+                  onPress={hideDialog}
+                  style={styles.dialogButton}
+                >
+                  <Text style={styles.dialogButtonText}>Done</Text>
+                </TouchableOpacity>
+              </Dialog.Actions>
+            </Dialog>
+          </Portal>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
