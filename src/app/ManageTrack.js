@@ -58,7 +58,7 @@ export default function ManageTrack() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("");
   const [currentTransactionId, setCurrentTransactionId] = useState(null);
-  const [isMenuVisible, setMenuVisible] = useState(false);
+  const [isMenuModalVisible, setMenuModalVisible] = useState(false); // State for menu modal
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -133,8 +133,12 @@ export default function ManageTrack() {
     }
   };
 
-  const toggleMenu = () => {
-    setMenuVisible(!isMenuVisible);
+  const handleOpenMenuModal = () => {
+    setMenuModalVisible(true);
+  };
+
+  const handleCloseMenuModal = () => {
+    setMenuModalVisible(false);
   };
 
   const handleLogout = () => {
@@ -149,7 +153,7 @@ export default function ManageTrack() {
         {
           text: "Yes",
           onPress: () => {
-            setMenuVisible(false);
+            setMenuModalVisible(false);
             navigation.navigate("Login"); // Navigate to Login screen
           },
           style: "destructive",
@@ -171,19 +175,28 @@ export default function ManageTrack() {
           onChangeText={setSearchQuery}
           value={searchQuery}
         />
-        <TouchableOpacity onPress={toggleMenu}>
+        <TouchableOpacity onPress={handleOpenMenuModal}>
           <Icon name="more-vert" size={30} color="#444" style={styles.moreIcon} />
         </TouchableOpacity>
       </View>
 
       {/* Three-dot Menu */}
-      {isMenuVisible && (
-        <View style={styles.menuContainer}>
-          <TouchableOpacity style={styles.menuItemLogout} onPress={handleLogout}>
-            <Text style={styles.menuItemLogoutText}>Log Out</Text>
+      <Modal
+        transparent
+        visible={isMenuModalVisible}
+        animationType="fade"
+        onRequestClose={handleCloseMenuModal}
+      >
+        <TouchableOpacity
+          style={styles.overlay}
+          onPress={handleCloseMenuModal} // Close modal when clicking outside
+        />
+        <View style={styles.menuModalContainer}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
           </TouchableOpacity>
         </View>
-      )}
+      </Modal>
 
       {/* Title */}
       <Text style={styles.transactionListTitle}>Manage Tracking</Text>
@@ -392,12 +405,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  overlay: {
+  menuModalContainer: {
+    flex: 0.3,
+    backgroundColor: "white",
+    padding: 20,
     position: "absolute",
-    top: 0,
+    bottom: 0,
     left: 0,
     right: 0,
-    bottom: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  logoutButton: {
+    backgroundColor: "#EF5B5B",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignSelf: "center",
+  },
+  logoutButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  overlay: {
+    flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   menuItemLogout: {
