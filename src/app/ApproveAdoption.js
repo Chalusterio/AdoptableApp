@@ -254,6 +254,24 @@ export default function ApproveAdoption() {
     setConfirmationModalVisible(true);
   };
 
+  useEffect(() => {
+    const checkIfFinalized = async () => {
+      try {
+        const finalizedCollectionRef = collection(db, "finalized_adoption");
+        const q = query(finalizedCollectionRef, where("petRequestId", "==", petRequestId));
+        const querySnapshot = await getDocs(q);
+  
+        if (!querySnapshot.empty) {
+          setIsFinalized(true); // Adoption is already finalized
+        }
+      } catch (error) {
+        console.error("Error checking finalized status:", error);
+      }
+    };
+  
+    checkIfFinalized(); // Check if adoption is already finalized when component mounts
+  }, [petRequestId]);
+
   const handleConfirmFinalization = async () => {
     if (!petRequestDetails.address) {
       alert("Can't proceed without an address");
