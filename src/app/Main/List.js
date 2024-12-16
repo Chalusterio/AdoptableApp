@@ -33,8 +33,6 @@ const List = () => {
   const router = useRouter();
   const navigation = useNavigation();
 
-  const { addPet } = usePets(); // Access the context
-
   const [petName, setPetName] = useState("");
   const [petType, setPetType] = useState(null); // New state for pet type
   const [petGender, setSelectedPetGender] = useState(null);
@@ -205,24 +203,6 @@ const List = () => {
   
       // Update the Firestore document with the uploaded image URLs
       await updateDoc(docRef, { images: uploadedImages });
-  
-      // Add the pet to the global state using addPet
-      addPet({
-        id: petId,
-        petName,
-        petType,
-        petGender,
-        petAge,
-        petWeight,
-        petPersonality,
-        petDescription,
-        petIllnessHistory,
-        petVaccinated,
-        adoptionFee,
-        images: uploadedImages,
-        createdAt: new Date().toISOString(),
-        listedBy: user.email,
-      });
   
       alert("Pet listed successfully!");
       resetForm();

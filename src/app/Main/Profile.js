@@ -21,6 +21,7 @@ const Profile = () => {
     hasPet: "Not Indicated",
     bio: "", // Add bio field here
   });
+
   const [editableInfo, setEditableInfo] = useState(profileInfo);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isLogoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
@@ -40,7 +41,7 @@ const Profile = () => {
           const usersCollectionRef = collection(db, "users");
           const q = query(usersCollectionRef, where("email", "==", user.email));
           const querySnapshot = await getDocs(q);
-  
+
           if (!querySnapshot.empty) {
             querySnapshot.forEach((doc) => {
               const userData = doc.data();
@@ -67,6 +68,7 @@ const Profile = () => {
                   });
                 }
               });
+
               // Set the profile data including bio
               setProfileInfo({
                 ...userData,
@@ -91,10 +93,10 @@ const Profile = () => {
     };
     fetchUserData();
   }, []); // Empty dependency array, will run once when component mounts
-  
+
   const handleSave = async () => {
     if (isSaving) return; // Prevent multiple clicks
-  
+
     setIsSaving(true); // Start the loading state
     try {
       const user = auth.currentUser;
@@ -105,6 +107,7 @@ const Profile = () => {
           contactNumber: editableInfo.phone,
           bio: editableInfo.bio, // Save bio field
         };
+
         // Upload profile picture if exists
         if (editableInfo.image?.uri) {
           const fileName = `profilePictures/${user.uid}/profile.jpg`;
@@ -126,6 +129,7 @@ const Profile = () => {
             return;
           }
         }
+
         // Upload cover photo if exists
         if (coverImage?.uri) {
           const coverFileName = `coverPhotos/${user.uid}/cover.jpg`;
@@ -135,10 +139,10 @@ const Profile = () => {
             const coverBlob = await coverResponse.blob();
             await uploadBytes(coverStorageRef, coverBlob);
             const coverDownloadURL = await getDownloadURL(coverStorageRef);
-            updatedData.coverPhoto = coverDownloadURL;  // Add cover photo URL
+            updatedData.coverPhoto = coverDownloadURL; // Add cover photo URL
             setProfileInfo((prev) => ({
               ...prev,
-              coverPhoto: coverDownloadURL,  // Update profile info state
+              coverPhoto: coverDownloadURL, // Update profile info state
             }));
           } catch (error) {
             console.error("Error uploading cover photo: ", error);
@@ -147,7 +151,7 @@ const Profile = () => {
             return;
           }
         }
-  
+
         await updateDoc(userRef, updatedData); // Update Firestore document with all changes
         setProfileInfo(updatedData);
         setEditConfirmVisible(false);
@@ -166,8 +170,6 @@ const Profile = () => {
       setIsAddressEmpty(false); // Clear the validation if address is filled
     }
   };
-  
-  
 
 
 
@@ -206,27 +208,25 @@ const Profile = () => {
     }
   };
   const pickCoverImage = async () => {
-
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       alert("Permission to access camera roll is required!");
       return;
     }
-  
+
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [16, 9],  // Aspect ratio for cover photo
+      aspect: [16, 9], // Aspect ratio for cover photo
       quality: 1,
     });
-  
+
     if (!pickerResult.canceled) {
       const imageUri = pickerResult.assets[0].uri;
-      setCoverImage({ uri: imageUri });  // Store cover image URI
+      setCoverImage({ uri: imageUri }); // Store cover image URI
     }
   };
-  
 
 
   return (
@@ -297,7 +297,7 @@ const Profile = () => {
           <View style={styles.detailsContainer}>
             <Icon name="home" size={24} color="#444444" />
             <Text style={styles.detailsText}>
-              House Type: {profileInfo.houseType || "Not Indicated"}
+              House Type: {profileInfo.houseType}
             </Text>
           </View>
           <View style={styles.horizontalLine}></View>
@@ -305,7 +305,7 @@ const Profile = () => {
           <View style={styles.detailsContainer}>
             <Icon name="pets" size={24} color="#444444" />
             <Text style={styles.detailsText}>
-              Pet Owner: {profileInfo.hasPet || "Not Indicated"}
+              Pet Owner: {profileInfo.hasPet}
             </Text>
           </View>
           <View style={styles.horizontalLine}></View>
@@ -322,29 +322,8 @@ const Profile = () => {
                 <Text style={styles.modalTitle}>Edit Profile</Text>
 
                 <ScrollView contentContainerStyle={styles.scrollViewContent2}>
-                  <View style={styles.uploadContainer}>
-                  <TouchableOpacity
-                      style={styles.pickCoverImage}
-                      onPress={pickCoverImage}
-                    >
-                      <Image
-                        style={styles.coverImage}
-                        source={
-                          editableInfo.coverImage
-                            ? { uri: editableInfo.coverImage } // Use the saved cover photo if available
-                            : coverImage?.uri
-                            ? { uri: coverImage.uri }  // Temporary cover photo if selected
-                            : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
-                        }
-                      />
-                      <TouchableOpacity
-                        style={styles.editcoverImage}
-                        onPress={pickCoverImage}
-                      >
-                        <Icon name="edit" size={20} color="white" />
-                      </TouchableOpacity>
-                    </TouchableOpacity>
 
+                  <View style={styles.uploadContainer}>
                     <TouchableOpacity
                       style={styles.pickCoverImage}
                       onPress={pickCoverImage}
