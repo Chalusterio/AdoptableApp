@@ -1,42 +1,46 @@
-import React, { useState } from "react";
-import { View, StyleSheet, TouchableOpacity, Text, ImageBackground } from "react-native";
-import { TextInput, Button } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { getAuth, sendPasswordResetEmail } from "../../firebase";  //not kuan pa
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text, ImageBackground } from 'react-native';
+import { TextInput, Button } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth'; // Import Firebase functions
 
 export default function PasswordRecovery() {
-    const router = useRouter();
-    const [email, setEmail] = useState("");
-    const [message, setMessage] = useState("");
-  
-    const handleRecovery = async () => {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handleRecovery = async () => {
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) {
+      // User is not logged in, proceed with password reset
       if (email.trim()) {
         try {
-          // Use Firebase's sendPasswordResetEmail method
-          await sendPasswordResetEmail(getAuth, email);
-          setMessage("A verification code has been sent to your email.");
-          // Redirect user to the verification screen
-          router.push(""); //another screen for vericode?
+          await sendPasswordResetEmail(auth, email);
+          setMessage('A verification code has been sent to your email.');
         } catch (error) {
-          setMessage("Error: " + error.message);
+          setMessage('Error: ' + error.message);
         }
       } else {
-        setMessage("Please enter a valid email address.");
+        setMessage('Please enter a valid email address.');
       }
-    };
-  
+    } else {
+      setMessage('You are already logged in. Please log out to reset your password.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-    <View style={styles.backgroundContainer}>
+      <View style={styles.backgroundContainer}>
         <ImageBackground
-        source={require("../assets/Login/loginPawImage.png")}
-        style={styles.loginPawImage}
-        resizeMode="cover"
-    ></ImageBackground>
-    </View>
-    <View style={styles.textOverlayContainer}>
+          source={require('../assets/Login/loginPawImage.png')}
+          style={styles.loginPawImage}
+          resizeMode="cover"
+        />
+      </View>
+      <View style={styles.textOverlayContainer}>
         <Text style={styles.heading}>Password Recovery</Text>
         <Text style={styles.subText}>
           Please enter your email to reset your password.
@@ -59,15 +63,14 @@ export default function PasswordRecovery() {
         {message ? <Text style={styles.message}>{message}</Text> : null}
 
         <TouchableOpacity
-        onPress={handleRecovery}
-        style={styles.button}
-        activeOpacity={0.7}  
+          onPress={handleRecovery}
+          style={styles.button}
+          activeOpacity={0.7} // This will make the button slightly fade when clicked
         >
-        <Text style={styles.buttonText}>Send Reset Link</Text>
+          <Text style={styles.buttonText}>Send Reset Link</Text>
         </TouchableOpacity>
 
-
-        <TouchableOpacity onPress={() => router.push("./Login")}>
+        <TouchableOpacity onPress={() => router.push('./Login')}>
           <Text style={styles.backText}>Back to Login</Text>
         </TouchableOpacity>
       </View>
