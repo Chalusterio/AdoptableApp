@@ -7,6 +7,7 @@ import {
   TextInput,
   ScrollView,
   Modal,
+  Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { RadioButton } from "react-native-paper";
@@ -16,12 +17,12 @@ import { getFirestore, collection, getDocs, doc, updateDoc } from "firebase/fire
 // Reusable Transaction Card Component
 const TransactionCard = ({ status, petName, address, trackingStatus, onUpdateStatus }) => {
   const statusStyles = {
-    Preparing: { backgroundColor: "#FFB366", text: "Preparing" }, // Light Yellow/Orange
-    ToShip: { backgroundColor: "#FF8C00", text: "To Ship" }, // Light Orange
-    Shipped: { backgroundColor: "#ADD8E6", text: "Shipped" }, // Light Blue
-    InTransit: { backgroundColor: "#4682B4", text: "In Transit" }, // Blue
-    InDelivery: { backgroundColor: "#32CD32", text: "In Delivery" }, // Green
-    Delivered: { backgroundColor: "#5DB075", text: "Delivered" }, 
+    Preparing: { backgroundColor: "#FFB366", text: "Preparing" },
+    ToShip: { backgroundColor: "#FF8C00", text: "To Ship" },
+    Shipped: { backgroundColor: "#ADD8E6", text: "Shipped" },
+    InTransit: { backgroundColor: "#4682B4", text: "In Transit" },
+    InDelivery: { backgroundColor: "#32CD32", text: "In Delivery" },
+    Delivered: { backgroundColor: "#5DB075", text: "Delivered" },
   };
 
   const currentStatusStyle = statusStyles[trackingStatus] || statusStyles["ToShip"];
@@ -56,7 +57,8 @@ export default function ManageTrack() {
   const [transactions, setTransactions] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("");
-  const [currentTransactionId, setCurrentTransactionId] = useState(null); // Store current transaction ID
+  const [currentTransactionId, setCurrentTransactionId] = useState(null);
+  const [isMenuVisible, setMenuVisible] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function ManageTrack() {
       const fetchedTransactions = querySnapshot.docs.map((doc) => {
         const data = doc.data();
         return {
-          id: doc.id, // Store the document ID to update it later
+          id: doc.id,
           trackingStatus: data.tracking_status || "ToShip",
           petName: data.petRequestDetails?.petName || "Unknown",
           address: data.petRequestDetails?.address || "No Address Provided",
@@ -82,7 +84,7 @@ export default function ManageTrack() {
   }, []);
 
   const handleUpdateStatus = (id) => {
-    setCurrentTransactionId(id); // Set the current transaction to update
+    setCurrentTransactionId(id);
     setModalVisible(true);
     const currentTransaction = transactions.find((item) => item.id === id);
     setSelectedStatus(currentTransaction?.trackingStatus || "ToShip");
@@ -100,27 +102,24 @@ export default function ManageTrack() {
     const db = getFirestore();
     const transactionRef = doc(db, "finalized_adoption", currentTransactionId);
 
-    // List of valid statuses
     const validStatuses = [
-      "Preparing", 
-      "ToShip", 
-      "Shipped", 
-      "InTransit", 
-      "InDelivery", 
-      "Delivered"
+      "Preparing",
+      "ToShip",
+      "Shipped",
+      "InTransit",
+      "InDelivery",
+      "Delivered",
     ];
 
-    // Check if the selected status is valid
     if (!validStatuses.includes(selectedStatus)) {
       alert("Invalid status selected!");
       return;
     }
 
     try {
-      await updateDoc(transactionRef, { tracking_status: selectedStatus }); // Update the tracking status in Firestore
+      await updateDoc(transactionRef, { tracking_status: selectedStatus });
       setModalVisible(false);
       alert("Status updated successfully!");
-      // Update local state to reflect the change
       setTransactions((prevTransactions) =>
         prevTransactions.map((transaction) =>
           transaction.id === currentTransactionId
@@ -132,6 +131,32 @@ export default function ManageTrack() {
       console.error("Error updating status: ", error);
       alert("Failed to update status");
     }
+  };
+
+  const toggleMenu = () => {
+    setMenuVisible(!isMenuVisible);
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Log Out",
+      "Are you sure you want to log out?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          onPress: () => {
+            setMenuVisible(false);
+            navigation.navigate("Login"); // Navigate to Login screen
+          },
+          style: "destructive",
+        },
+      ],
+      { cancelable: false }
+    );
   };
 
   return (
@@ -146,7 +171,19 @@ export default function ManageTrack() {
           onChangeText={setSearchQuery}
           value={searchQuery}
         />
+        <TouchableOpacity onPress={toggleMenu}>
+          <Icon name="more-vert" size={30} color="#444" style={styles.moreIcon} />
+        </TouchableOpacity>
       </View>
+
+      {/* Three-dot Menu */}
+      {isMenuVisible && (
+        <View style={styles.menuContainer}>
+          <TouchableOpacity style={styles.menuItemLogout} onPress={handleLogout}>
+            <Text style={styles.menuItemLogoutText}>Log Out</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Title */}
       <Text style={styles.transactionListTitle}>Manage Tracking</Text>
@@ -159,7 +196,7 @@ export default function ManageTrack() {
             trackingStatus={item.trackingStatus}
             petName={item.petName}
             address={item.address}
-            onUpdateStatus={() => handleUpdateStatus(item.id)} // Pass transaction ID to update
+            onUpdateStatus={() => handleUpdateStatus(item.id)}
           />
         ))}
       </ScrollView>
@@ -191,7 +228,7 @@ export default function ManageTrack() {
           </View>
           <TouchableOpacity
             style={styles.proceedButton}
-            onPress={handleSaveStatusUpdate} // Save the updated status
+            onPress={handleSaveStatusUpdate}
           >
             <Text style={styles.proceedButtonText}>Proceed</Text>
           </TouchableOpacity>
@@ -200,23 +237,12 @@ export default function ManageTrack() {
     </View>
   );
 }
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-  },
-  logoutButton: {
-    backgroundColor: "#EF5B5B",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginTop: 20,
-    alignSelf: "center",
-  },
-  logoutButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
   },
   searchBar: {
     flexDirection: "row",
@@ -234,6 +260,29 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    fontSize: 16,
+    color: "#444",
+  },
+  moreIcon: {
+    marginLeft: 10,
+  },
+  menuContainer: {
+    position: "absolute",
+    top: 60,
+    right: 20,
+    backgroundColor: "white",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 5,
+    width: 150,
+  },
+  menuItem: {
+    padding: 12,
+  },
+  menuItemText: {
     fontSize: 16,
     color: "#444",
   },
@@ -300,25 +349,25 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     position: "absolute",
-    top: "25%",  // Adjusted for better alignment
+    top: "25%",
     left: "10%",
     width: "80%",
     backgroundColor: "white",
     borderRadius: 25,
     padding: 20,
     elevation: 5,
-    maxHeight: "70%", // Restrict modal height to avoid overflow
+    maxHeight: "70%",
   },
   modalTitle: {
     fontSize: 20,
     fontFamily: "Lilita",
     color: "#68C2FF",
-    marginBottom: 20, // Reduced margin for better spacing
+    marginBottom: 20,
     textAlign: "center",
   },
   statusOptions: {
-    marginBottom: 30, // Adjusted margin
-    flexGrow: 1, // Ensure this section grows to take available space
+    marginBottom: 30,
+    flexGrow: 1,
   },
   radioContainer: {
     flexDirection: "row",
@@ -328,7 +377,7 @@ const styles = StyleSheet.create({
   statusOptionText: {
     fontSize: 16,
     color: "#444",
-    marginLeft: 10,  // Added spacing between radio button and text
+    marginLeft: 10,
   },
   proceedButton: {
     backgroundColor: "#EF5B5B",
@@ -336,29 +385,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 50,
     borderRadius: 20,
     alignSelf: "center",
-    marginTop: 20,  // Adjusted margin for better spacing
+    marginTop: 20,
   },
   proceedButtonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "bold",  // Added bold style to make it stand out more
-  },
-  menuModalContainer: {
-    flex: 0.3,
-    backgroundColor: "white",
-    padding: 20,
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  modalMessage: {
-    fontFamily: "Lato",
-    fontSize: 16,
-    marginBottom: 20,
-    textAlign: "center",
+    fontWeight: "bold",
   },
   overlay: {
     position: "absolute",
@@ -368,4 +400,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
+  menuItemLogout: {
+    padding: 12,
+    backgroundColor: "#FF5C5C", // Bright red for logout
+    borderRadius: 15,
+    marginHorizontal: 2,
+  },
+  menuItemLogoutText: {
+    fontSize: 16,
+    color: "#FFFFFF", // White for readability
+    textAlign: "center",
+    fontWeight: "bold",
+  },
+  
 });
