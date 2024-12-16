@@ -3,6 +3,7 @@ import {
   getFirestore,
   collection,
   doc,
+  doc,
   onSnapshot,
   updateDoc,
   arrayUnion,
@@ -24,16 +25,20 @@ export const PetProvider = ({ children }) => {
   const db = getFirestore(); // Firestore instance
   const auth = getAuth();
   const user = auth.currentUser;
+  const auth = getAuth();
+  const user = auth.currentUser;
 
   // Fetch pets from Firestore when the provider is mounted
   useEffect(() => {
     if (!user) {
       console.log("User not logged in. Skipping pet fetch.");
       return;
+      return;
     }
 
     // Real-time listener for pets collection
     const petCollection = collection(db, "listed_pets");
+    const unsubscribePets = onSnapshot(petCollection, (snapshot) => {
     const unsubscribePets = onSnapshot(petCollection, (snapshot) => {
       const petList = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -165,24 +170,45 @@ export const PetProvider = ({ children }) => {
     }
 
     if (filters.age) {
-      filtered = filtered.filter(
-        (pet) => Number(pet.petAge) === Number(filters.age)
-      );
+      filtered = filtered.filter((pet) => {
+        // Ensure pet.age exists and is a string
+        if (!pet.petAge || typeof pet.petAge !== "string") return false;
+    
+        const yearPattern = /^(\d+)\s*years?$/i; // Matches "8 years" or "1 year" (case-insensitive)
+        const numericAgePattern = /^\d+$/; // Matches purely numeric values like "8"
+    
+        // Check if pet.age matches the "years" format
+        const match = pet.petAge.match(yearPattern);
+        const isAgeNumeric = numericAgePattern.test(pet.petAge);
+    
+        if (!match && !isAgeNumeric) return false; // Exclude if not a valid year format
+    
+        // Extract numeric part if it's in "X years" format, else parse numeric-only age
+        const petAgeValue = match ? parseInt(match[1], 10) : parseInt(pet.petAge, 10);
+        const filterAgeValue = parseInt(filters.age, 10);
+    
+        return petAgeValue === filterAgeValue; // Compare only numeric years
+      });
     }
 
     if (filters.weight) {
-      filtered = filtered.filter(
-        (pet) => Number(pet.petWeight) === Number(filters.weight)
-      );
+      filtered = filtered.filter((pet) => {
+        // Strip "kg" from both filter input and pet.petWeight
+        const numericPetWeight = pet.petWeight.replace(/[^0-9]/g, "");
+        const numericFilterWeight = filters.weight.replace(/[^0-9]/g, "");
+    
+        return numericPetWeight === numericFilterWeight;
+      });
     }
 
-    if (filters.personality && filters.personality.length > 0) {
+    if (filters.personality.length > 0) {
       filtered = filtered.filter((pet) =>
         filters.personality.some((trait) => pet.petPersonality.includes(trait))
       );
     }
 
     if (filters.vaccinated !== null) {
+      // This is the updated logic for the vaccinated filter
       filtered = filtered.filter(
         (pet) => pet.petVaccinated === filters.vaccinated
       );

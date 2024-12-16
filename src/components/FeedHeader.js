@@ -124,6 +124,7 @@ const FeedHeader = ({}) => {
       age: selectedAge,
       weight: selectedWeight,
       personality: selectedPersonality,
+      petType: selectedPetType, // Add pet type filter
       vaccinated: vaccinated,
       adoptionFee: selectedAdoptionFee, // Updated filter for adoption fee
       petType: selectedPetType, // Add pet type filter
@@ -136,6 +137,7 @@ const FeedHeader = ({}) => {
     setSelectedAge(""); // Reset age filter
     setSelectedWeight(""); // Reset weight filter
     setSelectedPersonality([]); // Reset personality filter
+    setSelectedPetType(""); // Reset pet type filter
     setVaccinated(null); // Reset vaccinated filter
     setSelectedAdoptionFee(""); // Reset adoption fee filter
     setSelectedPetType(""); // Reset pet type filter

@@ -35,6 +35,7 @@ const Profile = () => {
     address: "",
     houseType: "Not Indicated",
     hasPet: "Not Indicated",
+    bio: null,
   });
   const [editableInfo, setEditableInfo] = useState(profileInfo);
   const [isModalVisible, setModalVisible] = useState(false);
@@ -197,6 +198,11 @@ const Profile = () => {
           </TouchableOpacity>
 
           <View style={styles.header}>
+            {/* Default Cover Photo */}
+            <Image
+              style={styles.coverImage}
+              source={require("../../assets/Profile/default1.png")}
+            />
             <Image
               style={styles.profileImage}
               source={
@@ -207,7 +213,9 @@ const Profile = () => {
             />
 
             <Text style={styles.profileName}>{profileInfo.name}</Text>
-            <Text style={styles.profileStatus}>Active • Devoted Pet Owner</Text>
+            <Text style={styles.profileStatus}>
+              {profileInfo.bio || "Add Bio"} 
+            </Text>
           </View>
 
           {/* Profile Details */}
@@ -297,6 +305,17 @@ const Profile = () => {
                     activeOutlineColor="#68C2FF"
                     autoCapitalize="words"
                   />
+                  <TextInput
+                  style={styles.input}
+                  placeholder="Add a bio"
+                  value={editableInfo.bio || ""} // Show empty input if bio is null
+                  onChangeText={(text) =>
+                    setEditableInfo((prevState) => ({ ...prevState, bio: text }))
+                  }
+                  mode="outlined"
+                  outlineColor="transparent"
+                  activeOutlineColor="#68C4AF"
+                />
                   <TextInput
                     style={styles.input}
                     placeholder="Email"
@@ -464,6 +483,11 @@ const styles = StyleSheet.create({
     marginTop: 60,
     marginBottom: 20,
   },
+  coverImage: {
+    width: "100%",
+    height: 200,
+    resizeMode: "cover",
+  },
   profileImage: {
     width: 244,
     height: 244,
@@ -475,7 +499,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lilita",
     fontSize: 24,
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 20,
   },
   profileStatus: {
     fontFamily: "Lilita",
@@ -639,6 +663,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 40,
+    position: "absolute",
+    bottom: -50,
+    alignSelf: "center",
+    overflow: "hidden",
   },
   profileImage: {
     width: 240,
@@ -646,6 +674,7 @@ const styles = StyleSheet.create({
     borderRadius: 120, // Ensures the image is circular
     borderColor: "#68C2FF",
     borderWidth: 5,
+    marginTop: -150,
   },
   editProfileImage: {
     width: 30,
