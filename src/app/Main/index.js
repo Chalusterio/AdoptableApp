@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { FontAwesome } from "@expo/vector-icons";
@@ -34,7 +35,7 @@ const Feed = () => {
   const { pets } = usePets();
   const router = useRouter();
   const { filteredPets, setFilteredPets } = usePets();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Loading state for initial fetch
   const [selectedItem, setSelectedItem] = useState("Main");
 
   const selectedImages = params.selectedImages
@@ -57,7 +58,6 @@ const Feed = () => {
 
   const [refreshing, setRefreshing] = useState(false); // State to handle refresh loading
 
-  // Update this to fetch preferences and rank pets when refresh is triggered
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchPreferencesAndRankPets(true); // Pass `true` to indicate that it's a refresh
@@ -85,12 +85,12 @@ const Feed = () => {
               userFavoritesIds.forEach((id) => (newState[id] = true));
               return newState;
             });
-            console.log("User favorites fetched successfully.");
+            
           }
         } catch (error) {
           console.error("Error fetching user favorites:", error);
         } finally {
-          setLoading(false);
+          setLoading(false); // Set loading to false when user favorites are fetched
         }
       }
     };
@@ -138,28 +138,25 @@ const Feed = () => {
   const fetchPreferencesAndRankPets = async (isRefresh = false) => {
     const user = auth.currentUser;
     if (!user) return;
-  
+
     console.log("Fetching preferences and ranking pets...");
     try {
       const preferencesQuery = query(collection(db, "preferences"), where("userEmail", "==", user.email));
       const preferencesSnapshot = await getDocs(preferencesQuery);
-  
+
       let rankedPets = pets.map((pet) => {
         let score = 0;
-  
+
         if (preferencesSnapshot.empty) {
-          // No preferences, so just return the pet as is
-          return { ...pet, score: 0 }; // Default score 0 for no match
+          return { ...pet, score: 0 };
         }
-  
+
         const userPreferences = preferencesSnapshot.docs[0].data();
-  
-        // Matching personality
+
         if (pet.petPersonality && pet.petPersonality.includes(userPreferences.personalityLabel)) {
-          score += 1; // Add score for personality match
+          score += 1;
         }
-  
-        // Matching pet size based on weight and label
+
         const petWeight = parseInt(pet.petWeight, 10);
         let matchesSizeLabel = false;
         const sizeRangeMatch = userPreferences.petSizeLabel.match(/(\d+)-(\d+)/);
@@ -168,47 +165,39 @@ const Feed = () => {
           const maxSize = parseInt(sizeRangeMatch[2], 10);
           matchesSizeLabel = petWeight >= minSize && petWeight <= maxSize;
           if (matchesSizeLabel) {
-            score += 1; // Add score for size match
+            score += 1;
           }
         }
-  
-        // Matching gender
+
         const matchesGender = userPreferences.selectedGender === "any" || (pet.petGender && pet.petGender.toLowerCase() === userPreferences.selectedGender.toLowerCase());
         if (matchesGender) {
-          score += 1; // Add score for gender match
+          score += 1;
         }
-  
-        // Matching pet type
+
         const matchesPetType = userPreferences.selectedPet === "any" || (pet.petType && pet.petType.toLowerCase() === userPreferences.selectedPet.toLowerCase());
         if (matchesPetType) {
-          score += 1; // Add score for pet type match
+          score += 1;
         }
-  
-        // Add a ranking property to each pet for sorting
+
         return { ...pet, score };
       });
-  
-      // If no preferences are matched, just return all pets as they are
+
       if (preferencesSnapshot.empty) {
-        rankedPets = pets.map((pet) => ({ ...pet, score: 0 })); // Default score 0 for all pets
+        rankedPets = pets.map((pet) => ({ ...pet, score: 0 }));
       }
-  
-      // Sort pets based on the score
+
       rankedPets = rankedPets.sort((a, b) => b.score - a.score);
-  
-      // Shuffle pets only if it's a refresh
+
       const shuffledPets = isRefresh ? shuffleArray(rankedPets) : rankedPets;
-  
+
       setFilteredPets(shuffledPets);
-      console.log(`Ranked pets: ${shuffledPets.length} pets ranked and shuffled based on preferences.`);
     } catch (error) {
       console.error("Error fetching user preferences:", error);
     } finally {
-      setLoading(false);
+      setLoading(false); // Set loading to false once the preferences are fetched
     }
   };
-  
-  // Shuffle function
+
   const shuffleArray = (array) => {
     let shuffledArray = [...array];
     for (let i = shuffledArray.length - 1; i > 0; i--) {
@@ -220,7 +209,7 @@ const Feed = () => {
 
   useEffect(() => {
     fetchPreferencesAndRankPets(); // Initial fetch when the component mounts
-  }, [pets]); // Depend on pets so it re-runs when pets data changes
+  }, [pets]);
 
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets[item.id];
@@ -273,17 +262,24 @@ const Feed = () => {
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
       <SafeAreaView style={styles.safeArea}>
         <FeedHeader setFilteredPets={setFilteredPets} />
-        <FlatList
-          data={filteredPets}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.container}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        />
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#68C2FF" />
+            <Text style={styles.loadingText}>Loading pets...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredPets}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={styles.container}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          />
+        )}
       </SafeAreaView>
     </SideBar>
   );

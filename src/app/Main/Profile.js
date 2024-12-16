@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {View,Text,StyleSheet,Image,TouchableOpacity,ScrollView,Modal,ActivityIndicator,} from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, ActivityIndicator, } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker"; // Import the Picker
 import { auth, signOut, db } from "../../../firebase"; // Ensure this imports your Firebase setup
-import {getDocs,collection,query,where,updateDoc,doc,} from "firebase/firestore";
+import { getDocs, collection, query, where, updateDoc, doc, } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const Profile = () => {
@@ -21,7 +21,7 @@ const Profile = () => {
     hasPet: "Not Indicated",
     bio: "", // Add bio field here
   });
-  
+
   const [editableInfo, setEditableInfo] = useState(profileInfo);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isLogoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
@@ -43,7 +43,7 @@ const Profile = () => {
           const usersCollectionRef = collection(db, "users");
           const q = query(usersCollectionRef, where("email", "==", user.email));
           const querySnapshot = await getDocs(q);
-  
+
           if (!querySnapshot.empty) {
             querySnapshot.forEach((doc) => {
               const userData = doc.data();
@@ -70,7 +70,7 @@ const Profile = () => {
                   });
                 }
               });
-  
+
               // Set the profile data including bio
               setProfileInfo({
                 ...userData,
@@ -95,10 +95,10 @@ const Profile = () => {
     };
     fetchUserData();
   }, []); // Empty dependency array, will run once when component mounts
-  
+
   const handleSave = async () => {
     if (isSaving) return; // Prevent multiple clicks
-  
+
     setIsSaving(true); // Start the loading state
     try {
       const user = auth.currentUser;
@@ -109,7 +109,7 @@ const Profile = () => {
           contactNumber: editableInfo.phone,
           bio: editableInfo.bio, // Save bio field
         };
-  
+
         // Upload profile picture if exists
         if (editableInfo.image?.uri) {
           const fileName = `profilePictures/${user.uid}/profile.jpg`;
@@ -131,7 +131,7 @@ const Profile = () => {
             return;
           }
         }
-  
+
         // Upload cover photo if exists
         if (coverImage?.uri) {
           const coverFileName = `coverPhotos/${user.uid}/cover.jpg`;
@@ -153,7 +153,7 @@ const Profile = () => {
             return;
           }
         }
-  
+
         await updateDoc(userRef, updatedData); // Update Firestore document with all changes
         setProfileInfo(updatedData);
         setEditConfirmVisible(false);
@@ -165,15 +165,15 @@ const Profile = () => {
     } finally {
       setIsSaving(false); // End the loading state
     }
-  
+
     if (!editableInfo.address) {
       setIsAddressEmpty(true); // Set state to true if address is empty
     } else {
       setIsAddressEmpty(false); // Clear the validation if address is filled
     }
   };
-  
-  
+
+
 
   const handleEditPress = () => {
     setEditableInfo(profileInfo);
@@ -216,20 +216,20 @@ const Profile = () => {
       alert("Permission to access camera roll is required!");
       return;
     }
-  
+
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [16, 9],  // Aspect ratio for cover photo
       quality: 1,
     });
-  
+
     if (!pickerResult.canceled) {
       const imageUri = pickerResult.assets[0].uri;
       setCoverImage({ uri: imageUri });  // Store cover image URI
     }
   };
-  
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -242,15 +242,15 @@ const Profile = () => {
           <View style={styles.header}>
             {/* Cover Photo */}
             <Image
-            style={styles.coverImage}
-            source={
-              profileInfo.coverPhoto
-                ? { uri: profileInfo.coverPhoto } // Use the cover photo URL from Firestore
-                : coverImage?.uri
-                ? { uri: coverImage.uri }  // Temporary cover photo if selected
-                : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
-            }
-          />
+              style={styles.coverImage}
+              source={
+                profileInfo.coverPhoto
+                  ? { uri: profileInfo.coverPhoto } // Use the cover photo URL from Firestore
+                  : coverImage?.uri
+                    ? { uri: coverImage.uri }  // Temporary cover photo if selected
+                    : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+              }
+            />
 
 
             <Image
@@ -262,10 +262,17 @@ const Profile = () => {
               }
             />
 
+
             <Text style={styles.profileName}>{profileInfo.name}</Text>
-            <Text style={styles.bioText}>
-              {profileInfo.bio || "Add bio"}
+            <Text
+              style={[
+                styles.bioText,
+                !profileInfo.bio && styles.noBioText, // Apply `noBioText` style when bio is not set
+              ]}
+            >
+              {profileInfo.bio || "No bio set"}
             </Text>
+
           </View>
 
           {/* Profile Details */}
@@ -318,9 +325,9 @@ const Profile = () => {
                 <Text style={styles.modalTitle}>Edit Profile</Text>
 
                 <ScrollView contentContainerStyle={styles.scrollViewContent2}>
-                  
+
                   <View style={styles.uploadContainer}>
-                  <TouchableOpacity
+                    <TouchableOpacity
                       style={styles.pickCoverImage}
                       onPress={pickCoverImage}
                     >
@@ -330,8 +337,8 @@ const Profile = () => {
                           editableInfo.coverImage
                             ? { uri: editableInfo.coverImage } // Use the saved cover photo if available
                             : coverImage?.uri
-                            ? { uri: coverImage.uri }  // Temporary cover photo if selected
-                            : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+                              ? { uri: coverImage.uri }  // Temporary cover photo if selected
+                              : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
                         }
                       />
                       <TouchableOpacity
@@ -352,8 +359,8 @@ const Profile = () => {
                           editableInfo.image?.uri
                             ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
                             : profileInfo.profilePicture
-                            ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
-                            : require("../../assets/Profile/dp.png") // Default image if no profile picture
+                              ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
+                              : require("../../assets/Profile/dp.png") // Default image if no profile picture
                         }
                       />
                       <TouchableOpacity
@@ -417,12 +424,12 @@ const Profile = () => {
                     autoCapitalize="sentences"
                   />
                   <TextInput
-                      label="Address"
-                      value={editableInfo.address}
-                      onChangeText={(text) => setEditableInfo({ ...editableInfo, address: text })}
-                      style={[styles.inputField, isAddressEmpty && styles.inputError]}
-                    />
-                    {isAddressEmpty && <Text style={styles.errorText}>Address is required</Text>}
+                    label="Address"
+                    value={editableInfo.address}
+                    onChangeText={(text) => setEditableInfo({ ...editableInfo, address: text })}
+                    style={[styles.inputField, isAddressEmpty && styles.inputError]}
+                  />
+                  {isAddressEmpty && <Text style={styles.errorText}>Address is required</Text>}
 
                   <View style={styles.input2}>
                     <Picker
@@ -745,7 +752,7 @@ const styles = StyleSheet.create({
     height: 210, // Adjust as needed
     resizeMode: "cover",
     marginBottom: 10,
-    marginTop:-20, // Space below cover photo
+    marginTop: -20, // Space below cover photo
   },
   header: {
     alignItems: "center",
@@ -771,11 +778,15 @@ const styles = StyleSheet.create({
   },
   bioText: {
     fontSize: 16,
-    fontFamily: "Lilita",  
+    fontFamily: "Lilita",
     color: "#68C2FF",
     textAlign: "center",
     marginVertical: 30,
-    marginBottom:-5,
+    marginBottom: -5,
+  },
+  noBioText: {
+    color: '#777',
+    textAlign: 'center',
   },
   errorText: {
     color: "red",
@@ -788,9 +799,9 @@ const styles = StyleSheet.create({
     height: 220, // Adjust as needed
     resizeMode: "cover",
     marginBottom: 10,
-    marginTop:-20, // Space below cover photo
+    marginTop: -20, // Space below cover photo
   },
-  
+
 });
 
 export default Profile;

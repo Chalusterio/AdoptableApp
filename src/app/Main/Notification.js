@@ -78,13 +78,21 @@ const Notification = () => {
         let formattedTime = "";
         let timestamp = 0;
         if (petRequest.status === "Pending") {
-          formattedTime = moment(petRequest.requestDate.seconds * 1000).fromNow();
+          formattedTime = moment(
+            petRequest.requestDate.seconds * 1000
+          ).fromNow();
+          timestamp = petRequest.requestDate.seconds * 1000;
         } else if (petRequest.status === "Accepted") {
-          formattedTime = moment(petRequest.acceptDate.seconds * 1000).fromNow();
+          formattedTime = moment(
+            petRequest.acceptDate.seconds * 1000
+          ).fromNow();
+          timestamp = petRequest.acceptDate.seconds * 1000;
         } else if (petRequest.status === "Rejected") {
-          formattedTime = moment(petRequest.rejectDate.seconds * 1000).fromNow();
+          formattedTime = moment(
+            petRequest.rejectDate.seconds * 1000
+          ).fromNow();
+          timestamp = petRequest.rejectDate.seconds * 1000;
         }
-  
         // Handle the Pending request notification
         if (
           petRequest.status === "Pending" &&
@@ -213,12 +221,22 @@ const Notification = () => {
         collection(db, "finalized_adoption"),
         where("petRequestDetails.listedBy", "==", currentUser.email) // Lister notifications
       );
-  
+
       const fetchFinalizedAdoptions = async () => {
         const createNotification = (doc, isAdopter) => {
           const data = doc.data();
-          const formattedTime = moment(data.dateFinalized).fromNow();
-  
+          const finalizedDate = new Date(data.dateFinalized); // Parse the ISO string into a Date object
+          const formattedTime = moment(finalizedDate).fromNow(); // Use moment to format
+          const timestamp = finalizedDate.getTime(); // Get UNIX timestamp
+
+          const notificationId = isAdopter
+            ? `${doc.id}-finalized-adopter`
+            : `${doc.id}-finalized-lister`;
+
+          // Check if the notification already exists
+          if (notificationsList.some((notif) => notif.id === notificationId)) {
+            return; // Skip duplicate notification
+          }
           if (isAdopter) {
             notificationsList.push({
               id: `${doc.id}-finalized-adopter`,
@@ -245,12 +263,14 @@ const Notification = () => {
               name: "System Notification",
               content: (
                 <Text>
-                  {data.petRequestDetails.name || "Adopter"} has finalized the adoption of{" "}
-                  <Text style={styles.boldText}>{data.petRequestDetails.petName || "their pet"}</Text>. 
-                  Check the process here.
+                  {data.petRequestDetails.name || "Adopter"} has finalized the
+                  adoption of{" "}
+                  <Text style={styles.boldText}>
+                    {data.petRequestDetails.petName || "their pet"}
+                  </Text>
+                  . Check the process here.
                 </Text>
               ),
-              
               time: formattedTime,
               timestamp,
               action: () => router.push("/Main/Track"),
@@ -272,13 +292,12 @@ const Notification = () => {
           console.error("Error fetching finalized adoptions:", error);
         }
       };
-  
+
       fetchFinalizedAdoptions();
     });
 
     return () => unsubscribe();
   }, [currentUser, users, router]);
-  
 
   const fetchUserDetails = async (email) => {
     try {
@@ -303,6 +322,20 @@ const Notification = () => {
     }
   };
 
+  const deleteNotification = (id) => {
+    setNotifications((prevNotifications) =>
+      prevNotifications.filter((notif) => notif.id !== id)
+    );
+  };
+
+  const renderRightActions = (id) => (
+    <TouchableOpacity
+      style={styles.deleteButton}
+      onPress={() => deleteNotification(id)}
+    >
+      <Text style={styles.deleteText}>Delete</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -318,36 +351,36 @@ const Notification = () => {
             <Text style={styles.loadingText}>No notifications available</Text>
           </View>
         ) : (
-            notifications.map((notif) => (
-              <Swipeable
-                key={notif.id}
-                renderRightActions={() => renderRightActions(notif.id)}
+          notifications.map((notif) => (
+            <Swipeable
+              key={notif.id}
+              renderRightActions={() => renderRightActions(notif.id)}
+            >
+              <View style={styles.horizontalLine}></View>
+              <TouchableOpacity
+                style={styles.notifButton}
+                onPress={notif.action}
+                disabled={!notif.action}
               >
-                <TouchableOpacity
-                  style={styles.notifButton}
-                  onPress={notif.action}
-                  disabled={!notif.action}
-                >
-                  {notif.image ? (
-                    <Image style={styles.notifImage} source={notif.image} />
-                  ) : (
-                    <View style={styles.iconContainer}>
-                      <FontAwesome name="user-circle" size={70} color="#333" />
-                    </View>
-                  )}
-                  <View style={styles.notificationContainer}>
-                    <View style={styles.notifTextContainer}>
-                      <Text style={styles.notifName}>{notif.name}</Text>
-                      <Text style={styles.notifContent}>{notif.content}</Text>
-                    </View>
-                    <View style={styles.timeContainer}>
-                      <Text style={styles.notifTime}>{notif.time}</Text>
-                    </View>
+                {notif.image ? (
+                  <Image style={styles.notifImage} source={notif.image} />
+                ) : (
+                  <View style={styles.iconContainer}>
+                    <FontAwesome name="user-circle" size={70} color="#333" />
                   </View>
-                </TouchableOpacity>
-                <View style={styles.horizontalLine}></View>
-              </Swipeable>
-            ))
+                )}
+                <View style={styles.notificationContainer}>
+                  <View style={styles.notifTextContainer}>
+                    <Text style={styles.notifName}>{notif.name}</Text>
+                    <Text style={styles.notifContent}>{notif.content}</Text>
+                  </View>
+                  <View style={styles.timeContainer}>
+                    <Text style={styles.notifTime}>{notif.time}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </Swipeable>
+          ))
         )}
       </ScrollView>
     </SafeAreaView>
@@ -455,7 +488,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     textAlign: "center",
     color: "#888",
-    
   },
   deleteButton: {
     justifyContent: "center",
