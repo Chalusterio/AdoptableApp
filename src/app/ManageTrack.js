@@ -9,13 +9,17 @@ import {
   Modal,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { useNavigation } from "@react-navigation/native";
 import { RadioButton } from "react-native-paper";
-
-
+import { useNavigation } from "@react-navigation/native"; // Import useNavigation hook
 
 // Reusable Transaction Card Component
-const TransactionCard = ({ status, trackingNumber, petName, destination, onUpdateStatus }) => {
+const TransactionCard = ({
+  status,
+  trackingNumber,
+  petName,
+  destination,
+  onUpdateStatus,
+}) => {
   const statusStyles = {
     ToShip: { backgroundColor: "#FFB366", text: "To Ship" },
     Delivered: { backgroundColor: "#5DB075", text: "Delivered" },
@@ -29,7 +33,10 @@ const TransactionCard = ({ status, trackingNumber, petName, destination, onUpdat
       <Text style={styles.cardText}>
         <Text style={styles.cardLabel}>Current Status: </Text>
         <View
-          style={[styles.statusBadge, { backgroundColor: currentStatusStyle.backgroundColor }]}
+          style={[
+            styles.statusBadge,
+            { backgroundColor: currentStatusStyle.backgroundColor },
+          ]}
         >
           <Text style={styles.statusText}>{currentStatusStyle.text}</Text>
         </View>
@@ -46,10 +53,7 @@ const TransactionCard = ({ status, trackingNumber, petName, destination, onUpdat
         <Text style={styles.cardLabel}>Destination: </Text>
         {destination}
       </Text>
-      <TouchableOpacity
-        style={styles.updateButton}
-        onPress={onUpdateStatus} // Trigger modal open here
-      >
+      <TouchableOpacity style={styles.updateButton} onPress={onUpdateStatus}>
         <Text style={styles.updateButtonText}>Update Status</Text>
       </TouchableOpacity>
     </View>
@@ -58,34 +62,40 @@ const TransactionCard = ({ status, trackingNumber, petName, destination, onUpdat
 
 export default function ManageTrack() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSidebarVisible, setSidebarVisible] = useState(false);
-  const [isModalVisible, setModalVisible] = useState(false); // State for modal visibility
-  const [selectedStatus, setSelectedStatus] = useState(""); // State to store selected status
-  const navigation = useNavigation();
-
-  const handleLogout = () => {
-    console.log("Logged out");
-    navigation.goBack(); // Simulate exit
-  };
+  const [isMenuModalVisible, setMenuModalVisible] = useState(false); // State for menu modal
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const navigation = useNavigation(); // Initialize navigation
 
   const handleSearch = () => {
     console.log("Search term:", searchQuery);
   };
 
   const handleUpdateStatus = () => {
-    // Trigger modal visibility
     setModalVisible(true);
   };
 
   const handleCloseModal = () => {
-    setModalVisible(false); // Close modal
+    setModalVisible(false);
   };
 
   const handleStatusChange = (value) => {
-    setSelectedStatus(value); // Update selected status
+    setSelectedStatus(value);
   };
 
-  // SAMPLE DATA
+  const handleOpenMenuModal = () => {
+    setMenuModalVisible(true);
+  };
+
+  const handleCloseMenuModal = () => {
+    setMenuModalVisible(false);
+  };
+
+  const handleLogout = () => {
+    setMenuModalVisible(false); // Close the modal
+    navigation.navigate("Login"); // Navigate to the Login screen
+  };
+
   const transactions = [
     {
       status: "ToShip",
@@ -115,31 +125,9 @@ export default function ManageTrack() {
 
   return (
     <View style={styles.container}>
-      {/* Sidebar */}
-      <Modal
-        transparent
-        visible={isSidebarVisible}
-        animationType="slide"
-        onRequestClose={() => setSidebarVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.overlay}
-          onPress={() => setSidebarVisible(false)}
-        />
-        <View style={styles.sidebar}>
-          <Text style={styles.sidebarTitle}>Menu</Text>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Icon name="logout" size={20} color="white" />
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
 
       {/* Search Bar */}
       <View style={styles.searchBar}>
-        <TouchableOpacity onPress={() => setSidebarVisible(true)}>
-          <Icon name="menu" size={28} color="#444" style={styles.menuIcon} />
-        </TouchableOpacity>
         <Icon name="search" size={24} color="#444" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
@@ -149,10 +137,13 @@ export default function ManageTrack() {
           value={searchQuery}
           onSubmitEditing={handleSearch}
         />
+        <TouchableOpacity onPress={handleOpenMenuModal}>
+          <Icon name="more-horiz" size={24} color="black" />
+        </TouchableOpacity>
       </View>
 
       {/* Title */}
-      <Text style={styles.transactionListTitle}>Transaction List</Text>
+      <Text style={styles.transactionListTitle}>Manage Tracking</Text>
 
       {/* Transaction Cards */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -163,10 +154,29 @@ export default function ManageTrack() {
             trackingNumber={item.trackingNumber}
             petName={item.petName}
             destination={item.destination}
-            onUpdateStatus={handleUpdateStatus} // Pass handler to card
+            onUpdateStatus={handleUpdateStatus}
           />
         ))}
       </ScrollView>
+
+      {/* Menu Modal */}
+      <Modal
+        transparent
+        visible={isMenuModalVisible}
+        animationType="fade"
+        onRequestClose={handleCloseMenuModal}
+      >
+        <TouchableOpacity
+          style={styles.overlay}
+          onPress={handleCloseMenuModal} // Close modal when clicking outside
+        />
+        <View style={styles.menuModalContainer}>
+          <Text style={styles.modalMessage}>Are you sure you want to log out?</Text>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
 
       {/* Modal for Update Status */}
       <Modal
@@ -175,25 +185,27 @@ export default function ManageTrack() {
         animationType="fade"
         onRequestClose={handleCloseModal}
       >
-        <TouchableOpacity
-          style={styles.overlay}
-          onPress={handleCloseModal}
-        />
+        <TouchableOpacity style={styles.overlay} onPress={handleCloseModal} />
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Update Status</Text>
           <View style={styles.statusOptions}>
             <RadioButton.Group
               onValueChange={(newValue) => handleStatusChange(newValue)}
-              value={selectedStatus} // Selected radio button
+              value={selectedStatus}
             >
-              {["Preparing", "Shipped", "In Transit", "In Delivery", "Delivered", "Canceled"].map(
-                (status, index) => (
-                  <View key={index} style={styles.radioContainer}>
-                    <RadioButton value={status} color="#68C2FF" />
-                    <Text style={styles.statusOptionText}>{status}</Text>
-                  </View>
-                )
-              )}
+              {[
+                "Preparing",
+                "Shipped",
+                "In Transit",
+                "In Delivery",
+                "Delivered",
+                "Canceled",
+              ].map((status, index) => (
+                <View key={index} style={styles.radioContainer}>
+                  <RadioButton value={status} color="#68C2FF" />
+                  <Text style={styles.statusOptionText}>{status}</Text>
+                </View>
+              ))}
             </RadioButton.Group>
           </View>
           <TouchableOpacity
@@ -216,6 +228,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
+  logoutButton: {
+    backgroundColor: "#EF5B5B",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 20,
+    alignSelf: "center",
+  },
+  logoutButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -226,9 +251,6 @@ const styles = StyleSheet.create({
     width: "88%",
     alignSelf: "center",
     marginTop: 20,
-  },
-  menuIcon: {
-    marginRight: 8,
   },
   searchIcon: {
     marginRight: 8,
@@ -258,16 +280,11 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     padding: 15,
-    // Shadow for iOS
-    shadowColor: '#000', 
-    shadowOffset: {
-      width: 0,   
-      height: 0, 
-    },
-    shadowOpacity: 0.6,  
-    shadowRadius: 6,    
-    // Shadow for Android
-    elevation: 5, 
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 5,
   },
   cardText: {
     fontSize: 16,
@@ -326,13 +343,6 @@ const styles = StyleSheet.create({
   statusOptions: {
     marginBottom: 50,
   },
-  statusOption: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#F2F2F2",
-    borderRadius: 8,
-    marginVertical: 5,
-  },
   statusOptionText: {
     fontSize: 16,
     color: "#444",
@@ -348,17 +358,42 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
   },
-  overlay: {
+  menuModalContainer: {
+    flex: 0.3,
+    backgroundColor: "white",
+    padding: 20,
     position: "absolute",
-    top: 0,
+    bottom: 0,
     left: 0,
-    width: "100%",
-    height: "100%",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    right: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  modalMessage: {
+    fontFamily: "Lato",
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  logoutButton: {
+    backgroundColor: "#EF5B5B",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignSelf: "center",
+  },
+  logoutButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   radioContainer: {
-  flexDirection: "row",
-  alignItems: "center",
-  marginVertical: 5,
-},
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 5,
+  },
 });
