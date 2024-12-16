@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from "react-native";
+import { ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { query, where, getDocs, collection, updateDoc, doc } from "firebase/firestore";
@@ -94,10 +95,11 @@ export default function Screening() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color="#0047AB" style={styles.loadingIndicator} />
       </SafeAreaView>
     );
-  }
+  }  
+  
 
   if (!adopter) {
     return (
@@ -166,7 +168,7 @@ export default function Screening() {
 
             <View style={styles.detailsContainer}>
               <Icon name="home" size={24} color="#444444" style={styles.icon} />
-              <Text style={styles.detailsText}>House</Text>
+              <Text style={styles.detailsText}>{adopter.houseType || "Not Indicated"}</Text>
             </View>
 
             {/* Horizontal Line */}
@@ -174,7 +176,7 @@ export default function Screening() {
 
             <View style={styles.detailsContainer}>
               <Icon name="pets" size={24} color="#444444" style={styles.icon} />
-              <Text style={styles.detailsText}>Not Provided</Text>
+              <Text style={styles.detailsText}>{adopter.hasPet || "Not Indicated"}</Text>
             </View>
 
             {/* Horizontal Line */}
@@ -207,6 +209,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  loadingIndicator: {
+    marginTop: 20, // Optional: Adjust the spacing if needed
   },
   scrollViewContent: {
     paddingBottom: 0,

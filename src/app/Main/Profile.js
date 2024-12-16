@@ -297,7 +297,7 @@ const Profile = () => {
           <View style={styles.detailsContainer}>
             <Icon name="home" size={24} color="#444444" />
             <Text style={styles.detailsText}>
-              House Type: {profileInfo.houseType}
+              House Type: {profileInfo.houseType || "Not Indicated"}
             </Text>
           </View>
           <View style={styles.horizontalLine}></View>
@@ -305,7 +305,7 @@ const Profile = () => {
           <View style={styles.detailsContainer}>
             <Icon name="pets" size={24} color="#444444" />
             <Text style={styles.detailsText}>
-              Pet Owner: {profileInfo.hasPet}
+              Pet Owner: {profileInfo.hasPet || "Not Indicated"}
             </Text>
           </View>
           <View style={styles.horizontalLine}></View>

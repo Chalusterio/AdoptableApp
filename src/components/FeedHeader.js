@@ -73,23 +73,31 @@ const FeedHeader = ({}) => {
     getLocation();
   }, []);
 
-  // Debounce search functionality
   useEffect(() => {
     const filterPets = () => {
       if (searchQuery.trim() === "") {
         setFilteredPets(pets);
       } else {
-        const filtered = pets.filter(
-          (pet) => pet.petName.toLowerCase().includes(searchQuery.toLowerCase()) // Ensure case-insensitivity
-        );
+        const searchWords = searchQuery.toLowerCase().split(" "); // Split the query into words
+  
+        const filtered = pets.filter((pet) => {
+          // Check if all the search words appear in any of the pet's relevant fields
+          return searchWords.every((word) =>
+            pet.petName.toLowerCase().includes(word) ||
+            pet.petGender.toLowerCase().includes(word) ||
+            pet.petPersonality.toLowerCase().includes(word) ||
+            pet.petType.toLowerCase().includes(word)
+          );
+        });
+  
         setFilteredPets(filtered);
       }
     };
-
+  
     const timeoutId = setTimeout(filterPets, 300); // Debounce
     return () => clearTimeout(timeoutId); // Cleanup timeout
   }, [searchQuery, pets, setFilteredPets]);
-
+  
   // Handle filter button click
   const handleFilterClick = () => {
     if (isLoading) return; // Prevent further clicks if already loading
