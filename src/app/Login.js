@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ImageBackground,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import {
   useTheme,
@@ -20,6 +21,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { getUserData } from "../../firebase";
 import { auth, signInWithEmailAndPassword } from "../../firebase"; // Make sure to import Firebase auth methods
+import { persistSession } from "../../firebase"; // Make sure the path is correct
+
 
 export default function Login() {
   const theme = useTheme();
@@ -104,6 +107,7 @@ export default function Login() {
         password
       );
       const user = userCredential.user;
+      await persistSession(user);
 
       // Fetch user data from Firestore
       const userData = await getUserData(user.uid); // Using getUserData from your firebase.js
@@ -137,6 +141,7 @@ export default function Login() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <ScrollView>
       <View style={styles.container}>
         <View style={styles.backgroundContainer}>
           <ImageBackground
@@ -215,8 +220,8 @@ export default function Login() {
                 <Text style={styles.rememberText}>Remember me</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity>
-              <Text style={styles.forgotText}>Forgot Password</Text>
+            <TouchableOpacity onPress={() => router.push("./PasswordRecovery")}>
+              <Text style={styles.forgotText}>Forgot Password?</Text>
             </TouchableOpacity>
           </View>
 
@@ -264,6 +269,7 @@ export default function Login() {
           </Dialog>
         </Portal>
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
