@@ -220,8 +220,8 @@ export default function Login() {
                 <Text style={styles.rememberText}>Remember me</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => router.push("./PasswordRecovery")}>
-              <Text style={styles.forgotText}>Forgot Password?</Text>
+            <TouchableOpacity>
+              <Text style={styles.forgotText}>Forgot Password</Text>
             </TouchableOpacity>
           </View>
 

@@ -3,7 +3,6 @@ import {
   getFirestore,
   collection,
   doc,
-  doc,
   onSnapshot,
   updateDoc,
   arrayUnion,
@@ -25,20 +24,16 @@ export const PetProvider = ({ children }) => {
   const db = getFirestore(); // Firestore instance
   const auth = getAuth();
   const user = auth.currentUser;
-  const auth = getAuth();
-  const user = auth.currentUser;
 
   // Fetch pets from Firestore when the provider is mounted
   useEffect(() => {
     if (!user) {
       console.log("User not logged in. Skipping pet fetch.");
       return;
-      return;
     }
 
     // Real-time listener for pets collection
     const petCollection = collection(db, "listed_pets");
-    const unsubscribePets = onSnapshot(petCollection, (snapshot) => {
     const unsubscribePets = onSnapshot(petCollection, (snapshot) => {
       const petList = snapshot.docs.map((doc) => ({
         id: doc.id,
