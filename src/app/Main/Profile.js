@@ -421,10 +421,14 @@ const Profile = () => {
                     autoCapitalize="sentences"
                   />
                   <TextInput
-                    label="Address"
+                    placeholder="Address"
                     value={editableInfo.address}
                     onChangeText={(text) => setEditableInfo({ ...editableInfo, address: text })}
-                    style={[styles.inputField, isAddressEmpty && styles.inputError]}
+                    style={[styles.input, isAddressEmpty && styles.inputError]}
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="words"
                   />
                   {isAddressEmpty && <Text style={styles.errorText}>Address is required</Text>}
 
