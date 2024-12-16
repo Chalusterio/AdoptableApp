@@ -403,6 +403,7 @@ const styles = StyleSheet.create({
   locationHeader: {
     width: "100%",
     paddingLeft: -10,
+    paddingBottom: 20,
   },
   locationContainer: {
     flexDirection: "row",
