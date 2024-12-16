@@ -46,8 +46,10 @@ export default function AcceptAdoption() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FFFFFF" />
         <Text style={styles.loadingText}>Finalizing details...</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -100,6 +102,11 @@ const styles = StyleSheet.create({
     color: "white",
     margin: 20,
     textAlign: "center",
+  },
+  loadingContainer: {
+    flex: 1, // Takes up the full height
+    justifyContent: "center", // Centers the loading indicator vertically
+    alignItems: "center", // Centers the loading indicator horizontally
   },
   loadingText: {
     marginTop: 10,

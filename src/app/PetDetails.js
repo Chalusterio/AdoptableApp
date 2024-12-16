@@ -52,7 +52,6 @@ const PetDetails = () => {
   const [hasPendingRequest, setHasPendingRequest] = useState(false); // Track pending request
   const [isSubmitting, setIsSubmitting] = useState(false); // State to track submission status
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
-  const { favoritedPets, toggleFavorite } = usePets();
 
   useEffect(() => {
     // Check if the user is logged in
@@ -123,17 +122,7 @@ const PetDetails = () => {
     };
 
     checkPendingRequest();
-  }, [petName]);
-
-  useEffect(() => {
-    const isPetFavorited = favoritedPets.some((pet) => pet.petName === petName);
-    setIsFavorited(isPetFavorited);
-  }, [favoritedPets, petName]);
-
-  const handleFavoriteToggle = () => {
-    // Toggle the favorite status of the pet
-    toggleFavorite(petName, { petName, petType, petGender, petAge, petWeight, petDescription });
-  };
+  }, [ ]);
 
   const handleAdopt = () => {
     setModalVisible(true);
@@ -299,13 +288,6 @@ const PetDetails = () => {
                 )}
               </Text>
             </View>
-            <TouchableOpacity onPress={handleFavoriteToggle}>
-              <FontAwesome
-                name={isFavorited ? "heart" : "heart-o"}
-                size={24}
-                color="#FF6B6B"
-              />
-            </TouchableOpacity>
           </View>
           <Text
             style={styles.subText}

@@ -88,18 +88,6 @@ const PetDetailsEdit = () => {
     }
   }, [favoritedPets, petData]);
 
-  const handleFavoriteToggle = () => {
-    // Toggle the favorite status of the pet
-    toggleFavorite(petData.petName, {
-      petName,
-      petType,
-      petGender,
-      petAge,
-      petWeight,
-      petDescription,
-    });
-  };
-
   const onScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const imageWidth = Dimensions.get("window").width;
@@ -287,13 +275,6 @@ const PetDetailsEdit = () => {
                 )}
               </Text>
             </View>
-            <TouchableOpacity onPress={handleFavoriteToggle}>
-              <FontAwesome
-                name={isFavorited ? "heart" : "heart-o"}
-                size={24}
-                color="#FF6B6B"
-              />
-            </TouchableOpacity>
           </View>
           <Text
             style={styles.subText}

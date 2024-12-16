@@ -28,6 +28,7 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 import { getStorage, ref, getDownloadURL } from "firebase/storage"; // Firebase storage import
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const screenWidth = Dimensions.get("window").width; // Full screen width
 const adjustedWidth = screenWidth - 40; // Subtract 20 padding on both sides
@@ -35,6 +36,7 @@ const adjustedWidth = screenWidth - 40; // Subtract 20 padding on both sides
 export default function ApproveAdoption() {
   const router = useRouter();
   const { petRequestId } = useLocalSearchParams();
+  const [isFinalized, setIsFinalized] = useState(false);
 
   // State for adopter and pet details
   const [petRequestDetails, setPetRequestDetails] = useState({});
@@ -56,8 +58,11 @@ export default function ApproveAdoption() {
     useState("Motor Delivery");
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [newAddress, setNewAddress] = useState(petRequestDetails.address || "");
-  const [newPhoneNumber, setNewPhoneNumber] = useState(petRequestDetails.contactNumber || "");
-  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [newPhoneNumber, setNewPhoneNumber] = useState(
+    petRequestDetails.contactNumber || ""
+  );
+  const [confirmationModalVisible, setConfirmationModalVisible] =
+    useState(false);
   const scrollViewRef = useRef(null);
 
   // State for image URLs and scroll functionality
@@ -160,7 +165,6 @@ export default function ApproveAdoption() {
     fetchPetDetails();
     fetchPetRequestDetails();
 
-
     // Set the estimated delivery date
     const estimatedDate = getEstimatedDeliveryDate();
     setDeliveryDetails((prevDetails) => ({
@@ -193,7 +197,10 @@ export default function ApproveAdoption() {
     try {
       // Query Firestore to get the adopter document based on the email
       const userRef = collection(db, "users");
-      const q = query(userRef, where("email", "==", petRequestDetails.adopterEmail)); // Use adopter email for querying
+      const q = query(
+        userRef,
+        where("email", "==", petRequestDetails.adopterEmail)
+      ); // Use adopter email for querying
 
       const querySnapshot = await getDocs(q);
 
@@ -219,7 +226,10 @@ export default function ApproveAdoption() {
         // Close the edit modal
         setEditModalVisible(false);
       } else {
-        console.log("Adopter not found with email:", petRequestDetails.adopterEmail);
+        console.log(
+          "Adopter not found with email:",
+          petRequestDetails.adopterEmail
+        );
         alert("Adopter not found.");
       }
     } catch (error) {
@@ -244,15 +254,33 @@ export default function ApproveAdoption() {
     setConfirmationModalVisible(true);
   };
 
-  const handleConfirmFinalization  = async () => {
+  useEffect(() => {
+    const checkIfFinalized = async () => {
+      try {
+        const finalizedCollectionRef = collection(db, "finalized_adoption");
+        const q = query(finalizedCollectionRef, where("petRequestId", "==", petRequestId));
+        const querySnapshot = await getDocs(q);
+  
+        if (!querySnapshot.empty) {
+          setIsFinalized(true); // Adoption is already finalized
+        }
+      } catch (error) {
+        console.error("Error checking finalized status:", error);
+      }
+    };
+  
+    checkIfFinalized(); // Check if adoption is already finalized when component mounts
+  }, [petRequestId]);
+
+  const handleConfirmFinalization = async () => {
     if (!petRequestDetails.address) {
-      alert("Can't proceed without address");
+      alert("Can't proceed without an address");
       return;
     }
 
     try {
       const finalizedAdoptionData = {
-        petRequestId, // Reference to the original request
+        petRequestId,
         petRequestDetails,
         deliveryDetails,
         paymentMethod,
@@ -263,16 +291,35 @@ export default function ApproveAdoption() {
         dateFinalized: new Date().toISOString(),
       };
 
-      // Add to "finalized_adoption" collection
+      // Add finalized adoption to Firestore
       const finalizedCollectionRef = collection(db, "finalized_adoption");
       await addDoc(finalizedCollectionRef, finalizedAdoptionData);
 
-      router.push("/FinalizedAdoption"); // Navigate to FinalizedAdoption screen
+      // Update local state
+      setIsFinalized(true);
+      await AsyncStorage.setItem(`finalized-${petRequestId}`, "true"); // Persist state
+
+      router.push("/FinalizedAdoption"); // Navigate to the Finalized Adoption screen
     } catch (error) {
       console.error("Error finalizing adoption:", error);
       alert("Failed to finalize adoption. Please try again.");
     }
   };
+
+  useEffect(() => {
+    const checkFinalizedState = async () => {
+      const savedState = await AsyncStorage.getItem(
+        `finalized-${petRequestId}`
+      );
+      if (savedState === "true") {
+        setIsFinalized(true);
+      }
+    };
+
+    if (petRequestId) {
+      checkFinalizedState();
+    }
+  }, [petRequestId]);
 
   // Handle scroll event for pagination dots
   const onScroll = (event) => {
@@ -282,7 +329,12 @@ export default function ApproveAdoption() {
     setCurrentIndex(index);
   };
 
-  if (!petDetails || !petRequestDetails || !petDetails.petName || !petRequestDetails.name) {
+  if (
+    !petDetails ||
+    !petRequestDetails ||
+    !petDetails.petName ||
+    !petRequestDetails.name
+  ) {
     return <Text>Loading...</Text>;
   }
 
@@ -354,9 +406,13 @@ export default function ApproveAdoption() {
             <View style={styles.petRequestDetailsContainer}>
               <View style={styles.row}>
                 <Text style={styles.adopterName}>{petRequestDetails.name}</Text>
-                <Text style={styles.adopterContactNumber}>{petRequestDetails.contactNumber}</Text>
+                <Text style={styles.adopterContactNumber}>
+                  {petRequestDetails.contactNumber}
+                </Text>
               </View>
-              <Text style={styles.adopterAddress}>{petRequestDetails.address || "Address not provided"}</Text>
+              <Text style={styles.adopterAddress}>
+                {petRequestDetails.address || "Address not provided"}
+              </Text>
             </View>
             <TouchableOpacity
               style={styles.editButton}
@@ -441,10 +497,21 @@ export default function ApproveAdoption() {
               Total: ₱{calculateTotal().toFixed(2)}
             </Text>
             <TouchableOpacity
-              style={styles.finalizeButton}
-              onPress={handleShowConfirmationModal}
+              style={[
+                styles.finalizeButton,
+                isFinalized && styles.disabledButton, // Disabled style
+              ]}
+              onPress={isFinalized ? null : handleShowConfirmationModal} // Prevent further action if finalized
+              disabled={isFinalized} // Disable button if finalized
             >
-              <Text style={styles.finalizeButtonText}>Finalize Adoption</Text>
+              <Text
+                style={[
+                  styles.finalizeButtonText,
+                  isFinalized && styles.disabledButtonText,
+                ]}
+              >
+                {isFinalized ? "Adoption Finalized" : "Finalize Adoption"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -664,16 +731,16 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 10,
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#68C2FF',
+    backgroundColor: "#68C2FF",
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 10,
     marginLeft: 5,
   },
@@ -685,10 +752,10 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#444',
+    backgroundColor: "#444",
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 10,
     marginRight: 5,
   },
@@ -706,16 +773,16 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 10,
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#444',
+    backgroundColor: "#444",
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 10,
     marginRight: 5,
   },
@@ -727,10 +794,10 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     flex: 1,
-    backgroundColor: '#68C2FF',
+    backgroundColor: "#68C2FF",
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 10,
     marginLeft: 5,
   },
@@ -936,5 +1003,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "white",
     textAlign: "center",
+  },
+  disabledButton: {
+    backgroundColor: "#D3D3D3", // Gray background for disabled state
+  },
+  disabledButtonText: {
+    color: "#fff", // White text for disabled button
   },
 });

@@ -22,22 +22,16 @@ import SideBar from "../components/SideBar";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { usePets } from "../context/PetContext";
 
 const Upload = () => {
   const router = useRouter();
+  const { favoritedPets, toggleFavorite } = usePets(); // Import global state and function
   const [pets, setPets] = useState([]);
   const db = getFirestore();
   const auth = getAuth();
   const [selectedItem, setSelectedItem] = useState("Uploads");
-  const [favoritedPets, setFavoritedPets] = useState({});
   const [loading, setLoading] = useState(true);
-
-  const toggleFavorite = (petId) => {
-    setFavoritedPets((prevState) => ({
-      ...prevState,
-      [petId]: !prevState[petId],
-    }));
-  };
 
   useEffect(() => {
     const fetchUserPets = async () => {
@@ -90,7 +84,8 @@ const Upload = () => {
   };
 
   const renderItem = ({ item }) => {
-    const isFavorited = favoritedPets[item.id];
+    const isFavorited = favoritedPets.some((favPet) => favPet.id === item.id);
+
     return (
       <TouchableOpacity
         style={styles.card}
@@ -98,9 +93,10 @@ const Upload = () => {
         onPress={() => handlePetDetailsEdit(item)}
       >
         <View style={styles.imageContainer}>
+          {/* Favorite Button */}
           <TouchableOpacity
             style={styles.favoriteIconButton}
-            onPress={() => toggleFavorite(item.id)}
+            onPress={() => toggleFavorite(item.id, item)}
           >
             <FontAwesome
               name={isFavorited ? "heart" : "heart-o"}

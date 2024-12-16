@@ -18,6 +18,7 @@ import {
   setDoc,
   doc,
 } from "firebase/firestore";
+import Swipeable from "react-native-gesture-handler/Swipeable";
 import { db, auth } from "../../../firebase";
 import { FontAwesome } from "@expo/vector-icons";
 import moment from "moment";
@@ -35,20 +36,20 @@ const Notification = () => {
 
   useEffect(() => {
     if (!currentUser) return;
-  
+
     // Initialize the notifications list
     let notificationsList = [];
-  
+
     // First, handle pet requests
     const petRequestsQuery = query(
       collection(db, "pet_request"),
       where("status", "in", ["Pending", "Accepted", "Rejected"])
     );
-  
+
     const unsubscribe = onSnapshot(petRequestsQuery, async (querySnapshot) => {
       querySnapshot.forEach((doc) => {
         const petRequest = doc.data();
-        
+
         if (!users[petRequest.adopterEmail]) {
           fetchUserDetails(petRequest.adopterEmail).then((userDetails) => {
             if (userDetails) {
@@ -59,7 +60,7 @@ const Notification = () => {
             }
           });
         }
-  
+
         if (!users[petRequest.listedBy]) {
           fetchUserDetails(petRequest.listedBy).then((userDetails) => {
             if (userDetails) {
@@ -70,19 +71,28 @@ const Notification = () => {
             }
           });
         }
-  
+
         const adopter = users[petRequest.adopterEmail] || {};
         const petLister = users[petRequest.listedBy] || {};
-  
+
         let formattedTime = "";
+        let timestamp = 0;
         if (petRequest.status === "Pending") {
-          formattedTime = moment(petRequest.requestDate.seconds * 1000).fromNow();
+          formattedTime = moment(
+            petRequest.requestDate.seconds * 1000
+          ).fromNow();
+          timestamp = petRequest.requestDate.seconds * 1000;
         } else if (petRequest.status === "Accepted") {
-          formattedTime = moment(petRequest.acceptDate.seconds * 1000).fromNow();
+          formattedTime = moment(
+            petRequest.acceptDate.seconds * 1000
+          ).fromNow();
+          timestamp = petRequest.acceptDate.seconds * 1000;
         } else if (petRequest.status === "Rejected") {
-          formattedTime = moment(petRequest.rejectDate.seconds * 1000).fromNow();
+          formattedTime = moment(
+            petRequest.rejectDate.seconds * 1000
+          ).fromNow();
+          timestamp = petRequest.rejectDate.seconds * 1000;
         }
-  
         // Handle the Pending request notification
         if (
           petRequest.status === "Pending" &&
@@ -90,7 +100,9 @@ const Notification = () => {
         ) {
           notificationsList.push({
             id: doc.id,
-            image: adopter.profilePicture ? { uri: adopter.profilePicture } : null,
+            image: adopter.profilePicture
+              ? { uri: adopter.profilePicture }
+              : null,
             name: adopter.name || "Adopter",
             content: (
               <Text>
@@ -99,6 +111,7 @@ const Notification = () => {
               </Text>
             ),
             time: formattedTime,
+            timestamp,
             action: () =>
               router.push({
                 pathname: "/Screening",
@@ -110,22 +123,25 @@ const Notification = () => {
               }),
           });
         }
-  
+
         // Handle Accepted/Rejected notifications
-        if (currentUser.email === petRequest.listedBy && ["Accepted", "Rejected"].includes(petRequest.status)) {
+        if (
+          currentUser.email === petRequest.listedBy &&
+          ["Accepted", "Rejected"].includes(petRequest.status)
+        ) {
           const message =
             petRequest.status === "Accepted" ? (
               <Text>
-                You have accepted {adopter.name || "the adopter"}'s request to adopt{" "}
-                <Text style={styles.boldText}>{petRequest.petName}</Text>.
+                You have accepted {adopter.name || "the adopter"}'s request to
+                adopt <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             ) : (
               <Text>
-                You have rejected {adopter.name || "the adopter"}'s request to adopt{" "}
-                <Text style={styles.boldText}>{petRequest.petName}</Text>.
+                You have rejected {adopter.name || "the adopter"}'s request to
+                adopt <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             );
-  
+
           notificationsList.push({
             id: `${doc.id}-${petRequest.status}`,
             image: require("../../assets/Icon_white.png"),
@@ -135,7 +151,7 @@ const Notification = () => {
             action: null,
           });
         }
-  
+
         // Handle Accepted notifications for Adopters
         if (
           petRequest.status === "Accepted" &&
@@ -143,18 +159,21 @@ const Notification = () => {
         ) {
           notificationsList.push({
             id: doc.id,
-            image: petLister.profilePicture ? { uri: petLister.profilePicture } : null,
+            image: petLister.profilePicture
+              ? { uri: petLister.profilePicture }
+              : null,
             name: petLister.name || "Pet Lister",
             content: (
               <Text>
-                {petLister.name || "Pet Lister"} has accepted your request to adopt{" "}
-                <Text style={styles.boldText}>{petRequest.petName}.</Text>
+                {petLister.name || "Pet Lister"} has accepted your request to
+                adopt <Text style={styles.boldText}>{petRequest.petName}.</Text>
                 <Text style={styles.linkText}>
                   {"\n\n"}Click here for more details.
                 </Text>
               </Text>
             ),
             time: formattedTime,
+            timestamp,
             action: () =>
               router.push({
                 pathname: "/ApproveAdoption",
@@ -166,7 +185,7 @@ const Notification = () => {
               }),
           });
         }
-  
+
         // Handle Rejected notifications for Adopters
         if (
           petRequest.status === "Rejected" &&
@@ -174,36 +193,50 @@ const Notification = () => {
         ) {
           notificationsList.push({
             id: doc.id,
-            image: petLister.profilePicture ? { uri: petLister.profilePicture } : null,
+            image: petLister.profilePicture
+              ? { uri: petLister.profilePicture }
+              : null,
             name: petLister.name || "Pet Lister",
             content: (
               <Text>
-                {petLister.name || "Pet Lister"} has rejected your adoption request for{" "}
+                {petLister.name || "Pet Lister"} has rejected your adoption
+                request for{" "}
                 <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             ),
             time: formattedTime,
+            timestamp,
             action: null,
           });
         }
       });
-  
+
       // After handling pet requests, fetch finalized adoptions
       const finalizedAdoptionsQuery = query(
         collection(db, "finalized_adoption"),
         where("petRequestDetails.adopterEmail", "==", currentUser.email) // Adopter notifications
       );
-  
+
       const finalizedListerQuery = query(
         collection(db, "finalized_adoption"),
         where("petRequestDetails.listedBy", "==", currentUser.email) // Lister notifications
       );
-  
+
       const fetchFinalizedAdoptions = async () => {
         const createNotification = (doc, isAdopter) => {
           const data = doc.data();
-          const formattedTime = moment(data.dateFinalized).fromNow();
-  
+          const finalizedDate = new Date(data.dateFinalized); // Parse the ISO string into a Date object
+          const formattedTime = moment(finalizedDate).fromNow(); // Use moment to format
+          const timestamp = finalizedDate.getTime(); // Get UNIX timestamp
+
+          const notificationId = isAdopter
+            ? `${doc.id}-finalized-adopter`
+            : `${doc.id}-finalized-lister`;
+
+          // Check if the notification already exists
+          if (notificationsList.some((notif) => notif.id === notificationId)) {
+            return; // Skip duplicate notification
+          }
           if (isAdopter) {
             notificationsList.push({
               id: `${doc.id}-finalized-adopter`,
@@ -211,12 +244,16 @@ const Notification = () => {
               name: "System Notification",
               content: (
                 <Text>
-                  Congratulations, {data.petRequestDetails.name}! The adoption of{" "}
-                  <Text style={styles.boldText}>{data.petRequestDetails.petName}</Text> {" "}
+                  Congratulations, {data.petRequestDetails.name}! The adoption
+                  of{" "}
+                  <Text style={styles.boldText}>
+                    {data.petRequestDetails.petName}
+                  </Text>{" "}
                   has been finalized. Track their journey here.
                 </Text>
               ),
               time: formattedTime,
+              timestamp,
               action: () => router.push("/Main/Track"),
             });
           } else {
@@ -226,39 +263,41 @@ const Notification = () => {
               name: "System Notification",
               content: (
                 <Text>
-                  {data.petRequestDetails.name || "Adopter"} has finalized the adoption of{" "}
-                  <Text style={styles.boldText}>{data.petRequestDetails.petName || "their pet"}</Text>. 
-                  Check the process here.
+                  {data.petRequestDetails.name || "Adopter"} has finalized the
+                  adoption of{" "}
+                  <Text style={styles.boldText}>
+                    {data.petRequestDetails.petName || "their pet"}
+                  </Text>
+                  . Check the process here.
                 </Text>
               ),
-              
               time: formattedTime,
+              timestamp,
               action: () => router.push("/Main/Track"),
             });
           }
         };
-  
+
         try {
           const adopterSnapshot = await getDocs(finalizedAdoptionsQuery);
           const listerSnapshot = await getDocs(finalizedListerQuery);
-  
+
           adopterSnapshot.forEach((doc) => createNotification(doc, true));
           listerSnapshot.forEach((doc) => createNotification(doc, false));
-  
+
           // Sort combined notifications by time
-          notificationsList.sort((a, b) => b.time.localeCompare(a.time));
+          notificationsList.sort((a, b) => b.timestamp - a.timestamp);
           setNotifications(notificationsList);
         } catch (error) {
           console.error("Error fetching finalized adoptions:", error);
         }
       };
-  
+
       fetchFinalizedAdoptions();
     });
-  
+
     return () => unsubscribe();
   }, [currentUser, users, router]);
-  
 
   const fetchUserDetails = async (email) => {
     try {
@@ -283,21 +322,41 @@ const Notification = () => {
     }
   };
 
+  const deleteNotification = (id) => {
+    setNotifications((prevNotifications) =>
+      prevNotifications.filter((notif) => notif.id !== id)
+    );
+  };
+
+  const renderRightActions = (id) => (
+    <TouchableOpacity
+      style={styles.deleteButton}
+      onPress={() => deleteNotification(id)}
+    >
+      <Text style={styles.deleteText}>Delete</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-
       <ScrollView
         contentContainerStyle={styles.scrollViewContent}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={styles.mainNotificationContainer}>
+          <Text style={styles.titleText}>Notifications</Text>
+        </View>
         {notifications.length === 0 ? (
           <View style={styles.centeredContainer}>
             <Text style={styles.loadingText}>No notifications available</Text>
           </View>
         ) : (
           notifications.map((notif) => (
-            <View key={notif.id}>
+            <Swipeable
+              key={notif.id}
+              renderRightActions={() => renderRightActions(notif.id)}
+            >
+              <View style={styles.horizontalLine}></View>
               <TouchableOpacity
                 style={styles.notifButton}
                 onPress={notif.action}
@@ -320,15 +379,14 @@ const Notification = () => {
                   </View>
                 </View>
               </TouchableOpacity>
-
-              <View style={styles.horizontalLine}></View>
-            </View>
+            </Swipeable>
           ))
         )}
       </ScrollView>
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -336,6 +394,14 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     paddingBottom: 0,
+  },
+  mainNotificationContainer: {
+    padding: 20,
+  },
+  titleText: {
+    fontFamily: "Lilita",
+    fontSize: 25,
+    color: "#68C2FF",
   },
   iconContainer: {
     width: 70,
@@ -417,10 +483,22 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   loadingText: {
+    marginVertical: 250,
     fontFamily: "Lato",
-    fontSize: 18,
+    fontSize: 20,
     textAlign: "center",
     color: "#888",
+  },
+  deleteButton: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#EF5B5B",
+    width: 100,
+  },
+  deleteText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
 

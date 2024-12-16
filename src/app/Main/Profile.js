@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
+<<<<<<< HEAD
 import {View,Text,StyleSheet,Image,TouchableOpacity,ScrollView,Modal,ActivityIndicator,} from "react-native";
+=======
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, ActivityIndicator, } from "react-native";
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,7 +11,11 @@ import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker"; // Import the Picker
 import { auth, signOut, db } from "../../../firebase"; // Ensure this imports your Firebase setup
+<<<<<<< HEAD
 import {getDocs,collection,query,where,updateDoc,doc,} from "firebase/firestore";
+=======
+import { getDocs, collection, query, where, updateDoc, doc, } from "firebase/firestore";
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const Profile = () => {
@@ -21,7 +29,11 @@ const Profile = () => {
     hasPet: "Not Indicated",
     bio: "", // Add bio field here
   });
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
   const [editableInfo, setEditableInfo] = useState(profileInfo);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isLogoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
@@ -31,8 +43,11 @@ const Profile = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isAddressEmpty, setIsAddressEmpty] = useState(false);
   const [coverImage, setCoverImage] = useState(null);
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -70,7 +85,11 @@ const Profile = () => {
                   });
                 }
               });
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
               // Set the profile data including bio
               setProfileInfo({
                 ...userData,
@@ -109,7 +128,11 @@ const Profile = () => {
           contactNumber: editableInfo.phone,
           bio: editableInfo.bio, // Save bio field
         };
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
         // Upload profile picture if exists
         if (editableInfo.image?.uri) {
           const fileName = `profilePictures/${user.uid}/profile.jpg`;
@@ -131,7 +154,11 @@ const Profile = () => {
             return;
           }
         }
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
         // Upload cover photo if exists
         if (coverImage?.uri) {
           const coverFileName = `coverPhotos/${user.uid}/cover.jpg`;
@@ -141,10 +168,17 @@ const Profile = () => {
             const coverBlob = await coverResponse.blob();
             await uploadBytes(coverStorageRef, coverBlob);
             const coverDownloadURL = await getDownloadURL(coverStorageRef);
+<<<<<<< HEAD
             updatedData.coverPhoto = coverDownloadURL;  // Add cover photo URL
             setProfileInfo((prev) => ({
               ...prev,
               coverPhoto: coverDownloadURL,  // Update profile info state
+=======
+            updatedData.coverPhoto = coverDownloadURL; // Add cover photo URL
+            setProfileInfo((prev) => ({
+              ...prev,
+              coverPhoto: coverDownloadURL, // Update profile info state
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
             }));
           } catch (error) {
             console.error("Error uploading cover photo: ", error);
@@ -153,7 +187,11 @@ const Profile = () => {
             return;
           }
         }
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
         await updateDoc(userRef, updatedData); // Update Firestore document with all changes
         setProfileInfo(updatedData);
         setEditConfirmVisible(false);
@@ -165,7 +203,11 @@ const Profile = () => {
     } finally {
       setIsSaving(false); // End the loading state
     }
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
     if (!editableInfo.address) {
       setIsAddressEmpty(true); // Set state to true if address is empty
     } else {
@@ -175,11 +217,12 @@ const Profile = () => {
   
   
 
+
+
   const handleEditPress = () => {
     setEditableInfo(profileInfo);
     setModalVisible(true);
   };
-
 
   const handleCancelEdit = () => {
     setEditConfirmVisible(false);
@@ -211,11 +254,17 @@ const Profile = () => {
     }
   };
   const pickCoverImage = async () => {
+<<<<<<< HEAD
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+=======
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
     if (!permissionResult.granted) {
       alert("Permission to access camera roll is required!");
       return;
     }
+<<<<<<< HEAD
   
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -230,6 +279,22 @@ const Profile = () => {
     }
   };
   
+=======
+
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9], // Aspect ratio for cover photo
+      quality: 1,
+    });
+
+    if (!pickerResult.canceled) {
+      const imageUri = pickerResult.assets[0].uri;
+      setCoverImage({ uri: imageUri }); // Store cover image URI
+    }
+  };
+
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -242,6 +307,7 @@ const Profile = () => {
           <View style={styles.header}>
             {/* Cover Photo */}
             <Image
+<<<<<<< HEAD
             style={styles.coverImage}
             source={
               profileInfo.coverPhoto
@@ -251,6 +317,17 @@ const Profile = () => {
                 : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
             }
           />
+=======
+              style={styles.coverImage}
+              source={
+                profileInfo.coverPhoto
+                  ? { uri: profileInfo.coverPhoto } // Use the cover photo URL from Firestore
+                  : coverImage?.uri
+                    ? { uri: coverImage.uri }  // Temporary cover photo if selected
+                    : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+              }
+            />
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
 
 
             <Image
@@ -262,10 +339,23 @@ const Profile = () => {
               }
             />
 
+
             <Text style={styles.profileName}>{profileInfo.name}</Text>
+<<<<<<< HEAD
             <Text style={styles.bioText}>
               {profileInfo.bio || "Add bio"}
             </Text>
+=======
+            <Text
+              style={[
+                styles.bioText,
+                !profileInfo.bio && styles.noBioText, // Apply `noBioText` style when bio is not set
+              ]}
+            >
+              {profileInfo.bio || "No bio set"}
+            </Text>
+
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
           </View>
 
           {/* Profile Details */}
@@ -305,7 +395,6 @@ const Profile = () => {
           </View>
           <View style={styles.horizontalLine}></View>
 
-
           {/* Edit Modal */}
           <Modal
             visible={isModalVisible}
@@ -318,7 +407,11 @@ const Profile = () => {
                 <Text style={styles.modalTitle}>Edit Profile</Text>
 
                 <ScrollView contentContainerStyle={styles.scrollViewContent2}>
+<<<<<<< HEAD
                   
+=======
+
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
                   <View style={styles.uploadContainer}>
                   <TouchableOpacity
                       style={styles.pickCoverImage}
@@ -343,6 +436,28 @@ const Profile = () => {
                     </TouchableOpacity>
 
                     <TouchableOpacity
+                      style={styles.pickCoverImage}
+                      onPress={pickCoverImage}
+                    >
+                      <Image
+                        style={styles.coverImage}
+                        source={
+                          editableInfo.coverImage
+                            ? { uri: editableInfo.coverImage } // Use the saved cover photo if available
+                            : coverImage?.uri
+                              ? { uri: coverImage.uri }  // Temporary cover photo if selected
+                              : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+                        }
+                      />
+                      <TouchableOpacity
+                        style={styles.editcoverImage}
+                        onPress={pickCoverImage}
+                      >
+                        <Icon name="edit" size={20} color="white" />
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
                       style={styles.profileImageContainer}
                       onPress={pickImage}
                     >
@@ -352,8 +467,8 @@ const Profile = () => {
                           editableInfo.image?.uri
                             ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
                             : profileInfo.profilePicture
-                            ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
-                            : require("../../assets/Profile/dp.png") // Default image if no profile picture
+                              ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
+                              : require("../../assets/Profile/dp.png") // Default image if no profile picture
                         }
                       />
                       <TouchableOpacity
@@ -417,12 +532,25 @@ const Profile = () => {
                     autoCapitalize="sentences"
                   />
                   <TextInput
+<<<<<<< HEAD
                       label="Address"
                       value={editableInfo.address}
                       onChangeText={(text) => setEditableInfo({ ...editableInfo, address: text })}
                       style={[styles.inputField, isAddressEmpty && styles.inputError]}
                     />
                     {isAddressEmpty && <Text style={styles.errorText}>Address is required</Text>}
+=======
+                    placeholder="Address"
+                    value={editableInfo.address}
+                    onChangeText={(text) => setEditableInfo({ ...editableInfo, address: text })}
+                    style={[styles.input, isAddressEmpty && styles.inputError]}
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="words"
+                  />
+                  {isAddressEmpty && <Text style={styles.errorText}>Address is required</Text>}
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
 
                   <View style={styles.input2}>
                     <Picker
@@ -599,7 +727,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   scrollViewContent2: {
-    paddingBottom: 0,
+    padding: 20,
   },
   modalContainer: {
     flex: 1,
@@ -612,13 +740,13 @@ const styles = StyleSheet.create({
     maxHeight: "100%", // Restrict height of the modal content
     backgroundColor: "white",
     borderRadius: 10,
-    padding: 20,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 10,
     textAlign: "center",
+    marginTop: 20,
   },
   input: {
     marginTop: 10,
@@ -646,7 +774,8 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 20,
+    marginTop: 10,
+    padding: 20,
   },
   cancelButton: {
     backgroundColor: "#ccc",
@@ -720,7 +849,7 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 40,
+    marginTop: -100,
   },
   profileImage: {
     width: 240,
@@ -745,7 +874,11 @@ const styles = StyleSheet.create({
     height: 210, // Adjust as needed
     resizeMode: "cover",
     marginBottom: 10,
+<<<<<<< HEAD
     marginTop:-20, // Space below cover photo
+=======
+    marginTop: -20, // Space below cover photo
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
   },
   header: {
     alignItems: "center",
@@ -759,11 +892,14 @@ const styles = StyleSheet.create({
     borderColor: "#68C2FF",
     marginTop: -130, // Overlaps cover photo
   },
+<<<<<<< HEAD
   profileName: {
     fontSize: 20,
     fontWeight: "bold",
     marginTop: 10,
   },
+=======
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
   profileStatus: {
     fontSize: 14,
     color: "#6C757D",
@@ -771,11 +907,23 @@ const styles = StyleSheet.create({
   },
   bioText: {
     fontSize: 16,
+<<<<<<< HEAD
     fontFamily: "Lilita",  
     color: "#68C2FF",
     textAlign: "center",
     marginVertical: 30,
     marginBottom:-5,
+=======
+    fontFamily: "Lilita",
+    color: "#68C2FF",
+    textAlign: "center",
+    marginVertical: 30,
+    marginBottom: -5,
+  },
+  noBioText: {
+    color: '#777',
+    textAlign: 'center',
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
   },
   errorText: {
     color: "red",
@@ -788,9 +936,15 @@ const styles = StyleSheet.create({
     height: 220, // Adjust as needed
     resizeMode: "cover",
     marginBottom: 10,
+<<<<<<< HEAD
     marginTop:-20, // Space below cover photo
   },
   
+=======
+    marginTop: -20, // Space below cover photo
+  },
+
+>>>>>>> 79ddf8b6486f0a82f77bb4151bd3dc7afbf0e836
 });
 
 export default Profile;
