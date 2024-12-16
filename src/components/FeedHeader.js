@@ -547,6 +547,7 @@ const styles = StyleSheet.create({
     borderColor: "white",
     height: 50,
     backgroundColor: "#68C2FF",
+    marginTop: 20,
   },
   preferencesText: {
     textAlign: "center",
