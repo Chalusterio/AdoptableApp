@@ -456,8 +456,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   loadingText: {
+    marginVertical: 250,
     fontFamily: "Lato",
-    fontSize: 18,
+    fontSize: 20,
     textAlign: "center",
     color: "#888",
     

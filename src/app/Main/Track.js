@@ -1,137 +1,226 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import Bruno from '../../assets/Track/bruno.jpg';
-import Shiro from '../../assets/Track/shiro.jpg';
+import { MaterialIcons } from '@expo/vector-icons';
+import { db } from '../../../firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
-const PetCard = ({ pet, onToggle, isExpanded }) => {
-  const currentStep = 1; // Current step for tracking (mock data)
+const PetCard = ({ pet, onToggle, isExpanded, trackingStatus, currentUserEmail }) => {
   const bigSteps = [
-    { title: 'Preparing', icon: <MaterialIcons name="build-circle" size={24} /> },
-    { title: 'Transporting', icon: <MaterialIcons name="local-shipping" size={24} /> },
-    { title: 'Out for Delivery', icon: <MaterialIcons name="directions-car" size={24} /> },
-    { title: 'Delivered', icon: <MaterialIcons name="home" size={24} /> },
+    { title: 'Application Approved', icon: <MaterialIcons name="check-circle" size={24} /> },
+    { title: 'Getting Ready', icon: <MaterialIcons name="build-circle" size={24} /> },
+    { title: 'In Transit to New Home', icon: <MaterialIcons name="local-shipping" size={24} /> },
+    { title: 'On the Way', icon: <MaterialIcons name="directions-car" size={24} /> },
+    { title: 'Welcome Home!', icon: <MaterialIcons name="home" size={24} /> },
   ];
 
-  const smallSteps = {
-  Preparing: [
-    { step: 'Adoption Request being reviewed', time: '10:00 AM', date: 'Dec 14, 2024' },
-    { step: 'Preparing for delivery', time: '12:00 PM', date: 'Dec 14, 2024' },
-  ],
-  Transporting: [
-    { step: 'Car ready for delivery', time: '2:00 PM', date: 'Dec 14, 2024' },
-    { step: 'Your pet has arrived in a resting stop', time: '4:00 PM', date: 'Dec 14, 2024' },
-  ],
-  'Out for Delivery': [],
-  Delivered: [],
-};
+  // Determine the current step based on trackingStatus
+  const stepStatus = {
+    "Preparing": [0, 1],  // Steps 1 and 2
+    "In-transit": [0, 1, 2],  // Steps 1, 2, and 3
+    "On-the-way": [0, 1, 2, 3],  // Steps 1, 2, 3, and 4
+    "Arrived": [0, 1, 2, 3, 4],  // All steps
+  };
 
+  const currentSteps = stepStatus[trackingStatus] || []; // Default to no steps
 
   return (
     <TouchableOpacity onPress={onToggle} style={styles.petCard}>
-      {/* Pet Image and Details in Row */}
       <View style={styles.rowContainer}>
         <View style={styles.petImageContainer}>
-          <Image source={pet.image} style={styles.petImage} />
+          <Image source={{ uri: pet.image }} style={styles.petImage} />
         </View>
-        
         <View style={styles.petDetailsContainer}>
-          <Text style={styles.petName}>{pet.name}</Text>
-          <Text style={styles.petDetails}>{pet.age} | {pet.weight}</Text>
-          <View style={styles.deliveryBox}>
-            
-            <View style={styles.deliveryDetailBox}>
-              <Text style={styles.deliveryDetails}>Amount: ₱ {pet.totalAmount}</Text>
-            </View>
+          <Text style={styles.petName}>{pet.name}   {pet.listedBy === currentUserEmail && (
+            <Text style={styles.listedByText}>Listed by you</Text> // Indicator for listed pet
+          )}</Text>
+          <Text style={styles.petDetails}>{pet.age} years | {pet.weight} kg</Text>
+
+          <View style={styles.deliveryDetailBox}>
+            <Text style={styles.deliveryDetails}>Amount: ₱ {pet.totalAmount}</Text>
           </View>
         </View>
       </View>
 
-      {/* Tracking Steps (Expandable Section) */}
       {isExpanded && (
-        <View style={styles.trackingContainer}>
-          <View style={styles.deliveryDetailsContainer}>
-            <Text style={styles.deliveryType}>Delivery Type: {pet.deliveryType}</Text>
-            <Text style={styles.trackingNumber}>Tracking Number: SPEAJB4562131</Text>
-          </View>
-          {bigSteps.map((step, index) => (
-            <View key={index} style={styles.bigStepContainer}>
-              <View style={styles.bigStepRow}>
-                <View
-                  style={[
-                    styles.iconContainer,
-                    { backgroundColor: index <= currentStep ? '#68C2FF' : '#FFFFFF' },
-                  ]}
-                >
-                  {React.cloneElement(step.icon, {
-                    color: index <= currentStep ? '#FFFFFF' : '#68C2FF',
-                  })}
-                </View>
-                <Text style={styles.bigStepTitle}>{step.title}</Text>
-              </View>
-              {index <= currentStep && smallSteps[step.title]?.length > 0 && (
-                <View style={styles.smallStepsContainer}>
-                  {smallSteps[step.title].map((smallStep, i) => (
-                    <View key={i} style={styles.smallStep}>
-                      <View style={styles.smallStepDot} />
-                      <View style={styles.textContainer}>
-                        <Text style={styles.smallStepText}>{smallStep.step}</Text>
-                        <Text style={styles.timeAndDate}>{`${smallStep.time}, ${smallStep.date}`}</Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-
-              )}
+        <>
+          <View style={styles.trackingContainer}>
+            {/* Delivery Type and Expected Date */}
+            <View style={styles.deliveryDetailsContainer}>
+              <Text style={styles.deliveryType}>Delivery Type: {pet.deliveryType}</Text>
+              <Text style={styles.expectedDate}>Expected Date: {pet.expectedDate}</Text>
             </View>
-          ))}
-          <TouchableOpacity style={styles.cancelButton} onPress={() => alert('Adoption canceled')}>
-            <Text style={styles.cancelButtonText}>Cancel Adoption</Text>
-          </TouchableOpacity>
-        </View>
+
+            <View style={styles.bigStepContainer}>
+              {bigSteps.map((step, index) => (
+                <View key={index} style={styles.bigStepRow}>
+                  <View style={[styles.iconContainer, { backgroundColor: currentSteps.includes(index) ? '#68C2FF' : '#ddd' }]} >
+                    {step.icon}
+                  </View>
+                  <Text style={styles.bigStepTitle}>{step.title}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Conditionally render the cancel button */}
+          {pet.listedBy !== currentUserEmail && (
+            <TouchableOpacity style={styles.cancelButton}>
+              <Text style={styles.cancelButtonText}>Cancel Adoption</Text>
+            </TouchableOpacity>
+          )}
+
+        </>
       )}
     </TouchableOpacity>
   );
 };
 
-
 const Track = () => {
   const [expandedCard, setExpandedCard] = useState(null);
+  const [adopterPets, setAdopterPets] = useState([]); // State for adopter's pets
+  const [listerPets, setListerPets] = useState([]);   // State for lister's pets
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
 
-  const pets = [
-    {
-      id: 1,
-      name: 'Shiro',
-      age: '2 years',
-      weight: '5 kg',
-      image: Shiro,
-      deliveryType: 'Car',
-      totalAmount: '500',
-    },
-    {
-      id: 2,
-      name: 'Bruno',
-      age: '1 year',
-      weight: '3 kg',
-      image: Bruno,
-      deliveryType: 'Car',
-      totalAmount: '0',
-    },
-  ];
+  useEffect(() => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (user) {
+      setCurrentUserEmail(user.email);
+      console.log('Logged-in user email:', user.email);
+    } else {
+      console.error('No user logged in.');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentUserEmail) {
+      console.log('Fetching finalized adoptions for:', currentUserEmail);
+
+      // Fetch finalized adoptions for adopter
+      const finalizedAdoptionRef = collection(db, 'finalized_adoption');
+      const finalizedAdoptionQuery = query(
+        finalizedAdoptionRef,
+        where('status', '==', 'finalized'),
+        where('petRequestDetails.adopterEmail', '==', currentUserEmail) // For adopter
+      );
+
+      const unsubscribeAdopter = onSnapshot(finalizedAdoptionQuery, (finalizedAdoptionSnapshot) => {
+        const petData = [];
+        finalizedAdoptionSnapshot.forEach((docSnapshot) => {
+          const adoptionData = docSnapshot.data();
+          const petRequestDetails = adoptionData.petRequestDetails;
+          const petId = petRequestDetails.petName;  // Correct the property reference here
+          console.log('Adopted Pet ID:', petId);
+
+          const petRef = collection(db, 'listed_pets');
+          const petQuery = query(petRef, where('petName', '==', petId));
+
+          onSnapshot(petQuery, (petSnapshot) => {
+            petSnapshot.forEach((petDoc) => {
+              const petDetails = petDoc.data();
+              console.log('Fetched Pet Details:', petDetails);
+              petData.push({
+                id: petDoc.id,
+                name: petDetails.petName,
+                age: petDetails.petAge,
+                weight: petDetails.petWeight,
+                image: petDetails.images[0],
+                totalAmount: adoptionData.totalAmount,
+                deliveryType: adoptionData.deliveryDetails?.type,
+                expectedDate: adoptionData.deliveryDetails?.expectedDate,
+                trackingStatus: adoptionData.tracking_status,
+              });
+            });
+            setAdopterPets(petData); // Update state with fetched pets for adopter
+          });
+        });
+      });
+
+      // Fetch finalized adoptions for lister
+      const finalizedAdoptionQueryLister = query(
+        finalizedAdoptionRef,
+        where('status', '==', 'finalized'),
+        where('petRequestDetails.listedBy', '==', currentUserEmail) // For lister
+      );
+
+      const unsubscribeLister = onSnapshot(finalizedAdoptionQueryLister, (finalizedAdoptionSnapshot) => {
+        const petData = [];
+        finalizedAdoptionSnapshot.forEach((docSnapshot) => {
+          const adoptionData = docSnapshot.data();
+          const petRequestDetails = adoptionData.petRequestDetails;
+          const petId = petRequestDetails.petName;
+          console.log('Lister Pet ID:', petId);
+
+          const petRef = collection(db, 'listed_pets');
+          const petQuery = query(petRef, where('petName', '==', petId));
+
+          onSnapshot(petQuery, (petSnapshot) => {
+            petSnapshot.forEach((petDoc) => {
+              const petDetails = petDoc.data();
+              console.log('Fetched Pet Details for Lister:', petDetails);
+              petData.push({
+                id: petDoc.id,
+                name: petDetails.petName,
+                age: petDetails.petAge,
+                weight: petDetails.petWeight,
+                image: petDetails.images[0],
+                totalAmount: adoptionData.totalAmount,
+                deliveryType: adoptionData.deliveryDetails?.type,
+                expectedDate: adoptionData.deliveryDetails?.expectedDate,
+                trackingStatus: adoptionData.tracking_status,
+                listedBy: petDetails.listedBy, // Ensure listedBy is included
+              });
+            });
+            setListerPets(petData); // Update state with fetched pets for lister
+          });
+        });
+      });
+
+      // Cleanup listeners when component unmounts or currentUserEmail changes
+      return () => {
+        unsubscribeAdopter();
+        unsubscribeLister();
+      };
+    }
+  }, [currentUserEmail]);
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Track Your Pets</Text>
-      {pets.map((pet) => (
-        <PetCard
-          key={pet.id}
-          pet={pet}
-          isExpanded={expandedCard === pet.id}
-          onToggle={() =>
-            setExpandedCard((prev) => (prev === pet.id ? null : pet.id))
-          }
-        />
-      ))}
+      {/* Conditionally render adopter or lister pets */}
+      {currentUserEmail && (
+        <>
+          {adopterPets.length === 0 && listerPets.length === 0 ? (
+            <View style={styles.noPetsContainer}>
+              <Text style={styles.noPetsText}>No pets to track</Text>
+            </View>
+          ) : (
+            <>
+              {adopterPets.map((pet) => (
+                <PetCard
+                  key={pet.id}
+                  pet={pet}
+                  isExpanded={expandedCard === pet.id}
+                  onToggle={() => setExpandedCard(prev => (prev === pet.id ? null : pet.id))}
+                  trackingStatus={pet.trackingStatus}
+                  currentUserEmail={currentUserEmail}
+                />
+              ))}
+              {listerPets.map((pet) => (
+                <PetCard
+                  key={pet.id}
+                  pet={pet}
+                  isExpanded={expandedCard === pet.id}
+                  onToggle={() => setExpandedCard(prev => (prev === pet.id ? null : pet.id))}
+                  trackingStatus={pet.trackingStatus}
+                  currentUserEmail={currentUserEmail}
+                />
+              ))}
+            </>
+          )}
+        </>
+      )}
     </ScrollView>
   );
 };
@@ -162,24 +251,35 @@ const styles = StyleSheet.create({
     marginTop: 30,
     marginBottom: 30,
   },
-  petCard: {
-  backgroundColor: '#FFFFFF',
-  borderRadius: 10,
-  marginBottom: 30,
-  padding: 20,
-  // Shadow for iOS
-  shadowColor: '#000', 
-  shadowOffset: {
-    width: 0,   
-    height: 0, 
+  noPetsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 200,
   },
-  shadowOpacity: 0.2,  
-  shadowRadius: 6,    
-  // Shadow for Android
-  elevation: 5,  
-},
+  noPetsText: {
+    fontSize: 20  ,
+    color: '#777',
+    textAlign: 'center',
+  },
+  petCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    marginBottom: 30,
+    padding: 20,
+    // Shadow for iOS
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    // Shadow for Android
+    elevation: 5,
+  },
   rowContainer: {
-    flexDirection: 'row',  
+    flexDirection: 'row',
   },
   petImageContainer: {
     flex: 1,
@@ -204,26 +304,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
-    deliveryDetailsContainer: {
-      borderBottomWidth: 2,
-      borderBottomColor: '#C2C2C2',
-      paddingBottom: 10,
-      marginBottom: 20, // Optional: for spacing between elements
+  deliveryDetailsContainer: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#C2C2C2',
+    paddingBottom: 10,
+    marginBottom: 20, // Optional: for spacing between elements
   },
   deliveryType: {
     fontSize: 16,
     color: '#333',
     fontWeight: 'bold',
     marginBottom: 5,
-  },
-  trackingNumber: {
-    fontSize: 14,
-    color: '#666',
-  },
-  deliveryBox: {
-    marginTop: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   deliveryDetailBox: {
     borderWidth: 2,
@@ -239,7 +330,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   trackingContainer: {
-    marginTop: 50, 
+    marginTop: 50,
   },
   bigStepContainer: {
     marginBottom: 20,
@@ -261,37 +352,16 @@ const styles = StyleSheet.create({
   },
   bigStepTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
     color: '#333',
   },
-  smallStepsContainer: {
-    paddingLeft: 15,
+  listedByText: {
+    fontSize: 14,
+    color: '#EF5B5B',
+    fontWeight: 'bold',
+    marginTop: 5,
+
   },
-  smallStep: {
-    flexDirection: 'row', 
-    alignItems: 'center',
-    marginVertical: 8, 
-  },
-  smallStepDot: {
-    width: 8, 
-    height: 8,
-    borderRadius: 4, 
-    backgroundColor: '#68C2FF',
-    marginRight: 10, 
-  },
-  textContainer: {
-    flexDirection: 'column', 
-    justifyContent: 'center',
-  },
-  smallStepText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  timeAndDate: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2, 
-  },
+
 });
 
 export default Track;
