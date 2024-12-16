@@ -11,6 +11,7 @@ import { Stack } from "expo-router";
 import PetProvider from "../context/PetContext";
 import UserProvider from "../context/UserContext";
 
+
 // Define theme settings
 const theme = {
   ...DefaultTheme,
@@ -50,30 +51,31 @@ export default function RootLayout() {
       <PaperProvider theme={theme}>
         <SafeAreaProvider>
           <UserProvider>
-            <PetProvider>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                }}
-              >
-                <Stack.Screen name="index" options={{ title: "Splash" }} />
-                <Stack.Screen name="Login" options={{ title: "Login" }} />
-                <Stack.Screen name="Signup" options={{ title: "Signup" }} />
-                <Stack.Screen name="Options" options={{ title: "Options" }} />
-                <Stack.Screen
-                  name="Lifestyle"
-                  options={{ title: "Lifestyle" }}
-                />
-                <Stack.Screen
-                  name="Preferences"
-                  options={{ title: "Preferences" }}
-                />
-                <Stack.Screen name="Main" options={{ title: "Main" }} />
-                <Stack.Screen
-                  name="ApproveAdoption"
-                  options={{ title: "ApproveAdoption" }}
-                />
-              </Stack>
+            <PetProvider>      
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                  }}
+                >
+                  <Stack.Screen name="index" options={{ title: "Splash" }} />
+                  <Stack.Screen name="Login" options={{ title: "Login" }} />
+                  <Stack.Screen name="Signup" options={{ title: "Signup" }} />
+                  <Stack.Screen name="Options" options={{ title: "Options" }} />
+                  <Stack.Screen name="PasswordRecovery" options={{ title: "Password Recovery" }} />
+                  <Stack.Screen
+                    name="Lifestyle"
+                    options={{ title: "Lifestyle" }}
+                  />
+                  <Stack.Screen
+                    name="Preferences"
+                    options={{ title: "Preferences" }}
+                  />
+                  <Stack.Screen name="Main" options={{ title: "Main" }} />
+                  <Stack.Screen
+                    name="ApproveAdoption"
+                    options={{ title: "ApproveAdoption" }}
+                  />
+                </Stack>
             </PetProvider>
           </UserProvider>
         </SafeAreaProvider>
