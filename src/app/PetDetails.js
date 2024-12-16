@@ -18,6 +18,8 @@ import { usePets } from '../context/PetContext'; // Import the context
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { db, auth } from "../../firebase"; // Ensure `auth` is imported from Firebase
+import { useNavigation } from "expo-router";
+
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -52,6 +54,8 @@ const PetDetails = () => {
   const [hasPendingRequest, setHasPendingRequest] = useState(false); // Track pending request
   const [isSubmitting, setIsSubmitting] = useState(false); // State to track submission status
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
+  const { addPetRequest } = usePets();
+  const navigation = useNavigation(); // Initialize navigation
 
   useEffect(() => {
     // Check if the user is logged in
@@ -122,10 +126,20 @@ const PetDetails = () => {
     };
 
     checkPendingRequest();
-  }, [ ]);
+  }, [petName]);
+
+  const toggleFavorite = () => {
+    setIsFavorited(!isFavorited);
+  };
 
   const handleAdopt = () => {
     setModalVisible(true);
+  };
+
+  const handlePostedByClick = () => {
+    console.log("Navigating to Profile with userName: ", userName);
+    // Navigate to the Profile screen, passing the userName as a parameter
+    navigation.navigate("ViewOtherUsers", { userName });
   };
 
   const handleAdoptConfirmation = async () => {
@@ -174,7 +188,9 @@ const PetDetails = () => {
     } finally {
       setIsSubmitting(false); // Reset submitting state after action completes
     }
-  };  const onScroll = (event) => {
+  };
+
+  const onScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const imageWidth = Dimensions.get("window").width;
     const index = Math.round(contentOffsetX / imageWidth);
@@ -288,6 +304,13 @@ const PetDetails = () => {
                 )}
               </Text>
             </View>
+            <TouchableOpacity onPress={toggleFavorite}>
+              <FontAwesome
+                name={isFavorited ? "heart" : "heart-o"}
+                size={24}
+                color="#FF6B6B"
+              />
+            </TouchableOpacity>
           </View>
           <Text
             style={styles.subText}
@@ -317,19 +340,16 @@ const PetDetails = () => {
 
         {/* "Posted By" */}
         <Text style={styles.postedByLabel}>Posted By:</Text>
-        <View style={styles.postedByContainer}>
+        <TouchableOpacity style={styles.postedByContainer} onPress={handlePostedByClick}>
           {userProfileImage ? (
-            <Image
-              source={{ uri: userProfileImage }}
-              style={styles.profileImage}
-            />
+            <Image source={{ uri: userProfileImage }} style={styles.profileImage} />
           ) : (
             <FontAwesome name="user-circle" size={40} color="#fff" />
           )}
           <View style={styles.usernameContainer}>
             <Text style={styles.usernameText}>{userName}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Back and Adopt Buttons */}
@@ -623,14 +643,15 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: "80%",
-    backgroundColor: "#FFF",
+    backgroundColor: "#68C2FF",
     borderRadius: 10,
     padding: 20,
     alignItems: "center",
   },
   modalTitle: {
     fontSize: 18,
-    color: "#333",
+    fontFamily: "Lilita",
+    color: "#fff",
     textAlign: "center",
     marginBottom: 20,
   },
@@ -640,25 +661,30 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   cancelButton: {
-    flex: 1,
-    backgroundColor: "#DDD",
+    backgroundColor: "#444",
     padding: 10,
     borderRadius: 5,
-    marginRight: 10,
+    flex: 1,
+    marginRight: 5,
+    alignItems: "center",
   },
   cancelButtonText: {
+    color: "#fff",
     textAlign: "center",
-    color: "#555",
+    fontSize: 14,
   },
   confirmButton: {
-    flex: 1,
-    backgroundColor: "#68C2FF",
+    backgroundColor: "#EF5B5B",
     padding: 10,
     borderRadius: 5,
+    flex: 1,
+    marginLeft: 5,
+    alignItems: "center",
   },
   confirmButtonText: {
+    color: "#fff",
     textAlign: "center",
-    color: "#FFF",
+    fontSize: 14,
   },
 });
 
