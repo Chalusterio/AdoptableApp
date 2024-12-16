@@ -165,6 +165,7 @@ const FeedHeader = ({}) => {
               value={searchQuery}
               mode="outlined"
               outlineColor="transparent"
+              activeOutlineColor="#68C2FF"
             />
             <TouchableOpacity
               onPress={handleFilterClick}
