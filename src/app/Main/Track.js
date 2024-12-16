@@ -64,13 +64,6 @@ const PetCard = ({ pet, onToggle, isExpanded, trackingStatus, currentUserEmail }
             </View>
           </View>
 
-          {/* Conditionally render the cancel button */}
-          {pet.listedBy !== currentUserEmail && (
-            <TouchableOpacity style={styles.cancelButton}>
-              <Text style={styles.cancelButtonText}>Cancel Adoption</Text>
-            </TouchableOpacity>
-          )}
-
         </>
       )}
     </TouchableOpacity>
@@ -336,7 +329,7 @@ const styles = StyleSheet.create({
     marginTop: 50,
   },
   bigStepContainer: {
-    marginBottom: 20,
+    marginBottom: 0,
   },
   bigStepRow: {
     flexDirection: 'row',
@@ -362,7 +355,6 @@ const styles = StyleSheet.create({
     color: '#EF5B5B',
     fontWeight: 'bold',
     marginTop: 5,
-
   },
 
 });
