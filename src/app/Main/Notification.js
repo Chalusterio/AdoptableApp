@@ -79,14 +79,12 @@ const Notification = () => {
         let timestamp = 0;
         if (petRequest.status === "Pending") {
           formattedTime = moment(petRequest.requestDate.seconds * 1000).fromNow();
-          timestamp = petRequest.requestDate.seconds * 1000;
         } else if (petRequest.status === "Accepted") {
           formattedTime = moment(petRequest.acceptDate.seconds * 1000).fromNow();
-          timestamp = petRequest.acceptDate.seconds * 1000;
         } else if (petRequest.status === "Rejected") {
           formattedTime = moment(petRequest.rejectDate.seconds * 1000).fromNow();
-          timestamp = petRequest.rejectDate.seconds * 1000;
         }
+  
         // Handle the Pending request notification
         if (
           petRequest.status === "Pending" &&
@@ -94,7 +92,9 @@ const Notification = () => {
         ) {
           notificationsList.push({
             id: doc.id,
-            image: adopter.profilePicture ? { uri: adopter.profilePicture } : null,
+            image: adopter.profilePicture
+              ? { uri: adopter.profilePicture }
+              : null,
             name: adopter.name || "Adopter",
             content: (
               <Text>
@@ -117,17 +117,20 @@ const Notification = () => {
         }
 
         // Handle Accepted/Rejected notifications
-        if (currentUser.email === petRequest.listedBy && ["Accepted", "Rejected"].includes(petRequest.status)) {
+        if (
+          currentUser.email === petRequest.listedBy &&
+          ["Accepted", "Rejected"].includes(petRequest.status)
+        ) {
           const message =
             petRequest.status === "Accepted" ? (
               <Text>
-                You have accepted {adopter.name || "the adopter"}'s request to adopt{" "}
-                <Text style={styles.boldText}>{petRequest.petName}</Text>.
+                You have accepted {adopter.name || "the adopter"}'s request to
+                adopt <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             ) : (
               <Text>
-                You have rejected {adopter.name || "the adopter"}'s request to adopt{" "}
-                <Text style={styles.boldText}>{petRequest.petName}</Text>.
+                You have rejected {adopter.name || "the adopter"}'s request to
+                adopt <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             );
 
@@ -148,12 +151,14 @@ const Notification = () => {
         ) {
           notificationsList.push({
             id: doc.id,
-            image: petLister.profilePicture ? { uri: petLister.profilePicture } : null,
+            image: petLister.profilePicture
+              ? { uri: petLister.profilePicture }
+              : null,
             name: petLister.name || "Pet Lister",
             content: (
               <Text>
-                {petLister.name || "Pet Lister"} has accepted your request to adopt{" "}
-                <Text style={styles.boldText}>{petRequest.petName}.</Text>
+                {petLister.name || "Pet Lister"} has accepted your request to
+                adopt <Text style={styles.boldText}>{petRequest.petName}.</Text>
                 <Text style={styles.linkText}>
                   {"\n\n"}Click here for more details.
                 </Text>
@@ -180,11 +185,14 @@ const Notification = () => {
         ) {
           notificationsList.push({
             id: doc.id,
-            image: petLister.profilePicture ? { uri: petLister.profilePicture } : null,
+            image: petLister.profilePicture
+              ? { uri: petLister.profilePicture }
+              : null,
             name: petLister.name || "Pet Lister",
             content: (
               <Text>
-                {petLister.name || "Pet Lister"} has rejected your adoption request for{" "}
+                {petLister.name || "Pet Lister"} has rejected your adoption
+                request for{" "}
                 <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             ),
@@ -205,24 +213,12 @@ const Notification = () => {
         collection(db, "finalized_adoption"),
         where("petRequestDetails.listedBy", "==", currentUser.email) // Lister notifications
       );
-
-
+  
       const fetchFinalizedAdoptions = async () => {
         const createNotification = (doc, isAdopter) => {
           const data = doc.data();
-          const finalizedDate = new Date(data.dateFinalized); // Parse the ISO string into a Date object
-          const formattedTime = moment(finalizedDate).fromNow(); // Use moment to format
-          const timestamp = finalizedDate.getTime(); // Get UNIX timestamp
-
-          const notificationId = isAdopter
-          ? `${doc.id}-finalized-adopter`
-          : `${doc.id}-finalized-lister`;
-    
-
-          // Check if the notification already exists
-          if (notificationsList.some((notif) => notif.id === notificationId)) {
-            return; // Skip duplicate notification
-          }
+          const formattedTime = moment(data.dateFinalized).fromNow();
+  
           if (isAdopter) {
             notificationsList.push({
               id: `${doc.id}-finalized-adopter`,
@@ -230,8 +226,11 @@ const Notification = () => {
               name: "System Notification",
               content: (
                 <Text>
-                  Congratulations, {data.petRequestDetails.name}! The adoption of{" "}
-                  <Text style={styles.boldText}>{data.petRequestDetails.petName}</Text> {" "}
+                  Congratulations, {data.petRequestDetails.name}! The adoption
+                  of{" "}
+                  <Text style={styles.boldText}>
+                    {data.petRequestDetails.petName}
+                  </Text>{" "}
                   has been finalized. Track their journey here.
                 </Text>
               ),
@@ -247,10 +246,11 @@ const Notification = () => {
               content: (
                 <Text>
                   {data.petRequestDetails.name || "Adopter"} has finalized the adoption of{" "}
-                  <Text style={styles.boldText}>{data.petRequestDetails.petName || "their pet"}</Text>.
+                  <Text style={styles.boldText}>{data.petRequestDetails.petName || "their pet"}</Text>. 
                   Check the process here.
                 </Text>
               ),
+              
               time: formattedTime,
               timestamp,
               action: () => router.push("/Main/Track"),
@@ -272,15 +272,13 @@ const Notification = () => {
           console.error("Error fetching finalized adoptions:", error);
         }
       };
-
-
-
+  
       fetchFinalizedAdoptions();
     });
 
     return () => unsubscribe();
   }, [currentUser, users, router]);
-
+  
 
   const fetchUserDetails = async (email) => {
     try {
@@ -305,29 +303,16 @@ const Notification = () => {
     }
   };
 
-  const deleteNotification = (id) => {
-    setNotifications((prevNotifications) =>
-      prevNotifications.filter((notif) => notif.id !== id)
-    );
-  };
-
-  const renderRightActions = (id) => (
-    <TouchableOpacity
-      style={styles.deleteButton}
-      onPress={() => deleteNotification(id)}
-    >
-      <Text style={styles.deleteText}>Delete</Text>
-    </TouchableOpacity>
-  );
-
 
   return (
     <SafeAreaView style={styles.safeArea}>
-
       <ScrollView
         contentContainerStyle={styles.scrollViewContent}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={styles.mainNotificationContainer}>
+          <Text style={styles.titleText}>Notifications</Text>
+        </View>
         {notifications.length === 0 ? (
           <View style={styles.centeredContainer}>
             <Text style={styles.loadingText}>No notifications available</Text>
@@ -368,6 +353,7 @@ const Notification = () => {
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -375,6 +361,14 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     paddingBottom: 0,
+  },
+  mainNotificationContainer: {
+    padding: 20,
+  },
+  titleText: {
+    fontFamily: "Lilita",
+    fontSize: 25,
+    color: "#68C2FF",
   },
   iconContainer: {
     width: 70,
