@@ -18,6 +18,8 @@ import { usePets } from '../context/PetContext'; // Import the context
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { db, auth } from "../../firebase"; // Ensure `auth` is imported from Firebase
+import { useNavigation } from "expo-router";
+
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -53,6 +55,7 @@ const PetDetails = () => {
   const [isSubmitting, setIsSubmitting] = useState(false); // State to track submission status
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
   const { addPetRequest } = usePets();
+  const navigation = useNavigation(); // Initialize navigation
 
   useEffect(() => {
     // Check if the user is logged in
@@ -131,6 +134,12 @@ const PetDetails = () => {
 
   const handleAdopt = () => {
     setModalVisible(true);
+  };
+
+  const handlePostedByClick = () => {
+    console.log("Navigating to Profile with userName: ", userName);
+    // Navigate to the Profile screen, passing the userName as a parameter
+    navigation.navigate("ViewOtherUsers", { userName });
   };
 
   const handleAdoptConfirmation = async () => {
@@ -331,19 +340,16 @@ const PetDetails = () => {
 
         {/* "Posted By" */}
         <Text style={styles.postedByLabel}>Posted By:</Text>
-        <View style={styles.postedByContainer}>
+        <TouchableOpacity style={styles.postedByContainer} onPress={handlePostedByClick}>
           {userProfileImage ? (
-            <Image
-              source={{ uri: userProfileImage }}
-              style={styles.profileImage}
-            />
+            <Image source={{ uri: userProfileImage }} style={styles.profileImage} />
           ) : (
             <FontAwesome name="user-circle" size={40} color="#fff" />
           )}
           <View style={styles.usernameContainer}>
             <Text style={styles.usernameText}>{userName}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Back and Adopt Buttons */}
