@@ -9,7 +9,7 @@ import {
 import { TextInput, Button } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { getAuth, sendPasswordResetEmail } from "../../firebase"; //not kuan pa
+import { getAuth, sendPasswordResetEmail } from "firebase/auth"; // Import Firebase functions
 
 export default function PasswordRecovery() {
   const router = useRouter();
@@ -17,18 +17,25 @@ export default function PasswordRecovery() {
   const [message, setMessage] = useState("");
 
   const handleRecovery = async () => {
-    if (email.trim()) {
-      try {
-        // Use Firebase's sendPasswordResetEmail method
-        await sendPasswordResetEmail(getAuth, email);
-        setMessage("A verification code has been sent to your email.");
-        // Redirect user to the verification screen
-        router.push(""); //another screen for vericode?
-      } catch (error) {
-        setMessage("Error: " + error.message);
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) {
+      // User is not logged in, proceed with password reset
+      if (email.trim()) {
+        try {
+          await sendPasswordResetEmail(auth, email);
+          setMessage("A verification code has been sent to your email.");
+        } catch (error) {
+          setMessage("Error: " + error.message);
+        }
+      } else {
+        setMessage("Please enter a valid email address.");
       }
     } else {
-      setMessage("Please enter a valid email address.");
+      setMessage(
+        "You are already logged in. Please log out to reset your password."
+      );
     }
   };
 
@@ -39,7 +46,7 @@ export default function PasswordRecovery() {
           source={require("../assets/Login/loginPawImage.png")}
           style={styles.loginPawImage}
           resizeMode="cover"
-        ></ImageBackground>
+        />
       </View>
       <View style={styles.textOverlayContainer}>
         <Text style={styles.heading}>Password Recovery</Text>
@@ -67,7 +74,7 @@ export default function PasswordRecovery() {
         <TouchableOpacity
           onPress={handleRecovery}
           style={styles.button}
-          activeOpacity={0.7}
+          activeOpacity={0.7} // This will make the button slightly fade when clicked
         >
           <Text style={styles.buttonText}>Send Reset Link</Text>
         </TouchableOpacity>
