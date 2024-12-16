@@ -18,49 +18,51 @@ export default function Screening() {
       try {
         const adopterQuery = query(
           collection(db, "users"),
-          where("email", "==", adopterEmail) // Use adopterEmail to query Firestore
+          where("email", "==", adopterEmail)
         );
         const querySnapshot = await getDocs(adopterQuery);
         if (!querySnapshot.empty) {
           const adopterData = querySnapshot.docs[0].data();
-          setAdopter(adopterData); // Set the adopter details
+          console.log("Fetched adopter data: ", adopterData); // Log adopter data
+          setAdopter(adopterData);
         } else {
           console.log("Adopter not found!");
         }
       } catch (error) {
-        console.error("Error fetching adopter details: ", error);
+        console.error("Error fetching adopter details: ", error); // Ensure errors are logged
       } finally {
-        setLoading(false); // Stop loading after the fetch is done
+        setLoading(false);
       }
     };
-
+    
     fetchAdopterDetails();
-  }, [adopterEmail]); // Re-run the effect when adopterEmail changes
+  }, [adopterEmail]);
+  
 
   // Function to update the pet request status and store the respective date field
-const updatePetRequestStatus = async (status) => {
-  try {
-    const petRequestRef = doc(db, "pet_request", petRequestId); // Reference to the pet request document
-    const actionDate = new Date(); // Get the current date
+  const updatePetRequestStatus = async (status) => {
+    try {
+      const petRequestRef = doc(db, "pet_request", petRequestId); // Reference to the pet request document
+      const actionDate = new Date(); // Get the current date
 
-    const updateData = {
-      status: status, // Update the status to either 'accepted' or 'rejected'
-    };
+      const updateData = {
+        status: status, // Update the status to either 'accepted' or 'rejected'
+      };
 
-    if (status === "Accepted") {
-      updateData.acceptDate = actionDate; // Store the acceptance date
-    } else if (status === "Rejected") {
-      updateData.rejectDate = actionDate; // Store the rejection date
+      if (status === "Accepted") {
+        updateData.acceptDate = actionDate; // Store the acceptance date
+      } else if (status === "Rejected") {
+        updateData.rejectDate = actionDate; // Store the rejection date
+      }
+
+      // Update the document in Firestore
+      await updateDoc(petRequestRef, updateData);
+
+      console.log(`Pet request status updated to ${status}`);
+    } catch (error) {
+      console.error("Error updating pet request status: ", error);
     }
-
-    // Update the document in Firestore
-    await updateDoc(petRequestRef, updateData);
-
-    console.log(`Pet request status updated to ${status}`);
-  } catch (error) {
-    console.error("Error updating pet request status: ", error);
-  }
-};
+  };
 
   const handleAcceptAdoption = async () => {
     await updatePetRequestStatus("Accepted"); // Update the status to 'accepted'
@@ -79,6 +81,15 @@ const updatePetRequestStatus = async (status) => {
       petName, // Pass petName to RejectAdoption
     });
   };
+
+  useEffect(() => {
+    if (adopter) {
+      console.log(adopter.coverPhoto ? "Custom Cover" : "Default Cover");
+      console.log("Cover Photo URL:", adopter.coverPhoto);
+
+    }
+  }, [adopter]); // Log when the adopter is fetched or changes
+  
 
   if (loading) {
     return (
@@ -111,13 +122,23 @@ const updatePetRequestStatus = async (status) => {
               </TouchableOpacity>
             </View>
 
+            <View style={styles.header}>
+            <Image
+              style={styles.coverImage}
+              source={adopter.coverPhoto ? { uri: adopter.coverPhoto} : require("../assets/Profile/defaultcover.jpg")}
+            />
+          
             <Image
               source={adopter.profilePicture ? { uri: adopter.profilePicture } : require("../assets/Profile/dp.png")}
               style={styles.adopterImage}
             />
 
             <Text style={styles.adopterName}>{adopter.name}</Text>
-            <Text style={styles.profileStatus}>Active • Devoted Pet Owner</Text>
+            <Text style={styles.profileStatus}>
+              {adopter.bio || "No bio set"}
+            </Text>
+
+            </View>
 
             <View style={styles.detailsContainer}>
               <Icon name="email" size={24} color="#444444" style={styles.icon} />
@@ -182,7 +203,6 @@ const updatePetRequestStatus = async (status) => {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -197,79 +217,100 @@ const styles = StyleSheet.create({
   },
   buttonImageContainer: {
     flex: 1,
-    padding: 20,
+    padding: 0, // Remove extra padding for better layout control
   },
   backButtonContainer: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    zIndex: 10,
     backgroundColor: "gray",
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 50,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 20,
+    position: "relative",
+  },
+  coverImage: {
+    width: "100%",
+    height: 200, // Adjust the height to suit your layout
+    resizeMode: "cover",
+    backgroundColor: "#ccc", // Default background
   },
   adopterImage: {
-    width: 244,
-    height: 244,
-    borderRadius: 122,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 5,
+    borderColor: "#fff",
+    position: "absolute",
+    top: 125, // Adjust overlap with the cover image
     alignSelf: "center",
+    backgroundColor: "#eee",
   },
   adopterName: {
     fontFamily: "Lilita",
     fontSize: 24,
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 80, // Space below the adopter image
   },
   profileStatus: {
     fontFamily: "Lilita",
     fontSize: 16,
     textAlign: "center",
-    marginVertical: 50,
+    marginVertical: 10,
     color: "#68C2FF",
   },
   detailsContainer: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 15,
+    marginVertical: 10,
+    paddingHorizontal: 20,
   },
   detailsText: {
     fontFamily: "Lato",
     fontSize: 16,
-    marginLeft: 20,
+    marginLeft: 10,
   },
   horizontalLine: {
-    width: "100%",
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "gray",
+    width: "90%",
+    height: 1,
+    backgroundColor: "#ddd",
     alignSelf: "center",
   },
   buttonContainer: {
-    flex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 30,
+    marginTop: 20,
+    paddingHorizontal: 20,
   },
   acceptButton: {
-    width: 180,
+    flex: 1,
     height: 40,
     borderRadius: 30,
     backgroundColor: "#68C2FF",
     alignItems: "center",
     justifyContent: "center",
-  },
-  acceptText: {
-    fontFamily: "Lato",
-    fontSize: 16,
-    color: "white",
+    marginRight: 10,
   },
   rejectButton: {
-    width: 180,
+    flex: 1,
     height: 40,
     borderRadius: 30,
     backgroundColor: "#EF5B5B",
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: 10,
+  },
+  acceptText: {
+    fontFamily: "Lato",
+    fontSize: 16,
+    color: "white",
   },
   rejectText: {
     fontFamily: "Lato",
