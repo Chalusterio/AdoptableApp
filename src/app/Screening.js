@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+} from "react-native";
 import { ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { query, where, getDocs, collection, updateDoc, doc } from "firebase/firestore";
+import {
+  query,
+  where,
+  getDocs,
+  collection,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
 import { db } from "../../firebase"; // Ensure db is initialized
 import Icon from "react-native-vector-icons/MaterialIcons";
 
@@ -35,10 +49,9 @@ export default function Screening() {
         setLoading(false);
       }
     };
-    
+
     fetchAdopterDetails();
   }, [adopterEmail]);
-  
 
   // Function to update the pet request status and store the respective date field
   const updatePetRequestStatus = async (status) => {
@@ -87,19 +100,20 @@ export default function Screening() {
     if (adopter) {
       console.log(adopter.coverPhoto ? "Custom Cover" : "Default Cover");
       console.log("Cover Photo URL:", adopter.coverPhoto);
-
     }
   }, [adopter]); // Log when the adopter is fetched or changes
-  
 
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ActivityIndicator size="large" color="#0047AB" style={styles.loadingIndicator} />
+        <ActivityIndicator
+          size="large"
+          color="#0047AB"
+          style={styles.loadingIndicator}
+        />
       </SafeAreaView>
     );
-  }  
-  
+  }
 
   if (!adopter) {
     return (
@@ -111,7 +125,10 @@ export default function Screening() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollViewContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.container}>
           {/* Back Button */}
           <View style={styles.buttonImageContainer}>
@@ -125,25 +142,37 @@ export default function Screening() {
             </View>
 
             <View style={styles.header}>
-            <Image
-              style={styles.coverImage}
-              source={adopter.coverPhoto ? { uri: adopter.coverPhoto} : require("../assets/Profile/defaultcover.jpg")}
-            />
-          
-            <Image
-              source={adopter.profilePicture ? { uri: adopter.profilePicture } : require("../assets/Profile/dp.png")}
-              style={styles.adopterImage}
-            />
+              <Image
+                style={styles.coverImage}
+                source={
+                  adopter.coverPhoto
+                    ? { uri: adopter.coverPhoto }
+                    : require("../assets/Profile/defaultcover.jpg")
+                }
+              />
 
-            <Text style={styles.adopterName}>{adopter.name}</Text>
-            <Text style={styles.profileStatus}>
-              {adopter.bio || "No bio set"}
-            </Text>
+              <Image
+                source={
+                  adopter.profilePicture
+                    ? { uri: adopter.profilePicture }
+                    : require("../assets/Profile/dp.png")
+                }
+                style={styles.adopterImage}
+              />
 
+              <Text style={styles.adopterName}>{adopter.name}</Text>
+              <Text style={styles.profileStatus}>
+                {adopter.bio || "No bio set"}
+              </Text>
             </View>
 
             <View style={styles.detailsContainer}>
-              <Icon name="email" size={24} color="#444444" style={styles.icon} />
+              <Icon
+                name="email"
+                size={24}
+                color="#444444"
+                style={styles.icon}
+              />
               <Text style={styles.detailsText}>{adopter.email}</Text>
             </View>
 
@@ -151,16 +180,30 @@ export default function Screening() {
             <View style={styles.horizontalLine}></View>
 
             <View style={styles.detailsContainer}>
-              <Icon name="phone" size={24} color="#444444" style={styles.icon} />
-              <Text style={styles.detailsText}>{adopter.contactNumber || "Not provided"}</Text>
+              <Icon
+                name="phone"
+                size={24}
+                color="#444444"
+                style={styles.icon}
+              />
+              <Text style={styles.detailsText}>
+                {adopter.contactNumber || "Not provided"}
+              </Text>
             </View>
 
             {/* Horizontal Line */}
             <View style={styles.horizontalLine}></View>
 
             <View style={styles.detailsContainer}>
-              <Icon name="location-on" size={24} color="#444444" style={styles.icon} />
-              <Text style={styles.detailsText}>{adopter.address || "Not provided"}</Text>
+              <Icon
+                name="location-on"
+                size={24}
+                color="#444444"
+                style={styles.icon}
+              />
+              <Text style={styles.detailsText}>
+                {adopter.address || "Not provided"}
+              </Text>
             </View>
 
             {/* Horizontal Line */}
@@ -168,7 +211,9 @@ export default function Screening() {
 
             <View style={styles.detailsContainer}>
               <Icon name="home" size={24} color="#444444" style={styles.icon} />
-              <Text style={styles.detailsText}>{adopter.houseType || "Not Indicated"}</Text>
+              <Text style={styles.detailsText}>
+                {adopter.houseType || "Not Indicated"}
+              </Text>
             </View>
 
             {/* Horizontal Line */}
@@ -176,7 +221,9 @@ export default function Screening() {
 
             <View style={styles.detailsContainer}>
               <Icon name="pets" size={24} color="#444444" style={styles.icon} />
-              <Text style={styles.detailsText}>{adopter.hasPet || "Not Indicated"}</Text>
+              <Text style={styles.detailsText}>
+                {adopter.hasPet || "Not Indicated"}
+              </Text>
             </View>
 
             {/* Horizontal Line */}

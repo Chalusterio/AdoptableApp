@@ -1,10 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import Icon from "react-native-vector-icons/MaterialIcons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getDocs, collection, query, where } from 'firebase/firestore';
-import { db } from '../../firebase'; // Adjust the path to your firebase config
+import { getDocs, collection, query, where } from "firebase/firestore";
+import { db } from "../../firebase"; // Adjust the path to your firebase config
 
 const ViewOtherUsers = () => {
   const router = useRouter();
@@ -17,8 +24,8 @@ const ViewOtherUsers = () => {
       if (userName) {
         try {
           // Fetch user details
-          const usersCollectionRef = collection(db, 'users');
-          const q = query(usersCollectionRef, where('name', '==', userName));
+          const usersCollectionRef = collection(db, "users");
+          const q = query(usersCollectionRef, where("name", "==", userName));
           const querySnapshot = await getDocs(q);
 
           if (!querySnapshot.empty) {
@@ -26,10 +33,10 @@ const ViewOtherUsers = () => {
             setUserData(user);
 
             // Fetch lifestyle details
-            const lifestyleCollectionRef = collection(db, 'lifestyle');
+            const lifestyleCollectionRef = collection(db, "lifestyle");
             const lifestyleQuery = query(
               lifestyleCollectionRef,
-              where('email', '==', user.email)
+              where("email", "==", user.email)
             );
             const lifestyleSnapshot = await getDocs(lifestyleQuery);
 
@@ -38,10 +45,10 @@ const ViewOtherUsers = () => {
               setLifestyleData(lifestyle);
             }
           } else {
-            console.log('No user found with this username!');
+            console.log("No user found with this username!");
           }
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error("Error fetching user data:", error);
         }
       }
     };
@@ -66,31 +73,46 @@ const ViewOtherUsers = () => {
 
           {/* Profile Image and Name */}
           <View style={styles.header}>
+            
+            <Image
+              style={styles.coverImage}
+              source={
+                userData.coverPhoto
+                  ? { uri: userData.coverPhoto }
+                  : require("../assets/Profile/defaultcover.jpg")
+              }
+            />
             <View style={styles.imageContainer}>
-              <Image
-                style={styles.profileImage}
-                source={
-                  userData.profilePicture
-                    ? { uri: userData.profilePicture } // Firebase Storage URL
-                    : require("../assets/Profile/dp.png") // Default image
-                }
-              />
+            <Image
+              style={styles.profileImage}
+              source={
+                userData.profilePicture
+                  ? { uri: userData.profilePicture } // Firebase Storage URL
+                  : require("../assets/Profile/dp.png") // Default image
+              }
+            />
             </View>
 
             <Text style={styles.profileName}>{userData.name}</Text>
-            <Text style={styles.profileStatus}>Active • Devoted Pet Owner</Text>
+            <Text style={styles.profileStatus}>
+              {userData.bio || "No bio set"}
+            </Text>
           </View>
 
           {/* Profile Details */}
           <View style={styles.detailsContainer}>
             <Icon name="email" size={24} color="#444444" />
-            <Text style={styles.detailsText}>{userData.email || 'Not Provided'}</Text>
+            <Text style={styles.detailsText}>
+              {userData.email || "Not Provided"}
+            </Text>
           </View>
           <View style={styles.horizontalLine}></View>
 
           <View style={styles.detailsContainer}>
             <Icon name="phone" size={24} color="#444444" />
-            <Text style={styles.detailsText}>{userData.contactNumber || 'Not Provided'}</Text>
+            <Text style={styles.detailsText}>
+              {userData.contactNumber || "Not Provided"}
+            </Text>
           </View>
           <View style={styles.horizontalLine}></View>
 
@@ -113,7 +135,7 @@ const ViewOtherUsers = () => {
           <View style={styles.detailsContainer}>
             <Icon name="pets" size={24} color="#444444" />
             <Text style={styles.detailsText}>
-              Pet Owner: {lifestyleData?.ownedPets ? 'Has a pet' : 'No pet'}
+              Pet Owner: {lifestyleData?.ownedPets ? "Has a pet" : "No pet"}
             </Text>
           </View>
           <View style={styles.horizontalLine}></View>
@@ -126,26 +148,29 @@ const ViewOtherUsers = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    padding: 20,
+    backgroundColor: "#FFFFFF",
   },
   backButtonContainer: {
     backgroundColor: "gray",
     width: 50,
     height: 50,
     borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 70,
-    position: 'absolute',
+    position: "absolute",
     top: 20,
     left: 20,
     zIndex: 10,
   },
   header: {
     alignItems: "center",
-    marginTop: 60,
-    marginBottom: 20,
+  },
+  coverImage: {
+    width: "100%",
+    height: 200, // Adjust the height to suit your layout
+    resizeMode: "cover",
+    backgroundColor: "#ccc", // Default background
   },
   imageContainer: {
     width: 240,
@@ -156,6 +181,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
+    marginTop: -120,
   },
   profileImage: {
     width: 230,
@@ -177,8 +203,8 @@ const styles = StyleSheet.create({
   },
   loading: {
     fontSize: 18,
-    color: '#333',
-    textAlign: 'center',
+    color: "#333",
+    textAlign: "center",
     marginTop: 50,
   },
   detailsContainer: {
@@ -186,6 +212,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 15,
+    paddingHorizontal: 20,
   },
   detailsText: {
     fontFamily: "Lato",
