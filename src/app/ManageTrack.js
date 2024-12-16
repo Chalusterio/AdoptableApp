@@ -6,33 +6,33 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Modal,
-  Alert,
+  Modal, Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { RadioButton } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
 import { getFirestore, collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { getAuth, signOut } from "firebase/auth";
 
-// Reusable Transaction Card Component
-const TransactionCard = ({ status, petName, address, trackingStatus, onUpdateStatus }) => {
+const TransactionCard = ({ adoptionId, trackingStatus, petName, address, onUpdateStatus }) => {
   const statusStyles = {
     Preparing: { backgroundColor: "#FFB366", text: "Preparing" },
-    ToShip: { backgroundColor: "#FF8C00", text: "To Ship" },
-    Shipped: { backgroundColor: "#ADD8E6", text: "Shipped" },
-    InTransit: { backgroundColor: "#4682B4", text: "In Transit" },
-    InDelivery: { backgroundColor: "#32CD32", text: "In Delivery" },
-    Delivered: { backgroundColor: "#5DB075", text: "Delivered" },
+    "In-transit": { backgroundColor: "#FF8C00", text: "In Transit" },
+    "On-the-way": { backgroundColor: "#ADD8E6", text: "On the Way" },
+    Arrived: { backgroundColor: "#5DB075", text: "Arrived" },
   };
 
-  const currentStatusStyle = statusStyles[trackingStatus] || statusStyles["ToShip"];
+  const currentStatusStyle = statusStyles[trackingStatus] || statusStyles.Preparing;
 
   return (
     <View style={styles.transactionCard}>
       <Text style={styles.cardText}>
         <Text style={styles.cardLabel}>Current Status: </Text>
         <View
-          style={[styles.statusBadge, { backgroundColor: currentStatusStyle.backgroundColor }]}
+          style={[
+            styles.statusBadge,
+            { backgroundColor: currentStatusStyle.backgroundColor },
+          ]}
         >
           <Text style={styles.statusText}>{currentStatusStyle.text}</Text>
         </View>
@@ -45,9 +45,11 @@ const TransactionCard = ({ status, petName, address, trackingStatus, onUpdateSta
         <Text style={styles.cardLabel}>Adopter Address: </Text>
         {address}
       </Text>
+      <Text style={styles.adoptionIdText}>ID: {adoptionId}</Text>
       <TouchableOpacity style={styles.updateButton} onPress={onUpdateStatus}>
         <Text style={styles.updateButtonText}>Update Status</Text>
       </TouchableOpacity>
+      
     </View>
   );
 };
@@ -56,7 +58,7 @@ export default function ManageTrack() {
   const [searchQuery, setSearchQuery] = useState("");
   const [transactions, setTransactions] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("Preparing");
   const [currentTransactionId, setCurrentTransactionId] = useState(null);
   const [isMenuModalVisible, setMenuModalVisible] = useState(false); // State for menu modal
   const navigation = useNavigation();
@@ -71,7 +73,8 @@ export default function ManageTrack() {
         const data = doc.data();
         return {
           id: doc.id,
-          trackingStatus: data.tracking_status || "ToShip",
+          adoptionId: doc.id, // Set adoption ID as the UID
+          trackingStatus: data.tracking_status || "Preparing",
           petName: data.petRequestDetails?.petName || "Unknown",
           address: data.petRequestDetails?.address || "No Address Provided",
         };
@@ -87,7 +90,7 @@ export default function ManageTrack() {
     setCurrentTransactionId(id);
     setModalVisible(true);
     const currentTransaction = transactions.find((item) => item.id === id);
-    setSelectedStatus(currentTransaction?.trackingStatus || "ToShip");
+    setSelectedStatus(currentTransaction?.trackingStatus || "Preparing");
   };
 
   const handleCloseModal = () => {
@@ -102,14 +105,7 @@ export default function ManageTrack() {
     const db = getFirestore();
     const transactionRef = doc(db, "finalized_adoption", currentTransactionId);
 
-    const validStatuses = [
-      "Preparing",
-      "ToShip",
-      "Shipped",
-      "InTransit",
-      "InDelivery",
-      "Delivered",
-    ];
+    const validStatuses = ["Preparing", "In-transit", "On-the-way", "Arrived"];
 
     if (!validStatuses.includes(selectedStatus)) {
       alert("Invalid status selected!");
@@ -152,9 +148,16 @@ export default function ManageTrack() {
         },
         {
           text: "Yes",
-          onPress: () => {
-            setMenuModalVisible(false);
-            navigation.navigate("Login"); // Navigate to Login screen
+          onPress: async () => {
+            try {
+              const auth = getAuth();
+              await signOut(auth);
+              setMenuModalVisible(false);
+              navigation.navigate("Login"); // Navigate to Login screen
+            } catch (error) {
+              console.error("Error signing out: ", error);
+              alert("Failed to log out. Please try again.");
+            }
           },
           style: "destructive",
         },
@@ -206,6 +209,7 @@ export default function ManageTrack() {
         {transactions.map((item, index) => (
           <TransactionCard
             key={index}
+            adoptionId={item.adoptionId}
             trackingStatus={item.trackingStatus}
             petName={item.petName}
             address={item.address}
@@ -221,28 +225,18 @@ export default function ManageTrack() {
         animationType="fade"
         onRequestClose={handleCloseModal}
       >
-        <TouchableOpacity style={styles.overlay} onPress={handleCloseModal} />
+        <View style={styles.modalOverlay} />
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Update Status</Text>
-          <View style={styles.statusOptions}>
-            <RadioButton.Group
-              onValueChange={handleStatusChange}
-              value={selectedStatus}
-            >
-              {["Preparing", "Shipped", "InTransit", "InDelivery", "Delivered"].map(
-                (status, index) => (
-                  <View key={index} style={styles.radioContainer}>
-                    <RadioButton value={status} color="#68C2FF" />
-                    <Text style={styles.statusOptionText}>{status}</Text>
-                  </View>
-                )
-              )}
-            </RadioButton.Group>
-          </View>
-          <TouchableOpacity
-            style={styles.proceedButton}
-            onPress={handleSaveStatusUpdate}
-          >
+          <RadioButton.Group onValueChange={handleStatusChange} value={selectedStatus}>
+            {["Preparing", "In-transit", "On-the-way", "Arrived"].map((status, index) => (
+              <View key={index} style={styles.radioContainer}>
+                <RadioButton value={status} color="#68C2FF" />
+                <Text style={styles.statusOptionText}>{status}</Text>
+              </View>
+            ))}
+          </RadioButton.Group>
+          <TouchableOpacity style={styles.proceedButton} onPress={handleSaveStatusUpdate}>
             <Text style={styles.proceedButtonText}>Proceed</Text>
           </TouchableOpacity>
         </View>
@@ -323,6 +317,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.6,
     shadowRadius: 6,
     elevation: 5,
+  },
+  adoptionIdText: {
+    fontSize: 12, // Smaller text size
+    color: "#888", // Grey color
+    textAlign: "right", // Align to the right
+    marginTop: 10, // Add some spacing from other elements
   },
   cardText: {
     fontSize: 16,
