@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-  Modal,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, ActivityIndicator, } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,14 +7,7 @@ import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker"; // Import the Picker
 import { auth, signOut, db } from "../../../firebase"; // Ensure this imports your Firebase setup
-import {
-  getDocs,
-  collection,
-  query,
-  where,
-  updateDoc,
-  doc,
-} from "firebase/firestore";
+import { getDocs, collection, query, where, updateDoc, doc, } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const Profile = () => {
@@ -187,6 +171,8 @@ const Profile = () => {
     }
   };
 
+
+
   const handleEditPress = () => {
     setEditableInfo(profileInfo);
     setModalVisible(true);
@@ -242,6 +228,7 @@ const Profile = () => {
     }
   };
 
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
@@ -258,10 +245,11 @@ const Profile = () => {
                 profileInfo.coverPhoto
                   ? { uri: profileInfo.coverPhoto } // Use the cover photo URL from Firestore
                   : coverImage?.uri
-                  ? { uri: coverImage.uri } // Temporary cover photo if selected
-                  : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+                    ? { uri: coverImage.uri }  // Temporary cover photo if selected
+                    : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
               }
             />
+
 
             <Image
               style={styles.profileImage}
@@ -272,8 +260,17 @@ const Profile = () => {
               }
             />
 
+
             <Text style={styles.profileName}>{profileInfo.name}</Text>
-            <Text style={styles.bioText}>{profileInfo.bio || "Add bio"}</Text>
+            <Text
+              style={[
+                styles.bioText,
+                !profileInfo.bio && styles.noBioText, // Apply `noBioText` style when bio is not set
+              ]}
+            >
+              {profileInfo.bio || "No bio set"}
+            </Text>
+
           </View>
 
           {/* Profile Details */}
@@ -325,6 +322,7 @@ const Profile = () => {
                 <Text style={styles.modalTitle}>Edit Profile</Text>
 
                 <ScrollView contentContainerStyle={styles.scrollViewContent2}>
+
                   <View style={styles.uploadContainer}>
                     <TouchableOpacity
                       style={styles.pickCoverImage}
@@ -336,8 +334,8 @@ const Profile = () => {
                           editableInfo.coverImage
                             ? { uri: editableInfo.coverImage } // Use the saved cover photo if available
                             : coverImage?.uri
-                            ? { uri: coverImage.uri } // Temporary cover photo if selected
-                            : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+                              ? { uri: coverImage.uri }  // Temporary cover photo if selected
+                              : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
                         }
                       />
                       <TouchableOpacity
@@ -358,8 +356,8 @@ const Profile = () => {
                           editableInfo.image?.uri
                             ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
                             : profileInfo.profilePicture
-                            ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
-                            : require("../../assets/Profile/dp.png") // Default image if no profile picture
+                              ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
+                              : require("../../assets/Profile/dp.png") // Default image if no profile picture
                         }
                       />
                       <TouchableOpacity
@@ -423,20 +421,12 @@ const Profile = () => {
                     autoCapitalize="sentences"
                   />
                   <TextInput
-                    placeholder="Address"
+                    label="Address"
                     value={editableInfo.address}
-                    onChangeText={(text) =>
-                      setEditableInfo({ ...editableInfo, address: text })
-                    }
-                    style={[styles.input, isAddressEmpty && styles.inputError]}
-                    mode="outlined"
-                    outlineColor="transparent"
-                    activeOutlineColor="#68C2FF"
-                    autoCapitalize="sentences"
+                    onChangeText={(text) => setEditableInfo({ ...editableInfo, address: text })}
+                    style={[styles.inputField, isAddressEmpty && styles.inputError]}
                   />
-                  {isAddressEmpty && (
-                    <Text style={styles.errorText}>Address is required</Text>
-                  )}
+                  {isAddressEmpty && <Text style={styles.errorText}>Address is required</Text>}
 
                   <View style={styles.input2}>
                     <Picker
@@ -787,6 +777,10 @@ const styles = StyleSheet.create({
     marginVertical: 30,
     marginBottom: -5,
   },
+  noBioText: {
+    color: '#777',
+    textAlign: 'center',
+  },
   errorText: {
     color: "red",
     fontSize: 12,
@@ -794,9 +788,13 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   pickCoverImage: {
-    width: "100%",
-    marginLeft: -65,
+    width: "115%",
+    height: 220, // Adjust as needed
+    resizeMode: "cover",
+    marginBottom: 10,
+    marginTop: -20, // Space below cover photo
   },
+
 });
 
 export default Profile;

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  TextInput
 } from "react-native";
 import Slider from "@react-native-community/slider";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,31 +13,24 @@ import { useRouter } from "expo-router";
 import Icon from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Foundation from "@expo/vector-icons/Foundation";
-import {
-  getFirestore,
-  collection,
-  getDoc,
-  doc,
-  setDoc,
-} from "firebase/firestore"; // Firestore imports
+import { getFirestore, collection, query, where, getDocs, setDoc, getDoc, doc } from "firebase/firestore";
 import { getAuth } from "firebase/auth"; // Firebase Authentication import
 
 export default function Preferences() {
   const router = useRouter();
   const [userName, setUserName] = React.useState(""); // State for user's name
   const [petSize, setPetSize] = React.useState(9);
-  const [personality, setPersonality] = React.useState(50);
+  const [personalityLabel, setPersonalityLabel] = React.useState(""); // Replaced slider with input field for personality
   const [selectedPet, setSelectedPet] = React.useState(null);
   const [selectedGender, setSelectedGender] = React.useState(null);
   const [userUid, setUserUid] = React.useState(""); // Store UID of the current user
 
-  // Fetch current user details
   React.useEffect(() => {
     const auth = getAuth();
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
-        setUserUid(user.uid); // Get the logged-in user's UID
-        fetchUserName(user.uid); // Fetch the user's name from Firestore
+        setUserUid(user.email); // Use email as document ID
+        fetchUserName(user.email); // Fetch the user's name
       } else {
         console.log("No user logged in");
       }
@@ -45,14 +39,19 @@ export default function Preferences() {
     return () => unsubscribe(); // Cleanup the listener
   }, []);
 
-  // Fetch user name from Firestore based on the UID
-  const fetchUserName = async (uid) => {
+
+  const fetchUserName = async (email) => {
     const db = getFirestore();
-    const userRef = doc(db, "users", uid); // Use UID as the document ID
+    const usersRef = collection(db, "users"); // Reference to the users collection
+    
+    // Query Firestore to find the user document by the email field
+    const q = query(usersRef, where("email", "==", email));
+    
     try {
-      const userDoc = await getDoc(userRef);
-      if (userDoc.exists()) {
-        setUserName(userDoc.data().name); // Set user name if document exists
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0]; // Get the first document in the query snapshot
+        setUserName(userDoc.data().name); // Set the user's name if the document exists
       } else {
         console.log("No such user found!");
       }
@@ -61,31 +60,36 @@ export default function Preferences() {
     }
   };
 
+
   const handleFindPet = async () => {
-    if (selectedPet && selectedGender !== null) {
-      // Save preferences to Firestore under 'preferences' collection
+    if (selectedPet && selectedGender !== null && personalityLabel !== "") {
       const db = getFirestore();
-      const preferencesRef = doc(db, "preferences", userUid); // Using UID as document ID
+      const preferencesRef = doc(db, "preferences", userUid); // Using email as document ID
 
       const preferenceData = {
-        userUid,
+        userEmail: userUid, // Corrected to use user email
         selectedPet,
         selectedGender,
         petSize,
         petSizeLabel, // Store the label for pet size
-        personality,
-        personalityLabel, // Store the label for personality
+        personalityLabel, // Store the personality label from the input field
       };
 
       try {
-        // Set or update the user's preferences in Firestore
-        await setDoc(preferencesRef, preferenceData, { merge: true });
-        console.log("Preferences saved successfully!");
+        // Check if the document exists and update it
+        const existingDoc = await getDoc(preferencesRef);
+        if (existingDoc.exists()) {
+          await setDoc(preferencesRef, preferenceData, { merge: true });
+          console.log("Preferences updated successfully!");
+        } else {
+          // Create a new document if none exists
+          await setDoc(preferencesRef, preferenceData);
+          console.log("Preferences created successfully!");
+        }
       } catch (error) {
         console.error("Error saving preferences:", error);
       }
 
-      // Navigate to the main screen
       router.push({
         pathname: "Main",
         params: { userName, userUid },
@@ -93,12 +97,6 @@ export default function Preferences() {
     } else {
       alert("Please complete all selections.");
     }
-  };
-
-  const getLabel = (value, labels) => {
-    if (value <= 0.2) return labels[0];
-    if (value <= 0.5) return labels[1];
-    return labels[2];
   };
 
   const petSizeLabels = {
@@ -128,42 +126,35 @@ export default function Preferences() {
     return labels[labels.length - 1];
   };
 
-  const getPersonalityLabel = (value) => {
-    if (value <= 25) return "Calm";
-    if (value <= 50) return "Moderately Calm";
-    if (value <= 75) return "Moderately Playful";
-    return "Playful";
-  };
-
   const petSizeLabel = getPetSizeLabel(petSize, selectedPet);
-  const personalityLabel = getPersonalityLabel(personality);
 
   const getSliderLabels = () => {
     if (selectedPet === "cat") {
       return (
         <>
-          <Text style={styles.sliderLabel}>Small {"\n"}1-3 kg</Text>
-          <Text style={styles.sliderLabel}>Average {"\n"}3-5 kg</Text>
-          <Text style={styles.sliderLabel}>Biggish {"\n"}5-7 kg</Text>
-          <Text style={styles.sliderLabel}>Very Big {"\n"}7-10 kg</Text>
-          <Text style={styles.sliderLabel}>Huge {"\n"}10+ kg</Text>
+          <Text style={styles.sliderLabel}>Small {'\n'}1-3 kg</Text>
+          <Text style={styles.sliderLabel}>Average {'\n'}3-5 kg</Text>
+          <Text style={styles.sliderLabel}>Biggish {'\n'}5-7 kg</Text>
+          <Text style={styles.sliderLabel}>Very Big {'\n'}7-10 kg</Text>
+          <Text style={styles.sliderLabel}>Huge {'\n'}10+ kg</Text>
         </>
       );
     } else if (selectedPet === "dog") {
       return (
         <>
-          <Text style={styles.sliderLabel}>Tiny {"\n"}1-5 kg</Text>
-          <Text style={styles.sliderLabel}>Small {"\n"}5-10 kg</Text>
-          <Text style={styles.sliderLabel}>Average {"\n"}10-15 kg</Text>
-          <Text style={styles.sliderLabel}>Large {"\n"}15-25 kg</Text>
-          <Text style={styles.sliderLabel}>Extra Large {"\n"}25-40 kg</Text>
-          <Text style={styles.sliderLabel}>Giant {"\n"}40+ kg</Text>
+          <Text style={styles.sliderLabel}>Tiny {'\n'}1-5 kg</Text>
+          <Text style={styles.sliderLabel}>Small {'\n'}5-10 kg</Text>
+          <Text style={styles.sliderLabel}>Average {'\n'}10-15 kg</Text>
+          <Text style={styles.sliderLabel}>Large {'\n'}15-25 kg</Text>
+          <Text style={styles.sliderLabel}>Extra Large {'\n'}25-40 kg</Text>
+          <Text style={styles.sliderLabel}>Giant {'\n'}40+ kg</Text>
         </>
       );
     } else {
       return null;
     }
   };
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -190,44 +181,20 @@ export default function Preferences() {
           <Text style={styles.question}>Select Pet</Text>
           <View style={styles.optionsContainer}>
             <TouchableOpacity
-              style={[
-                styles.optionButton,
-                selectedPet === "cat" && styles.selectedOptionButton,
-              ]}
+              style={[styles.optionButton, selectedPet === "cat" && styles.selectedOptionButton]}
               onPress={() => setSelectedPet("cat")}
             >
-              <MaterialCommunityIcons
-                name="cat"
-                size={24}
-                color={selectedPet === "cat" ? "#68C2FF" : "#666"}
-              />
-              <Text
-                style={[
-                  styles.optionText,
-                  selectedPet === "cat" && styles.selectedOptionText,
-                ]}
-              >
+              <MaterialCommunityIcons name="cat" size={24} color={selectedPet === "cat" ? "#68C2FF" : "#666"} />
+              <Text style={[styles.optionText, selectedPet === "cat" && styles.selectedOptionText]}>
                 Cat
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.optionButton,
-                selectedPet === "dog" && styles.selectedOptionButton,
-              ]}
+              style={[styles.optionButton, selectedPet === "dog" && styles.selectedOptionButton]}
               onPress={() => setSelectedPet("dog")}
             >
-              <MaterialCommunityIcons
-                name="dog"
-                size={24}
-                color={selectedPet === "dog" ? "#68C2FF" : "#666"}
-              />
-              <Text
-                style={[
-                  styles.optionText,
-                  selectedPet === "dog" && styles.selectedOptionText,
-                ]}
-              >
+              <MaterialCommunityIcons name="dog" size={24} color={selectedPet === "dog" ? "#68C2FF" : "#666"} />
+              <Text style={[styles.optionText, selectedPet === "dog" && styles.selectedOptionText]}>
                 Dog
               </Text>
             </TouchableOpacity>
@@ -237,44 +204,20 @@ export default function Preferences() {
           <Text style={styles.question}>Select Pet's gender</Text>
           <View style={styles.optionsContainer}>
             <TouchableOpacity
-              style={[
-                styles.optionButton,
-                selectedGender === "female" && styles.selectedOptionButton,
-              ]}
+              style={[styles.optionButton, selectedGender === "female" && styles.selectedOptionButton]}
               onPress={() => setSelectedGender("female")}
             >
-              <Foundation
-                name="female-symbol"
-                size={24}
-                color={selectedGender === "female" ? "#68C2FF" : "#666"}
-              />
-              <Text
-                style={[
-                  styles.optionText,
-                  selectedGender === "female" && styles.selectedOptionText,
-                ]}
-              >
+              <Foundation name="female-symbol" size={24} color={selectedGender === "female" ? "#68C2FF" : "#666"} />
+              <Text style={[styles.optionText, selectedGender === "female" && styles.selectedOptionText]}>
                 Female
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.optionButton,
-                selectedGender === "male" && styles.selectedOptionButton,
-              ]}
+              style={[styles.optionButton, selectedGender === "male" && styles.selectedOptionButton]}
               onPress={() => setSelectedGender("male")}
             >
-              <Foundation
-                name="male-symbol"
-                size={24}
-                color={selectedGender === "male" ? "#68C2FF" : "#666"}
-              />
-              <Text
-                style={[
-                  styles.optionText,
-                  selectedGender === "male" && styles.selectedOptionText,
-                ]}
-              >
+              <Foundation name="male-symbol" size={24} color={selectedGender === "male" ? "#68C2FF" : "#666"} />
+              <Text style={[styles.optionText, selectedGender === "male" && styles.selectedOptionText]}>
                 Male
               </Text>
             </TouchableOpacity>
@@ -294,27 +237,18 @@ export default function Preferences() {
             thumbTintColor="#68C2FF"
           />
 
-          <View style={styles.sliderLabelsContainer}>{getSliderLabels()}</View>
-
-          {/* Personality Slider */}
-          <Text style={styles.question}>
-            What type of personality do you prefer in a pet?
-          </Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={0}
-            maximumValue={100}
-            step={1}
-            value={personality}
-            onValueChange={setPersonality}
-            minimumTrackTintColor="#68C2FF"
-            maximumTrackTintColor="gray"
-            thumbTintColor="#68C2FF"
-          />
           <View style={styles.sliderLabelsContainer}>
-            <Text style={styles.sliderLabel}>Calm</Text>
-            <Text style={styles.sliderLabel}>Playful</Text>
+            {getSliderLabels()}
           </View>
+
+          {/* Personality Input */}
+          <Text style={styles.question}>What type of personality do you prefer in a pet?</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Enter personality (e.g., Calm, Playful)"
+            value={personalityLabel}
+            onChangeText={setPersonalityLabel}
+          />
 
           {/* Find Pet Button */}
           <TouchableOpacity
@@ -414,6 +348,11 @@ const styles = StyleSheet.create({
   sliderLabel: {
     fontSize: 12,
     color: "#666",
+  },
+  textInput: {
+    marginTop: 10,
+    marginBottom: 5,
+    backgroundColor: "#F5F5F5",
   },
   findPetContainer: {
     width: "100%",
