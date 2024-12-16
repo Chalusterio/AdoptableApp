@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     fontSize: 25,
     fontFamily: 'Lilita',
     color: '#68C2FF',
-    marginTop: 30,
+    marginTop: 20,
     marginBottom: 30,
   },
   noPetsContainer: {

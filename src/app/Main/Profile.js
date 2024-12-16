@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 40,
+    marginTop: -100,
   },
   profileImage: {
     width: 240,
