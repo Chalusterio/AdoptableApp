@@ -176,7 +176,7 @@ export default function ApproveAdoption() {
   // Update transaction summary when delivery or adoption fee changes
   useEffect(() => {
     const adoptionFee = parseFloat(petDetails.adoptionFee) || 0; // Adoption fee from pet details
-    const convenienceFee = adoptionFee <= 200 ? 200 : adoptionFee * 0.2;
+    const convenienceFee = adoptionFee <= 1000 ? 200 : adoptionFee * 0.2;
 
     const updatedTransactionSummary = [
       { title: "Adoption Fee", amount: adoptionFee },
