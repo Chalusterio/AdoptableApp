@@ -143,7 +143,7 @@ const Requests = () => {
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
       <SafeAreaView style={styles.safeArea}>
         <Surface style={styles.titleContainer} elevation={3}>
-          <Text style={styles.title}>Your Pending Requested Pets</Text>
+          <Text style={styles.title}>Your Requested Pets</Text>
           <Text style={styles.instruction}>Press and hold the pet card to cancel your request.</Text>
         </Surface>
 
