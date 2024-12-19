@@ -127,22 +127,34 @@ export default function Signup() {
 
   const handleSignup = async () => {
     if (!validateInputs()) return;
-
+  
     setIsSigningUp(true); // Set loading state to true
-
+  
     const name = isOrganization ? organizationName : `${firstName} ${lastName}`;
-
+  
     try {
       await registerUser(email, password, name, contactNumber);
-      router.push({
-        pathname: "Options",
-        params: {
-          userName: name,
-          userEmail: email,
-          userContactNumber: contactNumber,
-        },
-      });
-
+  
+      if (isOrganization) {
+        router.push({
+          pathname: "Main/List",
+          params: {
+            userName: name,
+            userEmail: email,
+            userContactNumber: contactNumber,
+          },
+        });
+      } else {
+        router.push({
+          pathname: "Options",
+          params: {
+            userName: name,
+            userEmail: email,
+            userContactNumber: contactNumber,
+          },
+        });
+      }
+  
       setDialogVisible(true); // Show success dialog
       setFirstName("");
       setLastName("");
@@ -161,7 +173,7 @@ export default function Signup() {
       setIsSigningUp(false); // Reset loading state after process
     }
   };
-
+  
   const handleToggleSignupMode = () => {
     setIsOrganization((prev) => !prev);
     setFirstName("");
