@@ -7,7 +7,9 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  SafeAreaView,
 } from "react-native";
+import { Surface } from "react-native-paper";
 import {
   getFirestore,
   collection,
@@ -20,22 +22,16 @@ import SideBar from "../components/SideBar";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { usePets } from "../context/PetContext";
 
 const Upload = () => {
   const router = useRouter();
+  const { favoritedPets, toggleFavorite } = usePets(); // Import global state and function
   const [pets, setPets] = useState([]);
   const db = getFirestore();
   const auth = getAuth();
   const [selectedItem, setSelectedItem] = useState("Uploads");
-  const [favoritedPets, setFavoritedPets] = useState({});
   const [loading, setLoading] = useState(true);
-
-  const toggleFavorite = (petId) => {
-    setFavoritedPets((prevState) => ({
-      ...prevState,
-      [petId]: !prevState[petId],
-    }));
-  };
 
   useEffect(() => {
     const fetchUserPets = async () => {
@@ -47,7 +43,10 @@ const Upload = () => {
       }
       try {
         const petsCollection = collection(db, "listed_pets");
-        const q = query(petsCollection, where("listedBy", "==", currentUser.email));
+        const q = query(
+          petsCollection,
+          where("listedBy", "==", currentUser.email)
+        );
         const snapshot = await getDocs(q);
         const petsData = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -83,10 +82,10 @@ const Upload = () => {
       },
     });
   };
-    
 
   const renderItem = ({ item }) => {
-    const isFavorited = favoritedPets[item.id];
+    const isFavorited = favoritedPets.some((favPet) => favPet.id === item.id);
+
     return (
       <TouchableOpacity
         style={styles.card}
@@ -94,9 +93,10 @@ const Upload = () => {
         onPress={() => handlePetDetailsEdit(item)}
       >
         <View style={styles.imageContainer}>
+          {/* Favorite Button */}
           <TouchableOpacity
             style={styles.favoriteIconButton}
-            onPress={() => toggleFavorite(item.id)}
+            onPress={() => toggleFavorite(item.id, item)}
           >
             <FontAwesome
               name={isFavorited ? "heart" : "heart-o"}
@@ -125,8 +125,10 @@ const Upload = () => {
 
   return (
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
-      <View style={styles.container}>
-        <Text style={styles.titleText}>Uploads</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <Surface style={styles.titleContainer} elevation={3}>
+          <Text style={styles.title}>Your Uploaded Pets</Text>
+        </Surface>
         {loading ? (
           <ActivityIndicator size="large" color="#68C2FF" />
         ) : pets.length > 0 ? (
@@ -136,34 +138,41 @@ const Upload = () => {
             renderItem={renderItem}
             numColumns={2}
             columnWrapperStyle={styles.row}
-            contentContainerStyle={styles.scrollViewContent}
+            contentContainerStyle={styles.container}
           />
         ) : (
           <View style={styles.noPetsContainer}>
-            <Text style={styles.noPetsText}>You haven't uploaded any pets yet.</Text>
+            <Text style={styles.noPetsText}>
+              You haven't uploaded any pets yet.
+            </Text>
           </View>
         )}
-      </View>
+      </SafeAreaView>
     </SideBar>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: "#fff",
-    padding: 16,
   },
-  titleText: {
+  titleContainer: {
+    width: "100%",
+    height: 95,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "white",
+    borderBottomEndRadius: 30,
+    borderBottomLeftRadius: 30,
+  },
+  title: {
     fontFamily: "Lilita",
-    fontSize: 25,
+    fontSize: 24,
     color: "#68C2FF",
-    textAlign: "center",
-    marginBottom: 20,
-    marginTop: 20,
   },
-  scrollViewContent: {
-    paddingBottom: 10,
+  container: {
+    padding: 16,
   },
   row: {
     justifyContent: "space-between",
@@ -181,7 +190,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 0 },
     elevation: 3,
-    marginTop: 10,
   },
   imageContainer: {
     flexDirection: "row",

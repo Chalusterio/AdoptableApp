@@ -7,14 +7,17 @@ import {
   FlatList,
   TouchableOpacity,
   SafeAreaView,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
-import { useRouter } from "expo-router"; // Import useRouter
-import FeedHeader from "../../components/FeedHeader"; // Import your Header component
+import { useRouter } from "expo-router";
+import FeedHeader from "../../components/FeedHeader";
 import SideBar from "../../components/SideBar";
-import { usePets } from "../../context/PetContext"; // Adjust the path as needed
+import { usePets } from "../../context/PetContext";
 import {
   collection,
   doc,
@@ -25,22 +28,20 @@ import {
   arrayUnion,
   arrayRemove,
 } from "firebase/firestore";
-import { db, auth } from "../../../firebase"; // Ensure `auth` and `db` are imported from Firebase
+import { db, auth } from "../../../firebase";
 
 const Feed = () => {
   const params = useLocalSearchParams();
-  const { pets } = usePets(); // Access shared pets state
-  const router = useRouter(); // For navigation
-  const { filteredPets, setFilteredPets } = usePets(); // Added
-  const [loading, setLoading] = useState(true); // Loading state
+  const { pets } = usePets();
+  const router = useRouter();
+  const { filteredPets, setFilteredPets } = usePets();
+  const [loading, setLoading] = useState(true); // Loading state for initial fetch
   const [selectedItem, setSelectedItem] = useState("Main");
 
-  // Parse the selectedImages string back into an array
   const selectedImages = params.selectedImages
     ? JSON.parse(params.selectedImages)
     : [];
 
-  // Validate if required parameters are present
   const isPetDataValid =
     params.petName &&
     params.petGender &&
@@ -52,25 +53,31 @@ const Feed = () => {
     typeof params.petVaccinated !== "undefined" &&
     selectedImages.length > 0;
 
-  // State to track favorited pets by their IDs
   const [favoritedPets, setFavoritedPets] = useState({});
-  const [userFavorites, setUserFavorites] = useState([]); // Define state for user favorites
+  const [userFavorites, setUserFavorites] = useState([]);
 
-  // Load the user's favorites when the component mounts
+  const [refreshing, setRefreshing] = useState(false); // State to handle refresh loading
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchPreferencesAndRankPets(true); // Pass `true` to indicate that it's a refresh
+    setRefreshing(false);
+  };
+
   useEffect(() => {
     const fetchUserFavorites = async () => {
-      const user = auth.currentUser; // Get the current logged-in user 
+      const user = auth.currentUser;
       if (user) {
+        console.log("Fetching user favorites...");
         try {
           const userRef = collection(db, "users");
-          const userQuery = query(userRef, where("email", "==", user.email)); // Filter by email
+          const userQuery = query(userRef, where("email", "==", user.email));
           const userSnapshot = await getDocs(userQuery);
 
           if (!userSnapshot.empty) {
-            const userDoc = userSnapshot.docs[0]; // Get the first document (since email should be unique)
+            const userDoc = userSnapshot.docs[0];
             const userData = userDoc.data();
-
-            setUserFavorites(userData.favorites || []); // Set the favorites field from user document
+            setUserFavorites(userData.favorites || []);
             const userFavoritesIds =
               userData.favorites?.map((pet) => pet.id) || [];
             setFavoritedPets((prevState) => {
@@ -78,11 +85,12 @@ const Feed = () => {
               userFavoritesIds.forEach((id) => (newState[id] = true));
               return newState;
             });
+            
           }
         } catch (error) {
           console.error("Error fetching user favorites:", error);
         } finally {
-          setLoading(false); // Set loading to false when fetching is done
+          setLoading(false); // Set loading to false when user favorites are fetched
         }
       }
     };
@@ -90,21 +98,19 @@ const Feed = () => {
     fetchUserFavorites();
   }, []);
 
-  // Function to toggle favorite status of a pet
   const toggleFavorite = async (petId, petData) => {
     const userId = auth.currentUser?.uid;
     if (!userId) {
       console.log("User is not logged in. Cannot toggle favorite.");
       return;
     }
-  
-    const userFavoritesRef = doc(db, "users", userId); // User's favorites document reference
-  
-    // Toggle the favorite status locally
+
+    const userFavoritesRef = doc(db, "users", userId);
+
+    console.log(`Toggling favorite for pet: ${petId}`);
     setFavoritedPets((prevState) => {
       const newState = { ...prevState };
       if (newState[petId]) {
-        // If the pet is already favorited, remove it
         delete newState[petId];
         setDoc(
           userFavoritesRef,
@@ -113,8 +119,8 @@ const Feed = () => {
           },
           { merge: true }
         );
+        console.log(`Removed pet ${petId} from favorites.`);
       } else {
-        // If the pet is not favorited, add it
         newState[petId] = true;
         setDoc(
           userFavoritesRef,
@@ -123,14 +129,90 @@ const Feed = () => {
           },
           { merge: true }
         );
+        console.log(`Added pet ${petId} to favorites.`);
       }
       return newState;
     });
   };
 
-  // Render pet item
+  const fetchPreferencesAndRankPets = async (isRefresh = false) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    console.log("Fetching preferences and ranking pets...");
+    try {
+      const preferencesQuery = query(collection(db, "preferences"), where("userEmail", "==", user.email));
+      const preferencesSnapshot = await getDocs(preferencesQuery);
+
+      let rankedPets = pets.map((pet) => {
+        let score = 0;
+
+        if (preferencesSnapshot.empty) {
+          return { ...pet, score: 0 };
+        }
+
+        const userPreferences = preferencesSnapshot.docs[0].data();
+
+        if (pet.petPersonality && pet.petPersonality.includes(userPreferences.personalityLabel)) {
+          score += 1;
+        }
+
+        const petWeight = parseInt(pet.petWeight, 10);
+        let matchesSizeLabel = false;
+        const sizeRangeMatch = userPreferences.petSizeLabel.match(/(\d+)-(\d+)/);
+        if (sizeRangeMatch) {
+          const minSize = parseInt(sizeRangeMatch[1], 10);
+          const maxSize = parseInt(sizeRangeMatch[2], 10);
+          matchesSizeLabel = petWeight >= minSize && petWeight <= maxSize;
+          if (matchesSizeLabel) {
+            score += 1;
+          }
+        }
+
+        const matchesGender = userPreferences.selectedGender === "any" || (pet.petGender && pet.petGender.toLowerCase() === userPreferences.selectedGender.toLowerCase());
+        if (matchesGender) {
+          score += 1;
+        }
+
+        const matchesPetType = userPreferences.selectedPet === "any" || (pet.petType && pet.petType.toLowerCase() === userPreferences.selectedPet.toLowerCase());
+        if (matchesPetType) {
+          score += 1;
+        }
+
+        return { ...pet, score };
+      });
+
+      if (preferencesSnapshot.empty) {
+        rankedPets = pets.map((pet) => ({ ...pet, score: 0 }));
+      }
+
+      rankedPets = rankedPets.sort((a, b) => b.score - a.score);
+
+      const shuffledPets = isRefresh ? shuffleArray(rankedPets) : rankedPets;
+
+      setFilteredPets(shuffledPets);
+    } catch (error) {
+      console.error("Error fetching user preferences:", error);
+    } finally {
+      setLoading(false); // Set loading to false once the preferences are fetched
+    }
+  };
+
+  const shuffleArray = (array) => {
+    let shuffledArray = [...array];
+    for (let i = shuffledArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledArray[i], shuffledArray[j]] = [shuffledArray[j], shuffledArray[i]];
+    }
+    return shuffledArray;
+  };
+
+  useEffect(() => {
+    fetchPreferencesAndRankPets(); // Initial fetch when the component mounts
+  }, [pets]);
+
   const renderItem = ({ item }) => {
-    const isFavorited = favoritedPets[item.id]; // Check if this pet is favorited
+    const isFavorited = favoritedPets[item.id];
 
     return (
       <TouchableOpacity
@@ -149,12 +231,12 @@ const Feed = () => {
         <View style={styles.imageContainer}>
           <TouchableOpacity
             style={styles.favoriteIconButton}
-            onPress={() => toggleFavorite(item.id, item)} // Pass pet data to toggleFavorite
+            onPress={() => toggleFavorite(item.id, item)}
           >
             <FontAwesome
               name={isFavorited ? "heart" : "heart-o"}
               size={20}
-              color={isFavorited ? "#FF6B6B" : "#FFFFFF"} // Red for heart, white for heart-o
+              color={isFavorited ? "#FF6B6B" : "#FFFFFF"}
             />
           </TouchableOpacity>
           <Image source={{ uri: item.images[0] }} style={styles.image} />
@@ -170,7 +252,7 @@ const Feed = () => {
               )}
             </View>
           </View>
-          <Text style={styles.age}>{item.petAge} Years Old</Text>
+          <Text style={styles.age}>{item.petAge} years old</Text>
         </View>
       </TouchableOpacity>
     );
@@ -180,8 +262,12 @@ const Feed = () => {
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
       <SafeAreaView style={styles.safeArea}>
         <FeedHeader setFilteredPets={setFilteredPets} />
-
-        {pets.length > 0 ? (
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#68C2FF" />
+            <Text style={styles.loadingText}>Loading pets...</Text>
+          </View>
+        ) : (
           <FlatList
             data={filteredPets}
             keyExtractor={(item) => item.id}
@@ -189,13 +275,10 @@ const Feed = () => {
             numColumns={2}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.container}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
           />
-        ) : (
-          <View style={styles.noPetsContainer}>
-            <Text style={styles.noPetsText}>
-              No pets available. Add a pet to display here!
-            </Text>
-          </View>
         )}
       </SafeAreaView>
     </SideBar>

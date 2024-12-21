@@ -3,21 +3,26 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   Modal,
   Alert,
   Animated,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
+import { TextInput } from "react-native-paper";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { Picker } from "@react-native-picker/picker";
 import * as Location from "expo-location";
 import PetProvider, { usePets } from "../context/PetContext"; // Import the context
 import Feather from "@expo/vector-icons/Feather";
+import { useRouter } from "expo-router";
 
 const FeedHeader = ({}) => {
   // State for dropdown and filter options
+
+  const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,23 +73,31 @@ const FeedHeader = ({}) => {
     getLocation();
   }, []);
 
-  // Debounce search functionality
   useEffect(() => {
     const filterPets = () => {
       if (searchQuery.trim() === "") {
         setFilteredPets(pets);
       } else {
-        const filtered = pets.filter(
-          (pet) => pet.petName.toLowerCase().includes(searchQuery.toLowerCase()) // Ensure case-insensitivity
-        );
+        const searchWords = searchQuery.toLowerCase().split(" "); // Split the query into words
+  
+        const filtered = pets.filter((pet) => {
+          // Check if all the search words appear in any of the pet's relevant fields
+          return searchWords.every((word) =>
+            pet.petName.toLowerCase().includes(word) ||
+            pet.petGender.toLowerCase().includes(word) ||
+            pet.petPersonality.toLowerCase().includes(word) ||
+            pet.petType.toLowerCase().includes(word)
+          );
+        });
+  
         setFilteredPets(filtered);
       }
     };
-
+  
     const timeoutId = setTimeout(filterPets, 300); // Debounce
     return () => clearTimeout(timeoutId); // Cleanup timeout
   }, [searchQuery, pets, setFilteredPets]);
-
+  
   // Handle filter button click
   const handleFilterClick = () => {
     if (isLoading) return; // Prevent further clicks if already loading
@@ -119,6 +132,7 @@ const FeedHeader = ({}) => {
       age: selectedAge,
       weight: selectedWeight,
       personality: selectedPersonality,
+      petType: selectedPetType, // Add pet type filter
       vaccinated: vaccinated,
       adoptionFee: selectedAdoptionFee, // Updated filter for adoption fee
       petType: selectedPetType, // Add pet type filter
@@ -131,6 +145,7 @@ const FeedHeader = ({}) => {
     setSelectedAge(""); // Reset age filter
     setSelectedWeight(""); // Reset weight filter
     setSelectedPersonality([]); // Reset personality filter
+    setSelectedPetType(""); // Reset pet type filter
     setVaccinated(null); // Reset vaccinated filter
     setSelectedAdoptionFee(""); // Reset adoption fee filter
     setSelectedPetType(""); // Reset pet type filter
@@ -140,199 +155,244 @@ const FeedHeader = ({}) => {
 
   return (
     <PetProvider>
-      <View style={styles.headerContainer}>
-        {/* Search Bar */}
-        <View style={styles.searchBar}>
-          <Icon
-            name="search"
-            size={24}
-            color="#444444"
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search"
-            placeholderTextColor="#C2C2C2"
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-          />
-          <TouchableOpacity
-            onPress={handleFilterClick}
-            style={styles.filterButton}
-          >
-            <Icon name="filter-list" size={24} color="#444" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Discover Pets Looking for Homes</Text>
-        </View>
-
-        {/* Location Info */}
-        <View style={styles.locationHeader}>
-          <View style={styles.locationContainer}>
-            <Icon name="location-on" size={20} color="#EF5B5B" />
-            <Text style={styles.locationText}>
-              {location
-                ? `${location.city}, ${location.region}, ${location.country}`
-                : "Loading location..."}
-            </Text>
-          </View>
-        </View>
-
-        {/* Modal for Filter Options */}
-        <Modal visible={modalVisible} transparent={true} animationType="fade">
-          <View style={styles.modalOverlay}>
-            <Animated.View
-              style={[
-                styles.modalContainer,
-                { transform: [{ translateX: slideAnim }] }, // Apply sliding animation
-              ]}
+      <ScrollView>
+        <View style={styles.headerContainer}>
+          {/* Search Bar */}
+          <View style={styles.searchBar}>
+            <Icon
+              name="search"
+              size={24}
+              color="#444444"
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search"
+              placeholderTextColor="#C2C2C2"
+              onChangeText={setSearchQuery}
+              value={searchQuery}
+              mode="outlined"
+              outlineColor="transparent"
+              activeOutlineColor="#68C2FF"
+            />
+            <TouchableOpacity
+              onPress={handleFilterClick}
+              style={styles.filterButton}
             >
-              <View style={styles.modalHeaderContainer}>
-                <Text style={styles.modalTitle}>Filter Pets</Text>
-                <TouchableOpacity
-                  style={styles.buttonStyle2}
-                  onPress={closeModal}
-                >
-                  <Feather name="x" size={24} color="white" />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.horizontalLine}></View>
-
-              {/* Gender Filter */}
-              <Text style={styles.modalText}>Gender</Text>
-              <View style={styles.input2}>
-                <Picker
-                  selectedValue={selectedGender}
-                  onValueChange={(itemValue) => setSelectedGender(itemValue)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Select Gender" value="" color="gray" />
-                  <Picker.Item label="Male" value="Male" />
-                  <Picker.Item label="Female" value="Female" />
-                </Picker>
-              </View>
-
-              {/* Other Filters (Age, Weight, Personality, Vaccinated) */}
-              <Text style={styles.modalText}>Age (years)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Age"
-                placeholderTextColor={"gray"}
-                fontFamily={"Lato"}
-                keyboardType="numeric"
-                value={selectedAge}
-                onChangeText={(text) => setSelectedAge(text)}
-              />
-
-              <Text style={styles.modalText}>Weight (kg)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Weight"
-                placeholderTextColor={"gray"}
-                fontFamily={"Lato"}
-                keyboardType="number-pad"
-                value={selectedWeight}
-                onChangeText={(text) => setSelectedWeight(text)}
-              />
-
-              <Text style={styles.modalText}>Personality</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Personality Traits"
-                placeholderTextColor={"gray"}
-                fontFamily={"Lato"}
-                value={selectedPersonality.join(", ")}
-                onChangeText={(text) =>
-                  setSelectedPersonality(
-                    text.split(",").map((item) => item.trim())
-                  )
-                }
-              />
-
-              <Text style={styles.modalText}>Vaccinated</Text>
-              <View style={styles.input2}>
-                <Picker
-                  selectedValue={vaccinated}
-                  onValueChange={(itemValue) => setVaccinated(itemValue)}
-                  style={[styles.picker, { fontFamily: "Lato" }]}
-                >
-                  <Picker.Item
-                    label="Select Vaccinated Status"
-                    value={null}
-                    color="gray"
-                    style={{ fontFamily: "Lato" }}
-                  />
-                  <Picker.Item
-                    label="Yes"
-                    value={true}
-                    style={{ fontFamily: "Lato" }}
-                  />
-                  <Picker.Item
-                    label="No"
-                    value={false}
-                    style={{ fontFamily: "Lato" }}
-                  />
-                </Picker>
-              </View>
-
-              {/* Pet Type Filter */}
-              <Text style={styles.modalText}>Pet Type</Text>
-              <View style={styles.input2}>
-                <Picker
-                  selectedValue={selectedPetType}
-                  onValueChange={(itemValue) => setSelectedPetType(itemValue)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Select Pet Type" value="" color="gray" />
-                  <Picker.Item label="Cat" value="Cat" />
-                  <Picker.Item label="Dog" value="Dog" />
-                </Picker>
-              </View>
-
-              {/* Price Range Filter */}
-              <Text style={styles.modalText}>Adoption Fee Range (₱)</Text>
-              <View style={styles.input2}>
-                <Picker
-                  selectedValue={selectedAdoptionFee}
-                  onValueChange={setSelectedAdoptionFee}
-                  style={styles.picker}
-                >
-                  <Picker.Item
-                    label="Select Adoption Fee Range"
-                    value=""
-                    color="gray"
-                  />
-                  <Picker.Item label="₱0 - ₱200" value="0-200" />
-                  <Picker.Item label="₱201 - ₱400" value="201-400" />
-                  <Picker.Item label="₱401 - ₱600" value="401-600" />
-                  <Picker.Item label="₱601 - ₱800" value="601-800" />
-                  <Picker.Item label="₱801 - ₱1000" value="801-1000" />
-                  <Picker.Item label="₱1000+" value="1001-1200" />
-                </Picker>
-              </View>
-
-              {/* Apply and Close Buttons */}
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={[styles.buttonStyle, isLoading && { opacity: 0.5 }]}
-                  onPress={applyFiltersToPets}
-                  disabled={isLoading} // Disable button while loading
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.buttonText}>Apply Filters</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
+              <FontAwesome name="filter" size={24} color="#444444" />
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </View>
+
+          {/* Title */}
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Discover Pets Looking for Homes</Text>
+          </View>
+
+          {/* Location Info */}
+          <View style={styles.locationHeader}>
+            <View style={styles.locationContainer}>
+              <Icon name="location-on" size={20} color="#EF5B5B" />
+              <Text style={styles.locationText}>
+                {location
+                  ? `${location.city}, ${location.region}, ${location.country}`
+                  : "Loading location..."}
+              </Text>
+            </View>
+          </View>
+
+          {/* Modal for Filter Options */}
+
+          <Modal visible={modalVisible} transparent={true} animationType="fade">
+            <View style={styles.modalOverlay}>
+              <Animated.View
+                style={[
+                  styles.modalContainer,
+                  { transform: [{ translateX: slideAnim }] }, // Apply sliding animation
+                ]}
+              >
+                <ScrollView contentContainerStyle={styles.scrollViewContent}>
+                  <View style={styles.modalHeaderContainer}>
+                    <Text style={styles.modalTitle}>Filter Pets</Text>
+                    <TouchableOpacity
+                      style={styles.buttonStyle2}
+                      onPress={closeModal}
+                    >
+                      <Feather name="x" size={24} color="white" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.horizontalLine}></View>
+
+                  {/* Gender Filter */}
+                  <Text style={styles.modalText}>Gender</Text>
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={selectedGender}
+                      onValueChange={(itemValue) =>
+                        setSelectedGender(itemValue)
+                      }
+                      style={styles.picker}
+                    >
+                      <Picker.Item
+                        label="Select Gender"
+                        value=""
+                        color="gray"
+                      />
+                      <Picker.Item label="Male" value="Male" />
+                      <Picker.Item label="Female" value="Female" />
+                    </Picker>
+                  </View>
+
+                  {/* Other Filters (Age, Weight, Personality, Vaccinated) */}
+                  <Text style={styles.modalText}>Age (years)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter Age"
+                    placeholderTextColor={"gray"}
+                    fontFamily={"Lato"}
+                    keyboardType="numeric"
+                    value={selectedAge}
+                    onChangeText={(text) => setSelectedAge(text)}
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="sentences"
+                  />
+
+                  <Text style={styles.modalText}>Weight (kg)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter Weight"
+                    placeholderTextColor={"gray"}
+                    fontFamily={"Lato"}
+                    keyboardType="number-pad"
+                    value={selectedWeight}
+                    onChangeText={(text) => setSelectedWeight(text)}
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="sentences"
+                  />
+
+                  <Text style={styles.modalText}>Personality</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter Personality Traits"
+                    placeholderTextColor={"gray"}
+                    fontFamily={"Lato"}
+                    value={selectedPersonality.join(", ")}
+                    onChangeText={(text) =>
+                      setSelectedPersonality(
+                        text.split(",").map((item) => item.trim())
+                      )
+                    }
+                    mode="outlined"
+                    outlineColor="transparent"
+                    activeOutlineColor="#68C2FF"
+                    autoCapitalize="sentences"
+                  />
+
+                  <Text style={styles.modalText}>Vaccinated</Text>
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={vaccinated}
+                      onValueChange={(itemValue) => setVaccinated(itemValue)}
+                      style={[styles.picker, { fontFamily: "Lato" }]}
+                    >
+                      <Picker.Item
+                        label="Select Vaccinated Status"
+                        value={null}
+                        color="gray"
+                        style={{ fontFamily: "Lato" }}
+                      />
+                      <Picker.Item
+                        label="Yes"
+                        value="Yes"
+                        style={{ fontFamily: "Lato" }}
+                      />
+                      <Picker.Item
+                        label="No"
+                        value="No"
+                        style={{ fontFamily: "Lato" }}
+                      />
+                    </Picker>
+                  </View>
+
+                  {/* Pet Type Filter */}
+                  <Text style={styles.modalText}>Pet Type</Text>
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={selectedPetType}
+                      onValueChange={(itemValue) =>
+                        setSelectedPetType(itemValue)
+                      }
+                      style={styles.picker}
+                    >
+                      <Picker.Item
+                        label="Select Pet Type"
+                        value=""
+                        color="gray"
+                      />
+                      <Picker.Item label="Cat" value="Cat" />
+                      <Picker.Item label="Dog" value="Dog" />
+                    </Picker>
+                  </View>
+
+                  {/* Price Range Filter */}
+                  <Text style={styles.modalText}>Adoption Fee Range (₱)</Text>
+                  <View style={styles.input2}>
+                    <Picker
+                      selectedValue={selectedAdoptionFee}
+                      onValueChange={setSelectedAdoptionFee}
+                      style={styles.picker}
+                    >
+                      <Picker.Item
+                        label="Select Adoption Fee Range"
+                        value=""
+                        color="gray"
+                      />
+                      <Picker.Item label="₱0 - ₱200" value="0-200" />
+                      <Picker.Item label="₱201 - ₱400" value="201-400" />
+                      <Picker.Item label="₱401 - ₱600" value="401-600" />
+                      <Picker.Item label="₱601 - ₱800" value="601-800" />
+                      <Picker.Item label="₱801 - ₱1000" value="801-1000" />
+                      <Picker.Item label="₱1000+" value="1001-1200" />
+                    </Picker>
+                  </View>
+
+                  {/* Apply and Close Buttons */}
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.buttonStyle,
+                        isLoading && { opacity: 0.5 },
+                      ]}
+                      onPress={applyFiltersToPets}
+                      disabled={isLoading} // Disable button while loading
+                    >
+                      {isLoading ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.buttonText}>Apply Filters</Text>
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Edit Preferences Button */}
+                    <TouchableOpacity
+                      style={styles.preferencesButton}
+                      onPress={() => router.push("Preferences")}
+                    >
+                      <Text style={styles.preferencesText}>
+                        Edit Preferences
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </Animated.View>
+            </View>
+          </Modal>
+        </View>
+      </ScrollView>
     </PetProvider>
   );
 };
@@ -346,10 +406,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
     elevation: 10,
+    paddingBottom: 40,
   },
   locationHeader: {
     width: "100%",
     paddingLeft: -10,
+    paddingBottom: 20,
   },
   locationContainer: {
     flexDirection: "row",
@@ -390,6 +452,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#444",
     paddingHorizontal: 10,
+    backgroundColor: "#F3F3F3",
   },
   filterButton: {
     padding: 10,
@@ -441,15 +504,16 @@ const styles = StyleSheet.create({
     backgroundColor: "gray",
     alignSelf: "center",
   },
+  input: {
+    marginBottom: 5,
+    backgroundColor: "#F5F5F5",
+  },
   input2: {
-    height: 40,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 6,
-    marginVertical: 10,
-    fontSize: 14,
-    justifyContent: "center",
+    marginBottom: 5,
+    paddingVertical: 5,
+    backgroundColor: "#F5F5F5",
+    fontSize: 16,
+    borderRadius: 5,
   },
   picker: {
     borderWidth: 1,
@@ -457,16 +521,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     fontSize: 14,
   },
-  input: {
-    height: 40,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 6,
-    paddingLeft: 20,
-    marginVertical: 10,
-    fontSize: 14,
-    justifyContent: "center",
+  pickerItemText: {
+    fontFamily: "Lato",
+    fontSize: 16,
   },
   buttonContainer: {
     justifyContent: "center", // Center vertically
@@ -476,7 +533,7 @@ const styles = StyleSheet.create({
   buttonStyle: {
     justifyContent: "center", // Center vertically
     alignItems: "center", // Center horizontally
-    width: "50%",
+    width: "70%",
     borderWidth: 1,
     borderRadius: 30,
     borderColor: "white",
@@ -484,6 +541,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#68C2FF",
   },
   buttonText: {
+    textAlign: "center",
+    color: "white",
+    fontFamily: "LatoBold",
+    fontSize: 16,
+  },
+  preferencesButton: {
+    justifyContent: "center", // Center vertically
+    alignItems: "center", // Center horizontally
+    width: "70%",
+    borderWidth: 1,
+    borderRadius: 30,
+    borderColor: "white",
+    height: 50,
+    backgroundColor: "#68C2FF",
+    marginTop: 20,
+  },
+  preferencesText: {
     textAlign: "center",
     color: "white",
     fontFamily: "LatoBold",

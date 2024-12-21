@@ -130,28 +130,31 @@ export const PetProvider = ({ children }) => {
 
   // Function to toggle favorite status
   const toggleFavorite = async (petId, petData) => {
-    if (!user) return;
+  if (!user) return;
 
-    const userRef = doc(db, "users", user.uid);
+  const userRef = doc(db, "users", user.uid);
 
+  try {
     if (favoritedPets.some((favPet) => favPet.id === petId)) {
+      // Remove from favorites
       await updateDoc(userRef, {
         favorites: arrayRemove(petData),
       });
       setFavoritedPets((prev) => prev.filter((favPet) => favPet.id !== petId));
     } else {
+      // Add to favorites
       await updateDoc(userRef, {
         favorites: arrayUnion(petData),
       });
-      // Ensure the pet is not already in the favoritedPets state
       setFavoritedPets((prev) => {
-        if (prev.some((favPet) => favPet.id === petId)) {
-          return prev;
-        }
+        if (prev.some((favPet) => favPet.id === petId)) return prev; // Prevent duplicates
         return [...prev, petData];
       });
     }
-  };
+  } catch (error) {
+    console.error("Error toggling favorite:", error);
+  }
+};
 
   // Apply filters to the pets list
   const applyFilters = (filters) => {
@@ -162,24 +165,45 @@ export const PetProvider = ({ children }) => {
     }
 
     if (filters.age) {
-      filtered = filtered.filter(
-        (pet) => Number(pet.petAge) === Number(filters.age)
-      );
+      filtered = filtered.filter((pet) => {
+        // Ensure pet.age exists and is a string
+        if (!pet.petAge || typeof pet.petAge !== "string") return false;
+    
+        const yearPattern = /^(\d+)\s*years?$/i; // Matches "8 years" or "1 year" (case-insensitive)
+        const numericAgePattern = /^\d+$/; // Matches purely numeric values like "8"
+    
+        // Check if pet.age matches the "years" format
+        const match = pet.petAge.match(yearPattern);
+        const isAgeNumeric = numericAgePattern.test(pet.petAge);
+    
+        if (!match && !isAgeNumeric) return false; // Exclude if not a valid year format
+    
+        // Extract numeric part if it's in "X years" format, else parse numeric-only age
+        const petAgeValue = match ? parseInt(match[1], 10) : parseInt(pet.petAge, 10);
+        const filterAgeValue = parseInt(filters.age, 10);
+    
+        return petAgeValue === filterAgeValue; // Compare only numeric years
+      });
     }
 
     if (filters.weight) {
-      filtered = filtered.filter(
-        (pet) => Number(pet.petWeight) === Number(filters.weight)
-      );
+      filtered = filtered.filter((pet) => {
+        // Strip "kg" from both filter input and pet.petWeight
+        const numericPetWeight = pet.petWeight.replace(/[^0-9]/g, "");
+        const numericFilterWeight = filters.weight.replace(/[^0-9]/g, "");
+    
+        return numericPetWeight === numericFilterWeight;
+      });
     }
 
-    if (filters.personality && filters.personality.length > 0) {
+    if (filters.personality.length > 0) {
       filtered = filtered.filter((pet) =>
         filters.personality.some((trait) => pet.petPersonality.includes(trait))
       );
     }
 
     if (filters.vaccinated !== null) {
+      // This is the updated logic for the vaccinated filter
       filtered = filtered.filter(
         (pet) => pet.petVaccinated === filters.vaccinated
       );

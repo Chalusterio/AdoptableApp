@@ -1,13 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, Image, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Modal, TextInput, Alert } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  TouchableOpacity,
+  Modal,
+  Alert,
+  ActivityIndicator, // Import ActivityIndicator
+} from "react-native";
+import { TextInput,} from "react-native-paper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { db } from "../../firebase"; // Ensure `db` is imported from Firebase
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { Picker } from "@react-native-picker/picker"; // Import Picker
+import { usePets } from "../context/PetContext";
 import * as ImagePicker from "expo-image-picker";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -16,7 +28,9 @@ const screenWidth = Dimensions.get("window").width;
 const PetDetailsEdit = () => {
   const { petId } = useLocalSearchParams();
   const [petData, setPetData] = useState(null);
+  const { favoritedPets, toggleFavorite } = usePets();
   const [isFavorited, setIsFavorited] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // State to track submission status
   const [currentIndex, setCurrentIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -25,6 +39,7 @@ const PetDetailsEdit = () => {
   const [editedPetWeight, setEditedPetWeight] = useState("");
   const [editedPetPersonality, setEditedPetPersonality] = useState("");
   const [editedPetDescription, setEditedPetDescription] = useState("");
+  const [editedPetIllnessHistory, setEditedPetIllnessHistory] = useState("");
   const [editedPetVaccinated, setEditedPetVaccinated] = useState("");
   const [editedPetType, setEditedPetType] = useState("");
   const [editedPetGender, setEditedPetGender] = useState("");
@@ -47,6 +62,7 @@ const PetDetailsEdit = () => {
           setEditedPetWeight(pet.petWeight);
           setEditedPetPersonality(pet.petPersonality);
           setEditedPetDescription(pet.petDescription);
+          setEditedPetIllnessHistory(pet.petIllnessHistory);
           setEditedPetVaccinated(pet.petVaccinated);
           setEditedPetType(pet.petType);
           setEditedPetGender(pet.petGender);
@@ -63,9 +79,14 @@ const PetDetailsEdit = () => {
     fetchPetData();
   }, [petId]);
 
-  const toggleFavorite = () => {
-    setIsFavorited(!isFavorited);
-  };
+  useEffect(() => {
+    if (petData && petData.petName) {
+      const isPetFavorited = favoritedPets.some(
+        (pet) => pet.petName === petData.petName
+      );
+      setIsFavorited(isPetFavorited);
+    }
+  }, [favoritedPets, petData]);
 
   const onScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -79,19 +100,43 @@ const PetDetailsEdit = () => {
   };
 
   const handleDelete = async () => {
-    try {
-      const petRef = doc(db, "listed_pets", petId); // Reference to the pet document
-      await deleteDoc(petRef);
-      alert("Pet deleted successfully!");
-      router.back(); // Go back after deletion
-    } catch (error) {
-      console.error("Error deleting pet:", error);
-      alert("Error deleting pet. Please try again.");
+    if (!petId) {
+      Alert.alert("Error", "Invalid pet ID. Unable to delete.");
+      return;
     }
+  
+    Alert.alert(
+      "Confirm Deletion",
+      "Are you sure you want to delete this pet? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const petRef = doc(db, "listed_pets", petId); // Reference to the pet document
+              await deleteDoc(petRef); // Delete the document from Firestore
+              Alert.alert("Success", "Pet deleted successfully!");
+              router.back(); // Navigate back after deletion
+            } catch (error) {
+              console.error("Error deleting pet:", error);
+              Alert.alert("Error", "Failed to delete the pet. Please try again.");
+            }
+          },
+        },
+      ]
+    );
   };
+  
 
   const handleSave = async () => {
     try {
+      setIsSubmitting(true); // Set submitting state to true
+
       const petRef = doc(db, "listed_pets", petId);
       const updatedPetData = {
         petName: editedPetName,
@@ -99,104 +144,109 @@ const PetDetailsEdit = () => {
         petWeight: editedPetWeight,
         petPersonality: editedPetPersonality,
         petDescription: editedPetDescription,
+        petIllnessHistory: editedPetIllnessHistory,
         petVaccinated: editedPetVaccinated,
         petType: editedPetType,
         petGender: editedPetGender,
         adoptionFee: editedAdoptionFee,
         images: editedImages,
       };
-  
+
       await updateDoc(petRef, updatedPetData);
-  
+
       Alert.alert("Success", "Pet details updated successfully!");
       setModalVisible(false);
       setPetData((prev) => ({ ...prev, ...updatedPetData }));
     } catch (error) {
       console.error("Error updating pet: ", error);
       Alert.alert("Error", "Failed to update pet details. Please try again.");
+    } finally {
+      setIsSubmitting(false); // Reset submitting state after action completes
     }
   };
-  
+
   if (!petData) {
     return <Text>Loading...</Text>;
   }
-  
 
   const handleImagePick = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert("Permission Required", "Permission to access the media library is required.");
+      Alert.alert(
+        "Permission Required",
+        "Permission to access the media library is required."
+      );
       return;
     }
-  
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: false,
       quality: 1,
     });
-  
+
     if (!result.canceled) {
       const imageUri = result.assets[0].uri;
       const storage = getStorage();
       const imageRef = ref(storage, `pets/${petId}/${Date.now()}.jpg`);
       const response = await fetch(imageUri);
       const blob = await response.blob();
-  
+
       await uploadBytes(imageRef, blob);
       const downloadURL = await getDownloadURL(imageRef);
       setEditedImages((prevImages) => [...prevImages, downloadURL]);
     }
     if (editedImages.length < 5) {
-    // Logic to pick image and add it to the editedImages array
-    setEditedImages([...editedImages, newImageUri]); // newImageUri is the URI of the picked image
-  }
+      // Logic to pick image and add it to the editedImages array
+      setEditedImages([...editedImages, newImageUri]); // newImageUri is the URI of the picked image
+    }
   };
 
-// Remove image
+  // Remove image
   const removeImage = (index) => {
     const updatedImages = editedImages.filter((_, idx) => idx !== index);
     setEditedImages(updatedImages);
   };
-  
+
   return (
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-      {petData.images && petData.images.length > 0 && (
-        <View>
-        <ScrollView
-          horizontal={true}
-          style={styles.imageScrollContainer}
-          ref={scrollViewRef}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled={true}
-        >
-          {petData.images.map((imageURL, index) => (
-            <View key={index} style={styles.petImageContainer}>
-              <Image
-                source={{ uri: imageURL }}
-                style={styles.petImage}
-              />
+        {petData.images && petData.images.length > 0 && (
+          <View>
+            <ScrollView
+              horizontal={true}
+              style={styles.imageScrollContainer}
+              ref={scrollViewRef}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              showsHorizontalScrollIndicator={false}
+              pagingEnabled={true}
+            >
+              {petData.images.map((imageURL, index) => (
+                <View key={index} style={styles.petImageContainer}>
+                  <Image source={{ uri: imageURL }} style={styles.petImage} />
+                </View>
+              ))}
+            </ScrollView>
+
+            {/* Pagination Dots */}
+            <View style={styles.paginationContainer}>
+              {petData.images.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.paginationDot,
+                    index === currentIndex && styles.activeDot,
+                  ]}
+                />
+              ))}
             </View>
-          ))}
-        </ScrollView>
-
-        {/* Pagination Dots */}
-        <View style={styles.paginationContainer}>
-          {petData.images.map((_, index) => (
-            <View
-              key={index}
-              style={[styles.paginationDot, index === currentIndex && styles.activeDot]}
-            />
-          ))}
-        </View>
-      </View>
-    )}
-
+          </View>
+        )}
 
         {/* Pet Details */}
         <View style={styles.card}>
@@ -211,7 +261,12 @@ const PetDetailsEdit = () => {
                 )}
               </Text>
               <Text
-                style={[styles.petGender, { color: petData.petGender === "Male" ? "#68C2FF" : "#EF5B5B" }]}
+                style={[
+                  styles.petGender,
+                  {
+                    color: petData.petGender === "Male" ? "#68C2FF" : "#EF5B5B",
+                  },
+                ]}
               >
                 {petData.petGender === "Male" ? (
                   <Foundation name="male-symbol" size={24} color="#68C2FF" />
@@ -221,15 +276,21 @@ const PetDetailsEdit = () => {
               </Text>
             </View>
           </View>
-          <Text style={styles.subText}>{`${petData.petAge} Years | ${petData.petWeight} kg`}</Text>
+          <Text
+            style={styles.subText}
+          >{`${petData.petAge} Years | ${petData.petWeight} kg`}</Text>
           <Text style={styles.personalityText}>
-            {petData.petPersonality ? petData.petPersonality.split(",").join(" ● ") : "No personality traits available"}
+            {petData.petPersonality
+              ? petData.petPersonality.split(",").join(" ● ")
+              : "No personality traits available"}
           </Text>
           <Text style={styles.description}>{petData.petDescription}</Text>
           <Text style={styles.sectionTitle}>Health History:</Text>
           <View>
             <Text style={styles.bulletText}>
-              {petData.petVaccinated === "Yes" ? "• Vaccinated" : "• Not Vaccinated"}
+              {petData.petVaccinated === "Yes"
+                ? "• Vaccinated"
+                : "• Not Vaccinated"}
             </Text>
             {petData.petIllnessHistory.split(",").map((illness, index) => (
               <Text key={index} style={styles.bulletText}>
@@ -250,24 +311,24 @@ const PetDetailsEdit = () => {
           >
             <FontAwesome name="arrow-left" size={20} color="#FFF" />
           </TouchableOpacity>
-
-          {/* Edit Button */}
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={handleEdit}
-          >
-            <Text style={styles.buttonText}>Edit</Text>
-          </TouchableOpacity>
-
+          
           {/* Delete Button */}
           <TouchableOpacity
             style={styles.deleteButton}
-            onPress={() => setDeleteModalVisible(true)}
+            onPress={handleDelete} // Trigger delete confirmation and action
           >
             <Text style={styles.buttonText}>Delete</Text>
           </TouchableOpacity>
+
+
+          {/* Edit Button */}
+          <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+            <Text style={styles.buttonText}>Edit</Text>
+          </TouchableOpacity>
+
         </View>
       </View>
+
       {/* Edit Modal */}
       <Modal
         visible={modalVisible}
@@ -287,13 +348,20 @@ const PetDetailsEdit = () => {
                 value={editedPetName}
                 onChangeText={setEditedPetName}
                 style={[styles.input]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
               />
-
+              
               {/* Pet Type - Side by side Buttons */}
               <Text style={styles.question}>Pet Type:</Text>
               <View style={styles.optionRow}>
                 <TouchableOpacity
-                  style={[styles.optionButton, editedPetType === "Cat" && styles.selectedOptionButton]}
+                  style={[
+                    styles.optionButton,
+                    editedPetType === "Cat" && styles.selectedOptionButton,
+                  ]}
                   onPress={() => setEditedPetType("Cat")}
                 >
                   <MaterialCommunityIcons
@@ -302,14 +370,20 @@ const PetDetailsEdit = () => {
                     color={editedPetType === "Cat" ? "#68C2FF" : "#C2C2C2"}
                   />
                   <Text
-                    style={[styles.optionText, editedPetType === "Cat" && styles.selectedOptionText]}
+                    style={[
+                      styles.optionText,
+                      editedPetType === "Cat" && styles.selectedOptionText,
+                    ]}
                   >
                     Cat
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.optionButton, editedPetType === "Dog" && styles.selectedOptionButton]}
+                  style={[
+                    styles.optionButton,
+                    editedPetType === "Dog" && styles.selectedOptionButton,
+                  ]}
                   onPress={() => setEditedPetType("Dog")}
                 >
                   <MaterialCommunityIcons
@@ -318,7 +392,10 @@ const PetDetailsEdit = () => {
                     color={editedPetType === "Dog" ? "#68C2FF" : "#C2C2C2"}
                   />
                   <Text
-                    style={[styles.optionText, editedPetType === "Dog" && styles.selectedOptionText]}
+                    style={[
+                      styles.optionText,
+                      editedPetType === "Dog" && styles.selectedOptionText,
+                    ]}
                   >
                     Dog
                   </Text>
@@ -329,7 +406,10 @@ const PetDetailsEdit = () => {
               <Text style={styles.question}>Gender:</Text>
               <View style={styles.optionRow}>
                 <TouchableOpacity
-                  style={[styles.optionButton, editedPetGender === "Female" && styles.selectedOptionButton]}
+                  style={[
+                    styles.optionButton,
+                    editedPetGender === "Female" && styles.selectedOptionButton,
+                  ]}
                   onPress={() => setEditedPetGender("Female")}
                 >
                   <Foundation
@@ -338,13 +418,19 @@ const PetDetailsEdit = () => {
                     color={editedPetGender === "Female" ? "#68C2FF" : "#C2C2C2"}
                   />
                   <Text
-                    style={[styles.optionText, editedPetGender === "Female" && styles.selectedOptionText]}
+                    style={[
+                      styles.optionText,
+                      editedPetGender === "Female" && styles.selectedOptionText,
+                    ]}
                   >
                     Female
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.optionButton, editedPetGender === "Male" && styles.selectedOptionButton]}
+                  style={[
+                    styles.optionButton,
+                    editedPetGender === "Male" && styles.selectedOptionButton,
+                  ]}
                   onPress={() => setEditedPetGender("Male")}
                 >
                   <Foundation
@@ -353,7 +439,10 @@ const PetDetailsEdit = () => {
                     color={editedPetGender === "Male" ? "#68C2FF" : "#C2C2C2"}
                   />
                   <Text
-                    style={[styles.optionText, editedPetGender === "Male" && styles.selectedOptionText]}
+                    style={[
+                      styles.optionText,
+                      editedPetGender === "Male" && styles.selectedOptionText,
+                    ]}
                   >
                     Male
                   </Text>
@@ -367,6 +456,11 @@ const PetDetailsEdit = () => {
                 value={editedPetAge}
                 onChangeText={setEditedPetAge}
                 style={[styles.input]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
+                keyboardType="number-pad"
               />
 
               {/* Weight (kg) */}
@@ -375,8 +469,12 @@ const PetDetailsEdit = () => {
                 placeholder="e.g., 25"
                 value={editedPetWeight}
                 onChangeText={setEditedPetWeight}
-                keyboardType="number-pad"
                 style={[styles.input]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
+                keyboardType="number-pad"
               />
 
               {/* Personality */}
@@ -384,8 +482,29 @@ const PetDetailsEdit = () => {
               <TextInput
                 placeholder="e.g., Friendly, Playful"
                 value={editedPetPersonality}
-                onChangeText={setEditedPetPersonality}
+                onChangeText={(text) => {
+                  // Remove spaces and trim the input
+                  const cleanedText = text.replace(/\s+/g, "").trim();
+
+                  // Filter out any non-alphabetic characters except commas
+                  const validText = cleanedText.replace(/[^a-zA-Z,-]/g, "");
+
+                  // Split the input by commas
+                  const words = validText.split(",");
+
+                  // If there are more than 3 words, limit the input to the first 3 words
+                  if (words.length > 3) {
+                    setEditedPetPersonality(words.slice(0, 3).join(", "));
+                  } else {
+                    // Update state with the valid input
+                    setEditedPetPersonality(words.join(", "));
+                  }
+                }}
                 style={[styles.input]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
               />
 
               {/* Description */}
@@ -394,33 +513,71 @@ const PetDetailsEdit = () => {
                 placeholder="Briefly describe this pet"
                 value={editedPetDescription}
                 onChangeText={setEditedPetDescription}
-                style={[styles.input]}
+                style={[styles.input, styles.textArea,]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                multiline={true}
+                numberOfLines={7}
+                textAlignVertical="top"
+                autoCapitalize="sentences"
+              />
+
+              {/* Illness of History */}
+              <Text style={styles.question}>Health History:</Text>
+              <TextInput
+                placeholder="Mention if the pet has any history of illness (or write None)"
+                value={editedPetIllnessHistory}
+                onChangeText={setEditedPetIllnessHistory}
+                style={[styles.input, styles.textArea,]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                multiline={true}
+                numberOfLines={7}
+                textAlignVertical="top"
+                autoCapitalize="sentences"
               />
 
               {/* Vaccinated - Side by Side Buttons */}
               <Text style={styles.question}>Is the pet vaccinated?</Text>
               <View style={styles.optionRow}>
                 <TouchableOpacity
-                  style={[styles.optionButton, editedPetVaccinated === "Yes" && styles.selectedOptionButton]}
+                  style={[
+                    styles.optionButton1,
+                    editedPetVaccinated === "Yes" &&
+                      styles.selectedOptionButton,
+                  ]}
                   onPress={() => setEditedPetVaccinated("Yes")}
                 >
                   <Text
-                    style={[styles.optionText, editedPetVaccinated === "Yes" && styles.selectedOptionText]}
+                    style={[
+                      styles.optionText,
+                      editedPetVaccinated === "Yes" &&
+                        styles.selectedOptionText,
+                    ]}
                   >
                     Yes
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.optionButton, editedPetVaccinated === "No" && styles.selectedOptionButton]}
+                  style={[
+                    styles.optionButton1,
+                    editedPetVaccinated === "No" && styles.selectedOptionButton,
+                  ]}
                   onPress={() => setEditedPetVaccinated("No")}
                 >
                   <Text
-                    style={[styles.optionText, editedPetVaccinated === "No" && styles.selectedOptionText]}
+                    style={[
+                      styles.optionText,
+                      editedPetVaccinated === "No" && styles.selectedOptionText,
+                    ]}
                   >
                     No
                   </Text>
                 </TouchableOpacity>
               </View>
+
               {/* Adoption Fee */}
               <Text style={styles.question}>Adoption Fee:</Text>
               <TextInput
@@ -428,49 +585,53 @@ const PetDetailsEdit = () => {
                 value={editedAdoptionFee}
                 onChangeText={setEditedAdoptionFee}
                 keyboardType="number-pad"
-                style={[styles.input, styles.adoptionFee]}
+                style={[styles.input]}
+                mode="outlined"
+                outlineColor="transparent"
+                activeOutlineColor="#68C2FF"
+                autoCapitalize="words"
               />
-               {/* Upload Images */}
-                <Text style={styles.question}>Upload Image:</Text>
-                <TouchableOpacity
-                  style={styles.uploadButton}
-                  onPress={handleImagePick}
-                  disabled={editedImages.length >= 5} // Disable if 5 images already selected
+              {/* Upload Images */}
+              <Text style={styles.question}>Upload Image:</Text>
+              <TouchableOpacity
+                style={styles.uploadButton}
+                onPress={handleImagePick}
+                disabled={editedImages.length >= 5} // Disable if 5 images already selected
+              ></TouchableOpacity>
+
+              {/* Display Selected Images */}
+              <View style={styles.imagePreviewContainer}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.imageSlider}
                 >
-                </TouchableOpacity>
-
-                {/* Display Selected Images */}
-                <View style={styles.imagePreviewContainer}>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.imageSlider}
-                  >
-                    {editedImages.map((img, index) => (
-                      <View key={index} style={styles.imagePreview}>
-                        <Image source={{ uri: img }} style={styles.previewImage} />
-                        <TouchableOpacity
-                          style={styles.removeButton}
-                          onPress={() => removeImage(index)}
-                        >
-                          <Text style={styles.removeButtonText}>Remove</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                    
-                    {/* Add image button */}
-                    {editedImages.length < 5 && (
+                  {editedImages.map((img, index) => (
+                    <View key={index} style={styles.imagePreview}>
+                      <Image
+                        source={{ uri: img }}
+                        style={styles.previewImage}
+                      />
                       <TouchableOpacity
-                        style={styles.addImageContainer}
-                        onPress={handleImagePick} // Function to pick a new image
+                        style={styles.removeButton}
+                        onPress={() => removeImage(index)}
                       >
-                        <MaterialIcons name="add" size={50} color="gray" />
+                        <Text style={styles.removeButtonText}>Remove</Text>
                       </TouchableOpacity>
-                    )}
-                  </ScrollView>
-                </View>
+                    </View>
+                  ))}
 
-
+                  {/* Add image button */}
+                  {editedImages.length < 5 && (
+                    <TouchableOpacity
+                      style={styles.addImageContainer}
+                      onPress={handleImagePick} // Function to pick a new image
+                    >
+                      <MaterialIcons name="add" size={50} color="gray" />
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+              </View>
             </ScrollView>
 
             <View style={styles.modalButtons}>
@@ -480,10 +641,7 @@ const PetDetailsEdit = () => {
               >
                 <Text style={styles.buttonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSave}
-              >
+              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
                 <Text style={styles.buttonText}>Save</Text>
               </TouchableOpacity>
             </View>
@@ -493,7 +651,6 @@ const PetDetailsEdit = () => {
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -619,21 +776,23 @@ const styles = StyleSheet.create({
   },
   editButton: {
     flex: 1,
-    backgroundColor: "#FF6B6B",
-    borderRadius: 20,
-    padding: 10,
-    marginLeft: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  deleteButton: {
-    flex: 1,
     backgroundColor: "#EF5B5B",
     borderRadius: 20,
     padding: 10,
     marginLeft: 10,
     justifyContent: "center",
     alignItems: "center",
+    paddingVertical: 12,
+  },
+  deleteButton: {
+    flex: 1,
+    backgroundColor: "#444",
+    borderRadius: 20,
+    padding: 10,
+    marginLeft: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 12,
   },
   buttonText: {
     color: "#FFF",
@@ -650,6 +809,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
+    paddingVertical: 30,
   },
   modalContainer: {
     backgroundColor: "#fff",
@@ -668,11 +829,10 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: "#ccc",
+    backgroundColor: "#444",
     padding: 10,
     borderRadius: 5,
     marginRight: 5,
-    marginBottom: 50,
   },
   saveButton: {
     flex: 1,
@@ -680,32 +840,49 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     marginLeft: 5,
-    marginBottom: 50,
+  },
+  question: {
+    marginTop: 10,
+    fontFamily: "Lato",
+    fontSize: 18,
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 15,
+    marginTop: 10,
+    marginBottom: 5,
+    backgroundColor: "#F5F5F5",
   },
   optionRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
   },
   optionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F5F5F5",
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#C2C2C2",
     borderRadius: 8,
     paddingVertical: 5,
     marginHorizontal: 5,
-    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+  },
+  optionButton1: {
     flex: 1,
-    marginHorizontal: 5,
     borderWidth: 1,
     borderColor: "#C2C2C2",
+    borderRadius: 8,
+    paddingVertical: 10,
+    marginHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+  },
+  textArea: {
+    height: 150,
   },
   optionText: {
     marginLeft: 10,
@@ -729,7 +906,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontFamily: "Lilita",
-    fontWeight: "bold",
+    color: '#68C2FF',
     marginBottom: 20,
     textAlign: "center",
     marginTop: 30,
@@ -771,8 +948,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
   },
-  
 });
-
 
 export default PetDetailsEdit;

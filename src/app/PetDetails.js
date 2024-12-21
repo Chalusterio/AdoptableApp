@@ -304,13 +304,6 @@ const PetDetails = () => {
                 )}
               </Text>
             </View>
-            <TouchableOpacity onPress={toggleFavorite}>
-              <FontAwesome
-                name={isFavorited ? "heart" : "heart-o"}
-                size={24}
-                color="#FF6B6B"
-              />
-            </TouchableOpacity>
           </View>
           <Text
             style={styles.subText}
