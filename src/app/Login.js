@@ -130,11 +130,7 @@ export default function Login() {
         if (userData.role !== "admin") {
           router.push("Main");
         } else {
-<<<<<<< HEAD
-          router.push("/ManageTrack"); // Redirect to Manage track for admins
-=======
           router.push("ManageTrack");
->>>>>>> origin/main
         }
         setEmail("");
         setPassword("");

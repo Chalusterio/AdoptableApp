@@ -20,6 +20,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase"; // Ensure db is initialized
 import Icon from "react-native-vector-icons/MaterialIcons";
+import RejectReasonModal from "./RejectReasonModal";
 
 export default function Screening() {
   const navigation = useNavigation();
@@ -27,6 +28,7 @@ export default function Screening() {
   const { adopterEmail, petRequestId, petName } = route.params; // Get parameters from route params
   const [adopter, setAdopter] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchAdopterDetails = async () => {
@@ -87,12 +89,24 @@ export default function Screening() {
     });
   };
 
-  const handleRejectAdoption = async () => {
+  const handleRejectAdoption = () => {
+    setIsModalVisible(true); // Show the modal instead of navigating immediately
+  };
+
+  const handleModalClose = () => {
+    setIsModalVisible(false);
+  };
+
+  const handleProceedWithRejection = async (reason) => {
+    setIsModalVisible(false); // Hide the modal
     await updatePetRequestStatus("Rejected"); // Update the status to 'rejected'
+
+    // Navigate to RejectAdoption screen with the rejection reason
     navigation.navigate("RejectAdoption", {
       adopterEmail,
       petRequestId,
       petName, // Pass petName to RejectAdoption
+      rejectionReason: reason,
     });
   };
 
@@ -245,6 +259,11 @@ export default function Screening() {
               >
                 <Text style={styles.rejectText}>Reject</Text>
               </TouchableOpacity>
+              <RejectReasonModal
+                visible={isModalVisible}
+                onClose={handleModalClose}
+                onProceed={handleProceedWithRejection}
+              />
             </View>
           </View>
         </View>
