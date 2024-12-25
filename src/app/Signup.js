@@ -243,13 +243,15 @@ export default function Signup() {
                     activeUnderlineColor="gray"
                     autoCapitalize="words"
                   />
-                </View>
+                </View >
+                <View style={styles.nameErrorContainer}>
                 {errors.firstName && (
-                  <Text style={styles.errorText}>{errors.firstName}</Text>
+                  <Text style={styles.errorFirstNameText}>{errors.firstName}</Text>
                 )}
                 {errors.lastName && (
-                  <Text style={styles.errorText}>{errors.lastName}</Text>
+                  <Text style={styles.errorLastNameText}>{errors.lastName}</Text>
                 )}
+                </View>
               </>
             )}
 
@@ -488,6 +490,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: -10,
     marginBottom: 10,
+  },
+  nameErrorContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%", // Ensure it takes up the full width available
+  },
+  errorFirstNameText: {
+    color: "red",
+    fontSize: 12,
+    marginTop: -10,
+    marginBottom: 10,
+  },
+  errorLastNameText: {
+    color: "red",
+    fontSize: 12,
+    marginTop: -10,
+    marginBottom: 10,
+    marginRight: 85,
   },
   // Divider styles
   dividerContainer: {
