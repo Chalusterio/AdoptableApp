@@ -85,7 +85,6 @@ const Feed = () => {
               userFavoritesIds.forEach((id) => (newState[id] = true));
               return newState;
             });
-            
           }
         } catch (error) {
           console.error("Error fetching user favorites:", error);
@@ -141,7 +140,10 @@ const Feed = () => {
 
     console.log("Fetching preferences and ranking pets...");
     try {
-      const preferencesQuery = query(collection(db, "preferences"), where("userEmail", "==", user.email));
+      const preferencesQuery = query(
+        collection(db, "preferences"),
+        where("userEmail", "==", user.email)
+      );
       const preferencesSnapshot = await getDocs(preferencesQuery);
 
       let rankedPets = pets.map((pet) => {
@@ -153,13 +155,17 @@ const Feed = () => {
 
         const userPreferences = preferencesSnapshot.docs[0].data();
 
-        if (pet.petPersonality && pet.petPersonality.includes(userPreferences.personalityLabel)) {
+        if (
+          pet.petPersonality &&
+          pet.petPersonality.includes(userPreferences.personalityLabel)
+        ) {
           score += 1;
         }
 
         const petWeight = parseInt(pet.petWeight, 10);
         let matchesSizeLabel = false;
-        const sizeRangeMatch = userPreferences.petSizeLabel.match(/(\d+)-(\d+)/);
+        const sizeRangeMatch =
+          userPreferences.petSizeLabel.match(/(\d+)-(\d+)/);
         if (sizeRangeMatch) {
           const minSize = parseInt(sizeRangeMatch[1], 10);
           const maxSize = parseInt(sizeRangeMatch[2], 10);
@@ -169,12 +175,20 @@ const Feed = () => {
           }
         }
 
-        const matchesGender = userPreferences.selectedGender === "any" || (pet.petGender && pet.petGender.toLowerCase() === userPreferences.selectedGender.toLowerCase());
+        const matchesGender =
+          userPreferences.selectedGender === "any" ||
+          (pet.petGender &&
+            pet.petGender.toLowerCase() ===
+              userPreferences.selectedGender.toLowerCase());
         if (matchesGender) {
           score += 1;
         }
 
-        const matchesPetType = userPreferences.selectedPet === "any" || (pet.petType && pet.petType.toLowerCase() === userPreferences.selectedPet.toLowerCase());
+        const matchesPetType =
+          userPreferences.selectedPet === "any" ||
+          (pet.petType &&
+            pet.petType.toLowerCase() ===
+              userPreferences.selectedPet.toLowerCase());
         if (matchesPetType) {
           score += 1;
         }
@@ -202,7 +216,10 @@ const Feed = () => {
     let shuffledArray = [...array];
     for (let i = shuffledArray.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffledArray[i], shuffledArray[j]] = [shuffledArray[j], shuffledArray[i]];
+      [shuffledArray[i], shuffledArray[j]] = [
+        shuffledArray[j],
+        shuffledArray[i],
+      ];
     }
     return shuffledArray;
   };
@@ -260,8 +277,8 @@ const Feed = () => {
 
   return (
     <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
+      <FeedHeader setFilteredPets={setFilteredPets} />
       <SafeAreaView style={styles.safeArea}>
-        <FeedHeader setFilteredPets={setFilteredPets} />
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#68C2FF" />
@@ -287,7 +304,7 @@ const Feed = () => {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
+    flex: 999,
     backgroundColor: "#fff",
   },
   container: {

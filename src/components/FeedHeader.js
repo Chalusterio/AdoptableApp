@@ -406,12 +406,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
     elevation: 10,
-    paddingBottom: 40,
+    paddingBottom: 10,
   },
   locationHeader: {
     width: "100%",
     paddingLeft: -10,
-    paddingBottom: 20,
   },
   locationContainer: {
     flexDirection: "row",
