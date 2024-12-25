@@ -259,8 +259,34 @@ export default function ApproveAdoption() {
       alert("Can't proceed without an address");
       return;
     }
-
+  
+    console.log("Pet Request Details:", petRequestDetails); // Debugging log
+  
     try {
+      const { petName, listedBy, petDetail } = petRequestDetails;
+      
+      // Ensure petName and listedBy email are present
+      if (!petName || !listedBy) {
+        throw new Error("Missing petName or listedBy email. Cannot finalize adoption.");
+      }
+  
+      // Fetch the pet document using petName and listedBy email
+      const petQuery = query(
+        collection(db, "listed_pets"),
+        where("petName", "==", petName),
+        where("listedBy", "==", listedBy)
+      );
+      
+      const petQuerySnapshot = await getDocs(petQuery);
+  
+      if (petQuerySnapshot.empty) {
+        throw new Error(`No pet found with name ${petName} listed by ${listedBy}`);
+      }
+  
+      // Get the pet document ID from the query result
+      const petDoc = petQuerySnapshot.docs[0]; // Assuming the first result is correct
+      const petId = petDoc.id;
+  
       const finalizedAdoptionData = {
         petRequestId,
         petRequestDetails,
@@ -272,21 +298,28 @@ export default function ApproveAdoption() {
         tracking_status: "Preparing",
         dateFinalized: new Date().toISOString(),
       };
-
-      // Add finalized adoption to Firestore
+  
+      // Add finalized adoption data to Firestore
       const finalizedCollectionRef = collection(db, "finalized_adoption");
       await addDoc(finalizedCollectionRef, finalizedAdoptionData);
-
-      // Update local state
+  
+      // Update the status of the listed pet using the petId
+      const listedPetRef = doc(db, "listed_pets", petId);
+      await updateDoc(listedPetRef, { status: "finalized" });
+  
+      // Update local state and persist finalized state
       setIsFinalized(true);
-      await AsyncStorage.setItem(`finalized-${petRequestId}`, "true"); // Persist state
-
-      router.push("/FinalizedAdoption"); // Navigate to the Finalized Adoption screen
+      await AsyncStorage.setItem(`finalized-${petRequestId}`, "true");
+  
+      router.push("/FinalizedAdoption");
     } catch (error) {
       console.error("Error finalizing adoption:", error);
-      alert("Failed to finalize adoption. Please try again.");
+      alert(`Failed to finalize adoption. Reason: ${error.message}`);
     }
   };
+  
+  
+  
 
   useEffect(() => {
     const checkFinalizedState = async () => {

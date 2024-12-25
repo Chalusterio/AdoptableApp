@@ -32,36 +32,56 @@ const Upload = () => {
   const auth = getAuth();
   const [selectedItem, setSelectedItem] = useState("Uploads");
   const [loading, setLoading] = useState(true);
+  const [adoptedPets, setAdoptedPets] = useState([]);
 
   useEffect(() => {
-    const fetchUserPets = async () => {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        console.warn("No user is logged in.");
-        setLoading(false);
-        return;
-      }
-      try {
-        const petsCollection = collection(db, "listed_pets");
-        const q = query(
-          petsCollection,
-          where("listedBy", "==", currentUser.email)
-        );
-        const snapshot = await getDocs(q);
-        const petsData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setPets(petsData);
-      } catch (error) {
-        console.error("Error fetching pets:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchUserPets = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      console.warn("No user is logged in.");
+      setLoading(false);
+      return;
+    }
+    try {
+      const petsCollection = collection(db, "listed_pets");
+      const q = query(
+        petsCollection,
+        where("listedBy", "==", currentUser.email)
+      );
+      const snapshot = await getDocs(q);
+      const petsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setPets(petsData);
+    } catch (error) {
+      console.error("Error fetching pets:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchUserPets();
-  }, []);
+  const fetchAdoptedPets = async () => {
+    const adoptedList = [];
+    const petsCollection = collection(db, "listed_pets");
+
+    const q = query(petsCollection, where("listedBy", "==", auth.currentUser.email));
+    const snapshot = await getDocs(q);
+
+    snapshot.forEach((doc) => {
+      const petData = doc.data();
+      if (petData.status === "finalized") {
+        adoptedList.push(doc.id); // Store the pet ID that is adopted
+      }
+    });
+
+    setAdoptedPets(adoptedList); // Set the adopted pets state
+  };
+
+  fetchUserPets();
+  fetchAdoptedPets();
+}, []);
+
 
   const handlePetDetailsEdit = (pet) => {
     router.push({
@@ -85,6 +105,7 @@ const Upload = () => {
 
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets.some((favPet) => favPet.id === item.id);
+    const isAdopted = adoptedPets.includes(item.id);
 
     return (
       <TouchableOpacity
@@ -105,6 +126,9 @@ const Upload = () => {
             />
           </TouchableOpacity>
           <Image source={{ uri: item.images[0] }} style={styles.image} />
+        {isAdopted && (
+          <Text style={styles.adoptedBadge}>Adopted</Text>
+        )}
         </View>
         <View style={styles.petDetailsContainer}>
           <View style={styles.nameGenderContainer}>
@@ -249,6 +273,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#999",
   },
+  adoptedBadge: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    backgroundColor: "#68C2FF",
+    color: "white",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 12,
+    fontFamily: "LatoBold",
+    overflow: "hidden",
+  }
 });
 
 export default Upload;

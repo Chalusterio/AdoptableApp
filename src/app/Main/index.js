@@ -144,7 +144,9 @@ const Feed = () => {
       const preferencesQuery = query(collection(db, "preferences"), where("userEmail", "==", user.email));
       const preferencesSnapshot = await getDocs(preferencesQuery);
 
-      let rankedPets = pets.map((pet) => {
+      let rankedPets = pets
+      .filter((pet) => pet.status !== "finalized")  // Exclude finalized pets
+      .map((pet) => {
         let score = 0;
 
         if (preferencesSnapshot.empty) {
@@ -269,7 +271,7 @@ const Feed = () => {
           </View>
         ) : (
           <FlatList
-            data={filteredPets}
+          data={filteredPets.filter(pet => pet.status !== "finalized")} 
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             numColumns={2}

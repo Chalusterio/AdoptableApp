@@ -23,6 +23,7 @@ const Favorites = () => {
   const router = useRouter();
   const [selectedItem, setSelectedItem] = useState("Favorites");
   const [isLoading, setIsLoading] = useState(true); // Add loading state
+  const [adoptedPets, setAdoptedPets] = useState([]);
 
   // Fetch the current user's favorites
   useEffect(() => {
@@ -53,12 +54,32 @@ const Favorites = () => {
       setIsLoading(false); // Stop loading
     };
 
+    const fetchAdoptedPets = async () => {
+      const adoptedList = [];
+  
+      // Check each favorited pet's status
+      for (const pet of favoritedPets) {
+        const petRef = doc(db, "listed_pets", pet.id);
+        const petDoc = await getDoc(petRef);
+  
+        if (petDoc.exists() && petDoc.data().status === "finalized") {
+          adoptedList.push(pet.id);
+        }
+      }
+      setAdoptedPets(adoptedList);
+    };
+  
+    if (favoritedPets.length > 0) {
+      fetchAdoptedPets();
+    }
+
     fetchUserFavorites();
   }, [pets, setFilteredPets]);
 
   // Render pet item
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets.some((favPet) => favPet.id === item.id);
+    const isAdopted = adoptedPets.includes(item.id);
 
     return (
       <TouchableOpacity
@@ -86,6 +107,9 @@ const Favorites = () => {
             />
           </TouchableOpacity>
           <Image source={{ uri: item.images[0] }} style={styles.image} />
+        {isAdopted && (
+          <Text style={styles.adoptedBadge}>Adopted</Text>
+        )}
         </View>
         <View style={styles.petDetailsContainer}>
           <View style={styles.nameGenderContainer}>
@@ -239,6 +263,19 @@ const styles = StyleSheet.create({
     fontFamily: "Lato",
     color: "#68C2FF",
   },
+  adoptedBadge: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    backgroundColor: "#68C2FF",
+    color: "white",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 12,
+    fontFamily: "LatoBold",
+    overflow: "hidden",
+  }
 });
 
 export default Favorites;

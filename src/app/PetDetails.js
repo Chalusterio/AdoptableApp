@@ -56,6 +56,8 @@ const PetDetails = () => {
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
   const { addPetRequest } = usePets();
   const navigation = useNavigation(); // Initialize navigation
+  const [petStatus, setPetStatus] = useState(""); // Default value
+
 
   useEffect(() => {
     // Check if the user is logged in
@@ -126,6 +128,24 @@ const PetDetails = () => {
     };
 
     checkPendingRequest();
+
+     const fetchPetStatus = async () => {
+      try {
+        const q = query(
+          collection(db, "listed_pets"),
+          where("petName", "==", petName)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const petData = querySnapshot.docs[0].data();
+          setPetStatus(petData.status || "Available");
+        }
+      } catch (error) {
+        console.error("Error fetching pet status: ", error);
+      }
+    };
+
+    fetchPetStatus();
   }, [petName]);
 
   const toggleFavorite = () => {
@@ -238,6 +258,7 @@ const PetDetails = () => {
   }
 
   const isOwnPet = currentUserEmail === listedBy; // Check if the current user posted the pet
+  const isAdopted = petStatus === "finalized";
 
   return (
     <View style={styles.container}>
@@ -359,21 +380,24 @@ const PetDetails = () => {
               styles.adoptButton,
               {
                 backgroundColor:
-                  isOwnPet || hasPendingRequest ? "#C4C4C4" : "#EF5B5B",
+                  isOwnPet || isAdopted || hasPendingRequest ? "#C4C4C4" : "#EF5B5B",
               }, // Updated condition for background color
             ]}
             onPress={
-              isOwnPet || hasPendingRequest ? null : handleAdopt // Combined check for both conditions
+              isOwnPet || isAdopted || hasPendingRequest ? null : handleAdopt // Combined check for both conditions
             }
-            disabled={isOwnPet || hasPendingRequest} // Disable if either condition is true
+            disabled={isOwnPet|| isAdopted || hasPendingRequest} // Disable if either condition is true
           >
-            <Text style={styles.adoptButtonText}>
-              {isOwnPet
-                ? "You can't adopt your own pet"
-                : hasPendingRequest
-                ? "Adoption Request Pending"
-                : "Adopt Now"}
-            </Text>
+           <Text style={styles.adoptButtonText}>
+  {isOwnPet
+    ? "You can't adopt your own pet"
+    : isAdopted
+    ? "Adopted"
+    : hasPendingRequest
+    ? "Adoption Request Pending"
+    : "Adopt Now"}
+</Text>
+
           </TouchableOpacity>
         </View>
       </View>
