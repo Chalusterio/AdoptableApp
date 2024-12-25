@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useRouter } from "expo-router";
 import { auth, signOut, clearSession, getSession } from "../../firebase"; // Ensure this imports your Firebase setup
 
@@ -188,6 +189,21 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
               style={[styles.drawerItemText, selectedItem === "Donate" && styles.activeDrawerItemText]}
             >
               Donate
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigateTo("CommunityPost")}
+            style={[styles.drawerItem, selectedItem === "CommunityPost" && styles.activeDrawerItem]}
+          >
+            <MaterialCommunityIcons
+              name={selectedItem === "CommunityPost" ? "post" : "post-outline"}
+              size={24}
+              color={selectedItem === "CommunityPost" ? "black" : "gray"}
+            />
+            <Text
+              style={[styles.drawerItemText, selectedItem === "CommunityPost" && styles.activeDrawerItemText]}
+            >
+              Community Post
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
