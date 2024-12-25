@@ -70,6 +70,7 @@ const PetCard = ({ pet, onToggle, isExpanded, trackingStatus, currentUserEmail }
   );
 };
 
+
 const Track = () => {
   const [expandedCard, setExpandedCard] = useState(null);
   const [adopterPets, setAdopterPets] = useState([]); // State for adopter's pets
@@ -326,7 +327,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   trackingContainer: {
-    marginTop: 50,
+    marginTop: 50, 
   },
   bigStepContainer: {
     marginBottom: 0,
@@ -334,7 +335,6 @@ const styles = StyleSheet.create({
   bigStepRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
   },
   iconContainer: {
     width: 40,
