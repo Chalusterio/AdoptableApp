@@ -312,11 +312,10 @@ const styles = StyleSheet.create({
   },
   row: {
     justifyContent: "space-between", // Evenly distribute the cards within a row
-    marginBottom: 10,
   },
   card: {
     width: "47%", // Each card occupies 48% of the row width
-    marginBottom: 16, // Spacing between rows
+    marginBottom: 20, // Spacing between rows
     borderRadius: 20,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
