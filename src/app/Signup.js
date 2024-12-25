@@ -61,72 +61,112 @@ export default function Signup() {
     );
   }
 
-  const validateInputs = () => {
-    let valid = true;
-    const newErrors = {
-      firstName: "",
-      lastName: "",
-      organizationName: "",
-      email: "",
-      contactNumber: "",
-      password: "",
-      confirmPassword: "",
-    };
-
-    if (isOrganization) {
-      if (!organizationName.trim()) {
-        newErrors.organizationName = "Organization name is required";
-        valid = false;
-      }
-    } else {
-      if (!firstName.trim()) {
-        newErrors.firstName = "First name is required";
-        valid = false;
-      }
-      if (!lastName.trim()) {
-        newErrors.lastName = "Last name is required";
-        valid = false;
+  // Validation function for individual fields
+  const validateField = (field, value) => {
+    let errorMessage = "";
+    
+    if (field === "firstName") {
+      if (!value.trim()) {
+        errorMessage = `First name is required`;
       }
     }
-
-    if (!email.trim()) {
-      newErrors.email = "Email is required";
-      valid = false;
-    } else {
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!emailRegex.test(email)) {
-        newErrors.email = "Please enter a valid email address";
-        valid = false;
+    
+    if (field === "lastName") {
+      if (!value.trim()) {
+        errorMessage = `Last name is required`;
+      }
+    }
+    
+    if (field === "email") {
+      if (!value.trim()) {
+        errorMessage = "Email is required";
+      } else {
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(value)) {
+          errorMessage = "Please enter a valid email address";
+        }
       }
     }
 
-    if (!contactNumber.trim()) {
-      newErrors.contactNumber = "Contact number is required";
-      valid = false;
-    } else if (!/^\d+$/.test(contactNumber)) {
-      newErrors.contactNumber = "Contact number must contain only numbers";
-      valid = false;
+    if (field === "contactNumber") {
+      if (!value.trim()) {
+        errorMessage = "Contact number is required";
+      } else if (!/^\d+$/.test(value)) {
+        errorMessage = "Contact number must contain only numbers";
+      }
     }
 
-    if (!password) {
-      newErrors.password = "Password is required";
-      valid = false;
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters long";
-      valid = false;
+    if (field === "password") {
+      if (!value) {
+        errorMessage = "Password is required";
+      } else if (value.length < 6) {
+        errorMessage = "Password must be at least 6 characters long";
+      } else if (!/[A-Z]/.test(value)) {
+        errorMessage = "Password must contain at least one uppercase letter";
+      } else if (!/[a-z]/.test(value)) {
+        errorMessage = "Password must contain at least one lowercase letter";
+      } else if (!/\d/.test(value)) {
+        errorMessage = "Password must contain at least one number";
+      }
+    }    
+
+    if (field === "confirmPassword") {
+      if (value !== password) {
+        errorMessage = "Passwords do not match";
+      }
     }
 
-    if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-      valid = false;
+    if (field === "organizationName" && isOrganization) {
+      if (!value.trim()) {
+        errorMessage = "Organization name is required";
+      }
     }
 
-    setErrors(newErrors);
-    return valid;
+    return errorMessage;
+  };
+
+  // Handle input change and validate field
+  const handleInputChange = (field, value) => {
+    if (field === "firstName") setFirstName(value);
+    if (field === "lastName") setLastName(value);
+    if (field === "organizationName") setOrganizationName(value);
+    if (field === "email") setEmail(value);
+    if (field === "contactNumber") setContactNumber(value);
+    if (field === "password") setPassword(value);
+    if (field === "confirmPassword") setConfirmPassword(value);
+
+    // Update error for the field in real-time
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      [field]: validateField(field, value),
+    }));
   };
 
   const handleSignup = async () => {
-    if (!validateInputs()) return;
+    let valid = true;
+    const newErrors = {
+      firstName: validateField("firstName", firstName),
+      lastName: validateField("lastName", lastName),
+      email: validateField("email", email),
+      contactNumber: validateField("contactNumber", contactNumber),
+      password: validateField("password", password),
+      confirmPassword: validateField("confirmPassword", confirmPassword),
+    };
+  
+    // Validate organizationName if signing up as an organization
+    if (isOrganization) {
+      newErrors.organizationName = validateField("organizationName", organizationName);
+    }
+  
+    // Check if there are any errors
+    Object.values(newErrors).forEach((error) => {
+      if (error) valid = false;
+    });
+  
+    if (!valid) {
+      setErrors(newErrors);
+      return;
+    }
   
     setIsSigningUp(true); // Set loading state to true
   
@@ -173,12 +213,21 @@ export default function Signup() {
       setIsSigningUp(false); // Reset loading state after process
     }
   };
-  
+
   const handleToggleSignupMode = () => {
     setIsOrganization((prev) => !prev);
     setFirstName("");
     setLastName("");
     setOrganizationName("");
+    setErrors({ // Clear errors when toggling signup mode
+      firstName: "",
+      lastName: "",
+      organizationName: "",
+      email: "",
+      contactNumber: "",
+      password: "",
+      confirmPassword: "",
+    });
   };
 
   const hideDialog = () => setDialogVisible(false);
@@ -204,7 +253,7 @@ export default function Signup() {
               <TextInput
                 label="Organization Name"
                 value={organizationName}
-                onChangeText={setOrganizationName}
+                onChangeText={(value) => handleInputChange("organizationName", value)}
                 style={[
                   styles.input,
                   errors.organizationName && styles.errorInput,
@@ -219,7 +268,7 @@ export default function Signup() {
                   <TextInput
                     label="First Name"
                     value={firstName}
-                    onChangeText={setFirstName}
+                    onChangeText={(value) => handleInputChange("firstName", value)}
                     style={[
                       styles.nameInput,
                       errors.firstName && styles.errorInput,
@@ -232,7 +281,7 @@ export default function Signup() {
                   <TextInput
                     label="Last Name"
                     value={lastName}
-                    onChangeText={setLastName}
+                    onChangeText={(value) => handleInputChange("lastName", value)}
                     style={[
                       styles.nameInput,
                       errors.lastName && styles.errorInput,
@@ -262,7 +311,7 @@ export default function Signup() {
             <TextInput
               label="Email"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(value) => handleInputChange("email", value)}
               left={<TextInput.Icon icon="email" />}
               mode="flat"
               autoCapitalize="none"
@@ -277,7 +326,7 @@ export default function Signup() {
             <TextInput
               label="Contact Number"
               value={contactNumber}
-              onChangeText={setContactNumber}
+              onChangeText={(value) => handleInputChange("contactNumber", value)}
               style={[styles.input, errors.contactNumber && styles.errorInput]}
               left={<TextInput.Icon icon="phone" />}
               keyboardType="phone-pad"
@@ -291,7 +340,7 @@ export default function Signup() {
             <TextInput
               label="Password"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(value) => handleInputChange("password", value)}
               style={[styles.input, errors.password && styles.errorInput]}
               left={<TextInput.Icon icon="lock" />}
               mode="flat"
@@ -312,7 +361,7 @@ export default function Signup() {
             <TextInput
               label="Confirm Password"
               value={confirmPassword}
-              onChangeText={setConfirmPassword}
+              onChangeText={(value) => handleInputChange("confirmPassword", value)}
               style={[
                 styles.input,
                 errors.confirmPassword && styles.errorInput,
