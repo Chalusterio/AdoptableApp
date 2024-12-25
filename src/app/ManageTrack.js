@@ -166,8 +166,6 @@ export default function ManageTrack() {
     );
   };
 
-  const currentStatusStyle = statusStyles[status] || statusStyles["ToShip"];
-
   return (
     <View style={styles.container}>
       {/* Search Bar */}
@@ -245,7 +243,8 @@ export default function ManageTrack() {
       </Modal>
     </View>
   );
-};
+}
+
 
 const styles = StyleSheet.create({
   container: {
