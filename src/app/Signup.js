@@ -141,7 +141,6 @@ export default function Signup() {
       [field]: validateField(field, value),
     }));
   };
-
   const handleSignup = async () => {
     let valid = true;
     const newErrors = {
@@ -177,9 +176,10 @@ export default function Signup() {
     setIsSigningUp(true); // Set loading state to true
   
     const name = isOrganization ? organizationName : `${firstName} ${lastName}`;
+    const role = isOrganization ? "organization" : "individual"; // Set the role based on signup type
   
     try {
-      await registerUser(email, password, name, contactNumber);
+      await registerUser(email, password, name, contactNumber, role); // Pass the role here
   
       if (isOrganization) {
         router.push({
