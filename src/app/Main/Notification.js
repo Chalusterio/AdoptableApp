@@ -199,8 +199,8 @@ const Notification = () => {
                 <Text style={styles.boldText}>{petRequest.petName}</Text>.
                 {petRequest.rejectReason && (
                   <Text>
-                    {"\nReason: "}
-                    <Text style={styles.boldText}>{petRequest.rejectReason}</Text>
+                    {"\n\nReason: "}
+                    <Text style={styles.rejectText}>{petRequest.rejectReason}</Text>
                   </Text>
                 )}
               </Text>
@@ -472,6 +472,10 @@ const styles = StyleSheet.create({
   boldText: {
     fontWeight: "bold",
     color: "#EF5B5B",
+  },
+  rejectText: {
+    color: "#777777",
+    fontWeight: "bold",
   },
   linkText: {
     textDecorationLine: "underline",
