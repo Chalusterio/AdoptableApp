@@ -64,19 +64,19 @@ export default function Signup() {
   // Validation function for individual fields
   const validateField = (field, value) => {
     let errorMessage = "";
-    
+
     if (field === "firstName") {
       if (!value.trim()) {
         errorMessage = `First name is required`;
       }
     }
-    
+
     if (field === "lastName") {
       if (!value.trim()) {
         errorMessage = `Last name is required`;
       }
     }
-    
+
     if (field === "email") {
       if (!value.trim()) {
         errorMessage = "Email is required";
@@ -108,7 +108,7 @@ export default function Signup() {
       } else if (!/\d/.test(value)) {
         errorMessage = "Password must contain at least one number";
       }
-    }    
+    }
 
     if (field === "confirmPassword") {
       if (value !== password) {
@@ -156,6 +156,12 @@ export default function Signup() {
     // Validate organizationName if signing up as an organization
     if (isOrganization) {
       newErrors.organizationName = validateField("organizationName", organizationName);
+      // For organizations, we don't need firstName and lastName
+      newErrors.firstName = newErrors.lastName = null; // Remove these for organization signup
+    } else {
+      // For individuals, make sure firstName and lastName are not null
+      newErrors.firstName = validateField("firstName", firstName);
+      newErrors.lastName = validateField("lastName", lastName);
     }
   
     // Check if there are any errors
@@ -196,6 +202,7 @@ export default function Signup() {
       }
   
       setDialogVisible(true); // Show success dialog
+      // Reset all fields
       setFirstName("");
       setLastName("");
       setOrganizationName("");
@@ -213,13 +220,21 @@ export default function Signup() {
       setIsSigningUp(false); // Reset loading state after process
     }
   };
+  
 
   const handleToggleSignupMode = () => {
     setIsOrganization((prev) => !prev);
+    // Reset form fields and errors when switching modes
     setFirstName("");
     setLastName("");
     setOrganizationName("");
-    setErrors({ // Clear errors when toggling signup mode
+    setEmail("");
+    setContactNumber("");
+    setPassword("");
+    setConfirmPassword("");
+
+    setErrors({
+      // Clear errors when toggling signup mode
       firstName: "",
       lastName: "",
       organizationName: "",
@@ -253,7 +268,9 @@ export default function Signup() {
               <TextInput
                 label="Organization Name"
                 value={organizationName}
-                onChangeText={(value) => handleInputChange("organizationName", value)}
+                onChangeText={(value) =>
+                  handleInputChange("organizationName", value)
+                }
                 style={[
                   styles.input,
                   errors.organizationName && styles.errorInput,
@@ -268,7 +285,9 @@ export default function Signup() {
                   <TextInput
                     label="First Name"
                     value={firstName}
-                    onChangeText={(value) => handleInputChange("firstName", value)}
+                    onChangeText={(value) =>
+                      handleInputChange("firstName", value)
+                    }
                     style={[
                       styles.nameInput,
                       errors.firstName && styles.errorInput,
@@ -281,7 +300,9 @@ export default function Signup() {
                   <TextInput
                     label="Last Name"
                     value={lastName}
-                    onChangeText={(value) => handleInputChange("lastName", value)}
+                    onChangeText={(value) =>
+                      handleInputChange("lastName", value)
+                    }
                     style={[
                       styles.nameInput,
                       errors.lastName && styles.errorInput,
@@ -292,14 +313,18 @@ export default function Signup() {
                     activeUnderlineColor="gray"
                     autoCapitalize="words"
                   />
-                </View >
+                </View>
                 <View style={styles.nameErrorContainer}>
-                {errors.firstName && (
-                  <Text style={styles.errorFirstNameText}>{errors.firstName}</Text>
-                )}
-                {errors.lastName && (
-                  <Text style={styles.errorLastNameText}>{errors.lastName}</Text>
-                )}
+                  {errors.firstName && (
+                    <Text style={styles.errorFirstNameText}>
+                      {errors.firstName}
+                    </Text>
+                  )}
+                  {errors.lastName && (
+                    <Text style={styles.errorLastNameText}>
+                      {errors.lastName}
+                    </Text>
+                  )}
                 </View>
               </>
             )}
@@ -326,7 +351,9 @@ export default function Signup() {
             <TextInput
               label="Contact Number"
               value={contactNumber}
-              onChangeText={(value) => handleInputChange("contactNumber", value)}
+              onChangeText={(value) =>
+                handleInputChange("contactNumber", value)
+              }
               style={[styles.input, errors.contactNumber && styles.errorInput]}
               left={<TextInput.Icon icon="phone" />}
               keyboardType="phone-pad"
@@ -361,7 +388,9 @@ export default function Signup() {
             <TextInput
               label="Confirm Password"
               value={confirmPassword}
-              onChangeText={(value) => handleInputChange("confirmPassword", value)}
+              onChangeText={(value) =>
+                handleInputChange("confirmPassword", value)
+              }
               style={[
                 styles.input,
                 errors.confirmPassword && styles.errorInput,
