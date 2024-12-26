@@ -157,6 +157,7 @@ const Notification = () => {
             content: message,
             time: formattedTime,
             action: null,
+            timestamp, // Ensure the timestamp is added for sorting
           });
         }
 
@@ -193,22 +194,29 @@ const Notification = () => {
               }),
           });
         }
-    
 
         // Handle Rejected notifications for Adopters
-        if (petRequest.status === "Rejected" && currentUser.email === petRequest.adopterEmail) {
+        if (
+          petRequest.status === "Rejected" &&
+          currentUser.email === petRequest.adopterEmail
+        ) {
           notificationsList.push({
             id: doc.id,
-            image: petLister.profilePicture ? { uri: petLister.profilePicture } : null,
+            image: petLister.profilePicture
+              ? { uri: petLister.profilePicture }
+              : null,
             name: petLister.name || "Pet Lister",
             content: (
               <Text>
-                {petLister.name || "Pet Lister"} has rejected your adoption request for{" "}
+                {petLister.name || "Pet Lister"} has rejected your adoption
+                request for{" "}
                 <Text style={styles.boldText}>{petRequest.petName}</Text>.
                 {petRequest.rejectReason && (
                   <Text>
                     {"\n\nReason: "}
-                    <Text style={styles.rejectText}>{petRequest.rejectReason}</Text>
+                    <Text style={styles.rejectText}>
+                      {petRequest.rejectReason}
+                    </Text>
                   </Text>
                 )}
               </Text>
@@ -218,7 +226,7 @@ const Notification = () => {
             action: null,
           });
         }
-        
+
         // Handle Cancelled notifications for Adopters
         if (
           petRequest.status === "Cancelled" &&
@@ -230,7 +238,8 @@ const Notification = () => {
             name: "System Notification",
             content: (
               <Text>
-                You cancelled adoption for <Text style={styles.boldText}>{petRequest.petName}</Text>.
+                You cancelled adoption for{" "}
+                <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             ),
             time: formattedTime,
@@ -246,8 +255,10 @@ const Notification = () => {
         ) {
           notificationsList.push({
             id: notificationId,
-            image: adopter.ProfilePicture ? { uri: adopter.ProfilePicture } : null,
-            name: adopter.name  || "Adopter",
+            image: adopter.ProfilePicture
+              ? { uri: adopter.ProfilePicture }
+              : null,
+            name: adopter.name || "Adopter",
             content: (
               <Text>
                 {adopter.name || "Adopter"} cancelled adoption for your pet{" "}
@@ -335,10 +346,9 @@ const Notification = () => {
           adopterSnapshot.forEach((doc) => createNotification(doc, true));
           listerSnapshot.forEach((doc) => createNotification(doc, false));
 
-          // Sort combined notifications by time
-       // Set unique notifications
-      notificationsList.sort((a, b) => b.timestamp - a.timestamp);
-      setNotifications([...notificationsList]);
+          // Sort combined notifications by time (latest first)
+          notificationsList.sort((a, b) => b.timestamp - a.timestamp);
+          setNotifications([...notificationsList]);
         } catch (error) {
           console.error("Error fetching finalized adoptions:", error);
         }
