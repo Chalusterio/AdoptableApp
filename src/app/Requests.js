@@ -16,7 +16,7 @@ import SideBar from "../components/SideBar";
 import { Surface } from "react-native-paper";
 import { usePets } from "../context/PetContext"; // Adjust the path as needed
 import { db, auth } from "../../firebase"; // Ensure `auth` and `db` are imported from Firebase
-import { collection, query, where, getDocs } from "firebase/firestore"; // Import Firestore functions
+import { collection, query, where, getDocs, getDoc, doc } from "firebase/firestore"; // Import Firestore functions
 
 const Requests = () => {
   const { favoritedPets, cancelRequest, pets, toggleFavorite } = usePets();
@@ -25,6 +25,7 @@ const Requests = () => {
   const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [requestedPets, setRequestedPets] = useState([]); // State to hold filtered requested pets
   const [longPressedPetId, setLongPressedPetId] = useState(null);
+  const [adoptedPets, setAdoptedPets] = useState([]);
 
   // Fetch the current user's pending requests
   useEffect(() => {
@@ -59,8 +60,24 @@ const Requests = () => {
       setIsLoading(false);
     };
 
+    const fetchAdoptedPets = async () => {
+      const adoptedList = [];
+      for (const pet of favoritedPets) {
+        const petRef = doc(db, "listed_pets", pet.id);
+        const petDoc = await getDoc(petRef);
+        if (petDoc.exists() && petDoc.data().status === "finalized") {
+          adoptedList.push(pet.id);
+        }
+      }
+      setAdoptedPets(adoptedList);
+    };
+    
+
     fetchUserRequests();
+    fetchAdoptedPets();
   }, [pets]); // Re-run only when `pets` changes
+
+
 
   const handleLongPress = (petName) => {
     setLongPressedPetId(petName);
@@ -77,12 +94,15 @@ const Requests = () => {
 
       setLongPressedPetId(null); // Reset the long-press state
     }
+
   };
+
 
   // Render pet item
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets.some((favPet) => favPet.id === item.id);
     const isLongPressed = longPressedPetId === item.petName; // Check petName for long-press
+    const isAdopted = adoptedPets.includes(item.id);
 
     return (
       <View style={styles.cardContainer}>
@@ -112,7 +132,11 @@ const Requests = () => {
               />
             </TouchableOpacity>
             <Image source={{ uri: item.images[0] }} style={styles.image} />
+            {isAdopted && (
+              <Text style={styles.adoptedBadge}>Adopted</Text>
+            )}
           </View>
+
           <View style={styles.petDetailsContainer}>
             <View style={styles.nameGenderContainer}>
               <Text style={styles.name}>{item.petName}</Text>
@@ -308,6 +332,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Lato",
     color: "#68C2FF",
+  },
+  adoptedBadge: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    backgroundColor: "#68C2FF",
+    color: "white",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 12,
+    fontFamily: "LatoBold",
+    overflow: "hidden",
   },
 });
 
