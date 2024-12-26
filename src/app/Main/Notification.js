@@ -188,21 +188,21 @@ const Notification = () => {
         }
 
         // Handle Rejected notifications for Adopters
-        if (
-          petRequest.status === "Rejected" &&
-          currentUser.email === petRequest.adopterEmail
-        ) {
+        if (petRequest.status === "Rejected" && currentUser.email === petRequest.adopterEmail) {
           notificationsList.push({
             id: doc.id,
-            image: petLister.profilePicture
-              ? { uri: petLister.profilePicture }
-              : null,
+            image: petLister.profilePicture ? { uri: petLister.profilePicture } : null,
             name: petLister.name || "Pet Lister",
             content: (
               <Text>
-                {petLister.name || "Pet Lister"} has rejected your adoption
-                request for{" "}
+                {petLister.name || "Pet Lister"} has rejected your adoption request for{" "}
                 <Text style={styles.boldText}>{petRequest.petName}</Text>.
+                {petRequest.rejectReason && (
+                  <Text>
+                    {"\n\nReason: "}
+                    <Text style={styles.rejectText}>{petRequest.rejectReason}</Text>
+                  </Text>
+                )}
               </Text>
             ),
             time: formattedTime,
@@ -472,6 +472,10 @@ const styles = StyleSheet.create({
   boldText: {
     fontWeight: "bold",
     color: "#EF5B5B",
+  },
+  rejectText: {
+    color: "#777777",
+    fontWeight: "bold",
   },
   linkText: {
     textDecorationLine: "underline",
