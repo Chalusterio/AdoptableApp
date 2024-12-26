@@ -44,7 +44,7 @@ const Notification = () => {
     // First, handle pet requests
     const petRequestsQuery = query(
       collection(db, "pet_request"),
-      where("status", "in", ["Pending", "Accepted", "Rejected"])
+      where("status", "in", ["Pending", "Accepted", "Rejected", "Cancelled"])
     );
 
     const unsubscribe = onSnapshot(petRequestsQuery, async (querySnapshot) => {
@@ -75,6 +75,7 @@ const Notification = () => {
 
         const adopter = users[petRequest.adopterEmail] || {};
         const petLister = users[petRequest.listedBy] || {};
+        const notificationId = `${doc.id}-${petRequest.status}-${timestamp}`;
 
         let formattedTime = "";
         let timestamp = 0;
@@ -93,14 +94,20 @@ const Notification = () => {
             petRequest.rejectDate.seconds * 1000
           ).fromNow();
           timestamp = petRequest.rejectDate.seconds * 1000;
+        } else if (petRequest.status === "Cancelled") {
+          formattedTime = moment(
+            petRequest.cancelDate.seconds * 1000
+          ).fromNow();
+          timestamp = petRequest.cancelDate.seconds * 1000;
         }
+
         // Handle the Pending request notification
         if (
           petRequest.status === "Pending" &&
           currentUser.email === petRequest.listedBy
         ) {
           notificationsList.push({
-            id: doc.id,
+            id: notificationId,
             image: adopter.profilePicture
               ? { uri: adopter.profilePicture }
               : null,
@@ -144,7 +151,7 @@ const Notification = () => {
             );
 
           notificationsList.push({
-            id: `${doc.id}-${petRequest.status}`,
+            id: notificationId,
             image: require("../../assets/Icon_white.png"),
             name: "System Notification",
             content: message,
@@ -159,7 +166,7 @@ const Notification = () => {
           currentUser.email === petRequest.adopterEmail
         ) {
           notificationsList.push({
-            id: doc.id,
+            id: notificationId,
             image: petLister.profilePicture
               ? { uri: petLister.profilePicture }
               : null,
@@ -186,6 +193,7 @@ const Notification = () => {
               }),
           });
         }
+    
 
         // Handle Rejected notifications for Adopters
         if (
@@ -193,7 +201,7 @@ const Notification = () => {
           currentUser.email === petRequest.adopterEmail
         ) {
           notificationsList.push({
-            id: doc.id,
+            id: notificationId,
             image: petLister.profilePicture
               ? { uri: petLister.profilePicture }
               : null,
@@ -202,6 +210,46 @@ const Notification = () => {
               <Text>
                 {petLister.name || "Pet Lister"} has rejected your adoption
                 request for{" "}
+                <Text style={styles.boldText}>{petRequest.petName}</Text>.
+              </Text>
+            ),
+            time: formattedTime,
+            timestamp,
+            action: null,
+          });
+        }
+        // Handle Cancelled notifications for Adopters
+        if (
+          petRequest.status === "Cancelled" &&
+          currentUser.email === petRequest.adopterEmail
+        ) {
+          notificationsList.push({
+            id: notificationId,
+            image: require("../../assets/Icon_white.png"),
+            name: "System Notification",
+            content: (
+              <Text>
+                You cancelled adoption for <Text style={styles.boldText}>{petRequest.petName}</Text>.
+              </Text>
+            ),
+            time: formattedTime,
+            timestamp,
+            action: null,
+          });
+        }
+
+        // Handle Cancelled notifications for Listers
+        if (
+          petRequest.status === "Cancelled" &&
+          currentUser.email === petRequest.listedBy
+        ) {
+          notificationsList.push({
+            id: notificationId,
+            image: adopter.ProfilePicture ? { uri: adopter.ProfilePicture } : null,
+            name: adopter.name  || "Adopter",
+            content: (
+              <Text>
+                {adopter.name || "Adopter"} cancelled adoption for your pet{" "}
                 <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             ),
@@ -287,8 +335,9 @@ const Notification = () => {
           listerSnapshot.forEach((doc) => createNotification(doc, false));
 
           // Sort combined notifications by time
-          notificationsList.sort((a, b) => b.timestamp - a.timestamp);
-          setNotifications(notificationsList);
+       // Set unique notifications
+      notificationsList.sort((a, b) => b.timestamp - a.timestamp);
+      setNotifications([...notificationsList]);
         } catch (error) {
           console.error("Error fetching finalized adoptions:", error);
         }
