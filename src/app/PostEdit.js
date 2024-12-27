@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, Image, ScrollView, TextInput, Button } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, Image, ScrollView, TextInput } from "react-native";
 import { MaterialCommunityIcons } from "react-native-vector-icons";
 import { useRouter } from "expo-router";
 import { getDocs, collection, query, where, deleteDoc, doc, updateDoc } from "firebase/firestore";
@@ -14,7 +14,9 @@ const PostEdit = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
-  const [isEditing, setIsEditing] = useState(false); // Track if the modal is in edit mode
+  const [isEditing, setIsEditing] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [confirmSave, setConfirmSave] = useState(false);  // New state to manage save confirmation
 
   const [fontsLoaded] = useFonts({
     LilitaOne: require("../assets/fonts/LilitaOne-Regular.ttf"),
@@ -82,23 +84,21 @@ const PostEdit = () => {
 
   const closeModal = () => {
     setModalVisible(false);
-    setIsEditing(false); // Reset edit mode
+    setIsEditing(false);
+    setSaveSuccess(false);
     setSelectedPost(null);
   };
 
   const handleDelete = async () => {
     if (selectedPost) {
       try {
-        // Delete the document from Firestore
         await deleteDoc(doc(db, "Community_post", selectedPost.id));
 
-        // Remove the deleted post from the local state
         setUserPosts((prevPosts) =>
           prevPosts.filter((post) => post.id !== selectedPost.id)
         );
 
-        console.log("Post deleted successfully");
-        closeModal(); // Close the modal after deletion
+        closeModal();
       } catch (error) {
         console.error("Error deleting post:", error);
       }
@@ -106,10 +106,14 @@ const PostEdit = () => {
   };
 
   const handleEdit = () => {
-    setIsEditing(true); // Enable editing mode
+    setIsEditing(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
+    setConfirmSave(true); // Show confirmation modal when saving
+  };
+
+  const confirmSaveChanges = async () => {
     if (selectedPost) {
       try {
         const postRef = doc(db, "Community_post", selectedPost.id);
@@ -121,12 +125,22 @@ const PostEdit = () => {
           when: selectedPost.when,
           urgent: selectedPost.urgent,
         });
-        console.log("Post updated successfully");
-        closeModal(); // Close the modal after saving
+
+        setSaveSuccess(true); // Show confirmation message
+        setIsEditing(false); // Disable editing after save
+        setConfirmSave(false); // Close the confirmation popup
       } catch (error) {
         console.error("Error updating post:", error);
+        setConfirmSave(false); // Close the confirmation popup if there was an error
       }
     }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setSaveSuccess(false);
+    setSelectedPost({ ...selectedPost }); // Revert changes by resetting selectedPost to original state
+    setConfirmSave(false); // Close the save confirmation
   };
 
   const renderItem = ({ item }) => (
@@ -145,7 +159,13 @@ const PostEdit = () => {
         size={30}
         color="#EF5B5B"
         style={styles.backButton}
-        onPress={() => router.back()}
+        onPress={() => {
+          if (isEditing) {
+            handleCancel(); // Cancel the edit if editing is in progress
+          } else {
+            router.back(); // Go back if no editing is in progress
+          }
+        }}
       />
       <Text style={[styles.title, { fontFamily: "LilitaOne", textAlign: "center" }]}>
         Your Posts
@@ -184,36 +204,51 @@ const PostEdit = () => {
 
                 {isEditing ? (
                   <>
-                    <TextInput
-                      style={styles.input}
-                      value={selectedPost.title}
-                      onChangeText={(text) => setSelectedPost({ ...selectedPost, title: text })}
-                      placeholder="Title"
-                    />
-                    <TextInput
-                      style={styles.input}
-                      value={selectedPost.what}
-                      onChangeText={(text) => setSelectedPost({ ...selectedPost, what: text })}
-                      placeholder="What"
-                    />
-                    <TextInput
-                      style={styles.input}
-                      value={selectedPost.where}
-                      onChangeText={(text) => setSelectedPost({ ...selectedPost, where: text })}
-                      placeholder="Where"
-                    />
-                    <TextInput
-                      style={styles.input}
-                      value={selectedPost.who}
-                      onChangeText={(text) => setSelectedPost({ ...selectedPost, who: text })}
-                      placeholder="Who"
-                    />
-                    <TextInput
-                      style={styles.input}
-                      value={selectedPost.when}
-                      onChangeText={(text) => setSelectedPost({ ...selectedPost, when: text })}
-                      placeholder="When"
-                    />
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Title:</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={selectedPost.title}
+                        onChangeText={(text) => setSelectedPost({ ...selectedPost, title: text })}
+                        placeholder="Title"
+                      />
+                    </View>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>What:</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={selectedPost.what}
+                        onChangeText={(text) => setSelectedPost({ ...selectedPost, what: text })}
+                        placeholder="What"
+                      />
+                    </View>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Where:</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={selectedPost.where}
+                        onChangeText={(text) => setSelectedPost({ ...selectedPost, where: text })}
+                        placeholder="Where"
+                      />
+                    </View>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Who:</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={selectedPost.who}
+                        onChangeText={(text) => setSelectedPost({ ...selectedPost, who: text })}
+                        placeholder="Who"
+                      />
+                    </View>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>When:</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={selectedPost.when}
+                        onChangeText={(text) => setSelectedPost({ ...selectedPost, when: text })}
+                        placeholder="When"
+                      />
+                    </View>
                   </>
                 ) : (
                   <>
@@ -221,12 +256,10 @@ const PostEdit = () => {
                       <Text style={styles.infoTitle}>Who:</Text>
                       <Text style={styles.detailText}>{selectedPost.who}</Text>
                     </View>
-
                     <View style={styles.infoContainer}>
                       <Text style={styles.infoTitle}>What:</Text>
                       <Text style={styles.detailText}>{selectedPost.what}</Text>
                     </View>
-
                     <View style={styles.infoContainer}>
                       <Text style={styles.infoTitle}>Where:</Text>
                       <Text style={styles.detailText}>{selectedPost.where}</Text>
@@ -236,205 +269,124 @@ const PostEdit = () => {
               </ScrollView>
 
               <View style={styles.actionsContainer}>
-                {isEditing ? (
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: "#68C2FF" }]}
-                    onPress={handleSave}
-                  >
-                    <Text style={styles.actionText}>Save</Text>
-                  </TouchableOpacity>
+                {saveSuccess ? (
+                  <Text style={styles.saveConfirmation}>Post saved successfully!</Text>
+                ) : isEditing ? (
+                  <>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: "#68C2FF" }, styles.saveButton]} 
+                      onPress={handleSave}
+                    >
+                      <Text style={styles.actionText}>Save</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: "#EF5B5B" }, styles.cancelButton]} 
+                      onPress={handleCancel}
+                    >
+                      <Text style={styles.actionText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </>
                 ) : (
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: "#EF5B5B" }]}
-                    onPress={handleDelete}
-                  >
-                    <Text style={styles.actionText}>Delete</Text>
-                  </TouchableOpacity>
+                  <>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: "#EF5B5B", marginRight: 10 }]}
+                      onPress={handleDelete}
+                    >
+                      <Text style={styles.actionText}>Delete</Text>
+                    </TouchableOpacity>
+                    {!isEditing && (
+                      <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: "#68C2FF" }]}
+                        onPress={handleEdit}
+                      >
+                        <Text style={styles.actionText}>Edit</Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
                 )}
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: "#68C2FF" }]}
-                  onPress={handleEdit}
-                >
-                  <Text style={styles.actionText}>Edit</Text>
-                </TouchableOpacity>
               </View>
-
-              <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-                <MaterialCommunityIcons
-                  name="arrow-left-circle"
-                  size={30}
-                  color="#EF5B5B"
-                />
-              </TouchableOpacity>
             </View>
           </View>
         </Modal>
       )}
+
+      {/* Save confirmation modal */}
+      <Modal visible={confirmSave} transparent={true} animationType="fade">
+        <View style={styles.confirmationModal}>
+          <View style={styles.confirmationContainer}>
+            <Text style={styles.confirmationText}>Are you sure you want to save changes?</Text>
+            <View style={styles.confirmationActions}>
+              <TouchableOpacity style={styles.confirmationButton} onPress={confirmSaveChanges}>
+                <Text style={styles.confirmationText}>Yes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmationButton} onPress={() => setConfirmSave(false)}>
+                <Text style={styles.confirmationText}>No</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // Existing styles here
-
-  input: {
-    height: 40,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    marginBottom: 10,
-    padding: 8,
-    borderRadius: 5,
-  },
-
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    backgroundColor: "white",
-  },
-  title: {
-    fontSize: 32,
-    fontFamily: "LilitaOne",
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 10,
-    marginTop: 50,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginTop: 10,
-  },
-  backButton: {
-    position: "absolute",
-    top: 40,
-    left: 10,
-    zIndex: 1,
-  },
-  listContainer: {
-    padding: 16,
-    marginTop: 50,
-  },
-  card: {
-    width: "100%",
-    marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: "#f9f9f9",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
-    padding: 12,
-  },
-  cardContent: {
-    paddingHorizontal: 10,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
-  },
-  modalBackground: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#68C2FF", // Blue background
-  },
-  modalContainer: {
-    width: "80%",
-    padding: 20,
-    backgroundColor: "white", // White modal
-    borderRadius: 20, // Border radius
-    marginHorizontal: 50, // 50 margin on both sides
-    alignItems: "center",
-  },
-  scrollView: {
-    marginBottom: 20,
-  },
-  modalImage: {
-    width: "100%",
-    height: 200,
-    borderRadius: 5,
-    marginBottom: 20,
-    resizeMode: "cover",
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontFamily: "LilitaOne",
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  modalSubtitle: {
-    fontSize: 18,
-    color: "#666",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  modalUrgentText: {
-    color: "red",
-    fontWeight: "bold",
-    fontSize: 16,
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  modalText: {
-    fontSize: 16,
-    color: "#333",
-    marginBottom: 10,
-  },
-  infoContainer: {
-    marginBottom: 15,
-  },
-  infoTitle: {
-    fontSize: 18,
-    fontWeight: "bold", // Bold titles
-    color: "#333",
-    marginBottom: 5,
-  },
-  detailText: {
-    fontSize: 16,
-    color: "#333",
-    marginBottom: 5,
-  },
-  actionsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginVertical: 10,
-    paddingHorizontal: 20, // Add padding to create space
-  },
+  safeArea: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
+  title: { fontSize: 32, fontFamily: "LilitaOne", fontWeight: "bold", color: "#333", marginBottom: 10, marginTop: 50 },
+  subtitle: { fontSize: 16, color: "#666", textAlign: "center", marginTop: 10 },
+  backButton: { position: "absolute", top: 40, left: 10, zIndex: 1 },
+  listContainer: { padding: 16, marginTop: 50 },
+  card: { width: "100%", marginBottom: 16, borderRadius: 8, backgroundColor: "#f9f9f9", shadowOpacity: 0.1, padding: 12 },
+  cardContent: { paddingHorizontal: 10 },
+  cardTitle: { fontSize: 18, fontWeight: "bold", color: "#333" },
+  cardDescription: { fontSize: 14, color: "#666", marginTop: 4 },
+  modalBackground: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#68C2FF" },
+  modalContainer: { width: "80%", padding: 20, backgroundColor: "white", borderRadius: 20, marginHorizontal: 50, alignItems: "center" },
+  scrollView: { marginBottom: 20 },
+  modalImage: { width: "100%", height: 200, borderRadius: 10, marginBottom: 15 },
+  modalTitle: { fontSize: 24, fontWeight: "bold", marginBottom: 5 },
+  modalSubtitle: { fontSize: 16, color: "#EF5B5B", marginBottom: 15 },
+  modalUrgentText: { fontSize: 16, fontWeight: "bold", color: "#EF5B5B", marginBottom: 10 },
+  modalText: { fontSize: 16, color: "#333", marginBottom: 5 },
+  inputContainer: { marginBottom: 15 },
+  inputLabel: { fontSize: 16, fontWeight: "bold", color: "#333" },
+  input: { width: "100%", padding: 10, fontSize: 16, borderColor: "#ccc", borderWidth: 1, borderRadius: 8, marginTop: 5 },
+  infoContainer: { flexDirection: "row", marginBottom: 10 },
+  infoTitle: { fontSize: 16, fontWeight: "bold", color: "#333" },
+  detailText: { fontSize: 16, color: "#666", marginLeft: 10 },
+  actionsContainer: { flexDirection: "row", justifyContent: "space-between", marginTop: 20, paddingHorizontal: 10 },
   actionButton: {
     paddingVertical: 10,
     paddingHorizontal: 30,
-    borderRadius: 10,
-    width: "50%",
+    borderRadius: 8,
     alignItems: "center",
-    marginHorizontal: 5, // Add margin between buttons
   },
-  
-  actionText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 18,
+  actionText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  saveButton: { marginRight: 10 }, // Added saveButton style for spacing
+  cancelButton: { marginLeft: 10 }, // Added cancelButton style for spacing
+  saveConfirmation: { fontSize: 16, color: "#68C2FF" },
+  confirmationModal: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
-  closeButton: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    zIndex: 2,
+  confirmationContainer: {
+    width: "80%",
+    padding: 20,
+    backgroundColor: "white",
+    borderRadius: 10,
+  },
+  confirmationText: { fontSize: 18, fontWeight: "bold", textAlign: "center" },
+  confirmationActions: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
+  confirmationButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: "#68C2FF",
+    borderRadius: 8,
+    alignItems: "center",
+    width: "45%",
   },
 });
 
