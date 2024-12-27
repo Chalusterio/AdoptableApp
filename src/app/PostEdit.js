@@ -1,73 +1,66 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, Alert } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, Button, SafeAreaView } from "react-native";
+import { MaterialCommunityIcons } from "react-native-vector-icons";
 import { useRouter } from "expo-router";
 import { getDocs, collection, query, where } from "firebase/firestore";
-import { auth, db } from "../../firebase"; // Import Firestore and Auth
-import { MaterialCommunityIcons } from "react-native-vector-icons"; // Import MaterialCommunityIcons for the back arrow
-import { useFonts } from "expo-font"; // Import expo-font to load the custom font
+import { auth, db } from "../../firebase";
+import { useFonts } from "expo-font";
+import { getSession } from "../../firebase";
 
 const PostEdit = () => {
   const router = useRouter();
-  const [userPosts, setUserPosts] = useState([]); // Store posts created by the user
-  const [loading, setLoading] = useState(true); // Loading state to show a loading indicator while fetching data
-  const [currentUser, setCurrentUser] = useState(null); // Track the current user
+  const [userPosts, setUserPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
-  // Load LilitaOne font
   const [fontsLoaded] = useFonts({
-    LilitaOne: require("../assets/fonts/LilitaOne-Regular.ttf"), // Ensure the font file is in the correct path
+    LilitaOne: require("../assets/fonts/LilitaOne-Regular.ttf"),
   });
 
-  // Fetch the current user when the component mounts
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        setCurrentUser(user); // Set current user when authenticated
-      } else {
-        setCurrentUser(null); // Handle when no user is logged in
+    const fetchUserSession = async () => {
+      const session = await getSession();
+      if (session) {
+        setCurrentUser(session);
       }
-    });
-
-    return unsubscribe; // Unsubscribe on component unmount
+    };
+    fetchUserSession();
   }, []);
 
-  // Fetch user posts when the component mounts and the current user is available
   useEffect(() => {
     const fetchUserPosts = async () => {
       if (currentUser) {
+        setLoading(true);
         try {
-          const userEmail = currentUser.email; // Get current user's email
-
-          // Query Firestore for posts where the userEmail field matches the current user's email
+          const userEmail = currentUser.email;
           const postsRef = collection(db, "Community_post");
-          const q = query(postsRef, where("userEmail", "==", userEmail)); // Fetch posts by email
-
+          const q = query(postsRef, where("email", "==", userEmail));
           const querySnapshot = await getDocs(q);
-          const fetchedPosts = [];
 
+          const fetchedPosts = [];
           querySnapshot.forEach((doc) => {
-            fetchedPosts.push({ id: doc.id, ...doc.data() }); // Push post data into the array
+            fetchedPosts.push({ id: doc.id, ...doc.data() });
           });
 
-          setUserPosts(fetchedPosts); // Update state with fetched posts
+          setUserPosts(fetchedPosts);
         } catch (error) {
           console.error("Error fetching posts:", error);
-          Alert.alert("Error", "Could not fetch your posts.");
         } finally {
-          setLoading(false); // Stop loading once data is fetched
+          setLoading(false);
         }
       }
     };
-
     if (currentUser) {
-      fetchUserPosts(); // Fetch posts if currentUser is available
+      fetchUserPosts();
     }
-  }, [currentUser]); // Dependency on currentUser to re-fetch when user state changes
+  }, [currentUser]);
 
-  // Render loading indicator while fetching data
   if (!fontsLoaded) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Loading fonts...</Text> {/* Show loading text while the font is being loaded */}
+        <Text style={styles.title}>Loading fonts...</Text>
       </View>
     );
   }
@@ -75,23 +68,40 @@ const PostEdit = () => {
   if (loading) {
     return (
       <View style={styles.container}>
+        <ActivityIndicator size="large" color="#68C2FF" />
         <Text style={styles.title}>Loading your posts...</Text>
       </View>
     );
   }
 
-  // Render the list of user posts
+  const openModal = (post) => {
+    setSelectedPost(post);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setSelectedPost(null);
+  };
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity style={styles.card} onPress={() => openModal(item)}>
+      <View style={styles.cardContent}>
+        <Text style={styles.cardTitle}>{item.title}</Text>
+        <Text style={styles.cardDescription}>{item.what}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
-    <View style={styles.container}>
-      {/* Custom back button with MaterialCommunityIcons */}
+    <SafeAreaView style={styles.safeArea}>
       <MaterialCommunityIcons
         name="arrow-left-circle"
         size={30}
-        color="#EF5B5B" // You can change this to white (#fff) or any other color
+        color="#EF5B5B"
         style={styles.backButton}
         onPress={() => router.back()}
       />
-
       <Text style={[styles.title, { fontFamily: "LilitaOne", textAlign: "center" }]}>
         Your Posts
       </Text>
@@ -102,32 +112,49 @@ const PostEdit = () => {
         <FlatList
           data={userPosts}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.postContainer}>
-              <Text style={styles.postTitle}>{item.title}</Text>
-              <Text style={styles.postContent}>{item.what}</Text>
-            </View>
-          )}
+          renderItem={renderItem}
+          numColumns={1}
+          contentContainerStyle={styles.listContainer}
         />
       )}
-    </View>
+
+      <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={closeModal}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {selectedPost && (
+              <>
+                <Text style={styles.modalTitle}>{selectedPost.title}</Text>
+                <Text style={styles.modalText}>{selectedPost.what}</Text>
+                <Text style={styles.modalText}>{selectedPost.moreDetails}</Text>
+                <Button title="Close" onPress={closeModal} />
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   container: {
     flex: 1,
-    justifyContent: "flex-start",
+    justifyContent: "center",
     alignItems: "center",
     padding: 20,
     backgroundColor: "white",
   },
   title: {
     fontSize: 32,
+    fontFamily: 'Lilita',
     fontWeight: "bold",
     color: "#333",
     marginBottom: 10,
-    textAlign: "center",
+    marginTop: 50,
   },
   subtitle: {
     fontSize: 16,
@@ -135,30 +162,63 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 10,
   },
-  postContainer: {
-    backgroundColor: "#f9f9f9",
-    padding: 10,
-    marginVertical: 8,
-    width: "100%",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
+  backButton: {
+    position: "absolute",
+    top: 40,
+    left: 10,
+    zIndex: 1,
   },
-  postTitle: {
+  listContainer: {
+    padding: 16,
+    marginTop: 50,
+  },
+  card: {
+    width: "100%",
+    marginBottom: 16,
+    borderRadius: 8,
+    backgroundColor: "#f9f9f9",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+    padding: 12,
+  },
+  cardContent: {
+    paddingHorizontal: 10,
+  },
+  cardTitle: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#333",
   },
-  postContent: {
+  cardDescription: {
     fontSize: 14,
     color: "#666",
     marginTop: 4,
   },
-  backButton: {
-    position: "absolute",
-    top: 40, // Adjust based on your header height
-    left: 10, // Adjust the distance from the left edge
-    zIndex: 1, // Ensure it stays on top of other elements
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    width: "80%",
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  modalText: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 10,
   },
 });
 
