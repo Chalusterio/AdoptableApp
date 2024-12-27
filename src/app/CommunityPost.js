@@ -3,9 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Modal, Tex
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import SideBar from "../components/SideBar";
 import { useNavigation } from '@react-navigation/native';
-import { db } from "../../firebase";
-import { auth } from "../../firebase";
-import { doc, getDoc, collection, getDocs, addDoc } from "firebase/firestore";
+import { db, auth } from "../../firebase";
+import { doc, getDoc, collection, getDocs, addDoc, onSnapshot} from "firebase/firestore";
 import { Calendar } from 'react-native-calendars';
 
 const CommunityPost = () => {
@@ -17,7 +16,6 @@ const CommunityPost = () => {
     what: "",
     when: "",
     where: "",
-    why: "",
     urgent: false,
   });
   const [posts, setPosts] = useState([]);
@@ -25,6 +23,7 @@ const CommunityPost = () => {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false); // state for calendar visibility
+
 
   useEffect(() => {
     const fetchUserRoleAndPosts = async () => {
@@ -37,52 +36,87 @@ const CommunityPost = () => {
           } else {
             Alert.alert("Error", "User role not found.");
           }
-
-          const postsRef = collection(db, "Community_post");
-          const querySnapshot = await getDocs(postsRef);
-          const fetchedPosts = [];
-          querySnapshot.forEach((doc) => {
-            fetchedPosts.push({ id: doc.id, ...doc.data() });
-          });
-
-          setPosts(fetchedPosts);
         } catch (error) {
-          console.error("Error fetching user role or posts:", error);
-          Alert.alert("Error", "Could not fetch user role or posts.");
+          console.error("Error fetching user role:", error);
+          Alert.alert("Error", "Could not fetch user role.");
         }
       }
-      setLoading(false);
+  
+      // Real-time listener for Community_post collection
+      const postsRef = collection(db, "Community_post");
+      const unsubscribe = onSnapshot(postsRef, (querySnapshot) => {
+        const fetchedPosts = [];
+        querySnapshot.forEach((doc) => {
+          fetchedPosts.push({ id: doc.id, ...doc.data() });
+        });
+        setPosts(fetchedPosts);
+      });
+  
+      return unsubscribe; // Return the unsubscribe function
     };
-
-    fetchUserRoleAndPosts();
+  
+    // Call fetchUserRoleAndPosts and capture unsubscribe
+    const unsubscribe = fetchUserRoleAndPosts();
+  
+    return () => {
+      if (typeof unsubscribe === "function") {
+        unsubscribe(); // Clean up the onSnapshot listener on unmount
+      }
+    };
   }, []);
+  
+
 
   const handlePostSubmit = async () => {
     if (postContent.title.trim() === "" || postContent.what.trim() === "") {
       Alert.alert("Error", "Please fill out the title and description.");
       return;
     }
-
+  
     try {
-      const docRef = await addDoc(collection(db, "Community_post"), postContent);
+      const user = auth.currentUser; // Get the current authenticated user
+      const userRef = doc(db, "users", user.uid); // Reference to the Firestore document
+      const userDoc = await getDoc(userRef);
+  
+      let userName = user.displayName || "Anonymous"; // Default to "Anonymous"
+      if (userDoc.exists()) {
+        userName = userDoc.data().name || userName; // Prefer Firestore name if available
+      }
+  
+      const userEmail = user.email; // Save email regardless
+      const profilePic = userDoc.exists() ? userDoc.data().profilePic || "" : "";
+  
+      const postWithUserInfo = {
+        ...postContent,
+        postedBy: userName, // Save the user's name
+        email: userEmail,   // Save the email
+        profilePic,         // Save the profile picture URL
+        timestamp: new Date().toISOString(), // Optionally, include a timestamp
+      };
+  
+      const docRef = await addDoc(collection(db, "Community_post"), postWithUserInfo);
       console.log("Post written with ID: ", docRef.id);
-      setPosts([postContent, ...posts]);
+  
+      setPosts([postWithUserInfo, ...posts]);
       setPostContent({
         title: "",
         who: "",
         what: "",
         when: "",
         where: "",
-        why: "",
         urgent: false,
       });
-      setModalVisible(false);  // Close modal after submission
+      setModalVisible(false); // Close modal after submission
       Alert.alert("Success", "Your post has been submitted!");
     } catch (e) {
       console.error("Error adding document: ", e);
       Alert.alert("Error", "Something went wrong. Please try again.");
     }
   };
+  
+  
+  
+  
 
   const sortedPosts = posts.sort((a, b) => {
     if (a.urgent !== b.urgent) return b.urgent - a.urgent;
@@ -139,7 +173,11 @@ const CommunityPost = () => {
               <TouchableOpacity key={index} onPress={() => openPostDetails(post)}>
                 <View style={styles.post}>
                   <View style={styles.postImageContainer}>
-                    <MaterialCommunityIcons name="image" size={40} color="#ccc" />
+                    {post.profilePic ? (
+                      <Image source={{ uri: post.profilePic }} style={styles.profileImage} />
+                    ) : (
+                      <MaterialCommunityIcons name="account-circle" size={40} color="#ccc" />
+                    )}
                   </View>
                   <View style={styles.postDetails}>
                     <Text style={styles.postTitle}>{post.title}</Text>
@@ -147,11 +185,13 @@ const CommunityPost = () => {
                       {post.when ? `📅 ${post.when}` : "No date specified"}
                     </Text>
                     {post.urgent && <Text style={styles.urgentText}>🔥 Urgent</Text>}
+                    <Text style={styles.postUsername}>Posted by: {post.postedBy}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
             ))}
           </ScrollView>
+
 
           {/* Modal for creating a new post */}
           <Modal
@@ -222,16 +262,6 @@ const CommunityPost = () => {
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Why:</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Why is this post important?"
-                      value={postContent.why}
-                      onChangeText={(text) => setPostContent({ ...postContent, why: text })}
-                    />
-                  </View>
-
-                  <View style={styles.inputContainer}>
                     <Text style={styles.label}>Urgent:</Text>
                     <Switch
                       value={postContent.urgent}
@@ -256,6 +286,7 @@ const CommunityPost = () => {
     </ImageBackground>
   );
 };
+
 
 const styles = StyleSheet.create({
   // other styles...
@@ -467,6 +498,12 @@ const styles = StyleSheet.create({
     alignItems: "center", // Center text horizontally
     justifyContent: "center", // Center text vertically
   },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },  
   
 });
 
