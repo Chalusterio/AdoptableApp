@@ -255,8 +255,8 @@ const Notification = () => {
         ) {
           notificationsList.push({
             id: notificationId,
-            image: adopter.ProfilePicture
-              ? { uri: adopter.ProfilePicture }
+            image: adopter.profilePicture
+              ? { uri: adopter.profilePicture }
               : null,
             name: adopter.name || "Adopter",
             content: (

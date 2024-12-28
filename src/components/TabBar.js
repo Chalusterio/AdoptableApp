@@ -3,16 +3,16 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 
-const TabBar = ({ state, descriptors, navigation }) => {
-  const activeColor = '#68C2FF';
-  const inactiveColor = '#FFF';
+const TabBar = ({ state, descriptors, navigation, notificationCount }) => {
+  const activeColor = '#68C2FF'; // Color for active tab
+  const inactiveColor = '#FFF'; // Color for inactive tab
 
   const [fontsLoaded] = useFonts({
-    Lilita: require('../assets/fonts/LilitaOne-Regular.ttf'),
+    Lilita: require('../assets/fonts/LilitaOne-Regular.ttf'), // Custom font
   });
 
   if (!fontsLoaded) {
-    return null; 
+    return null; // Return null while fonts are loading
   }
 
   const icons = {
@@ -62,12 +62,15 @@ const TabBar = ({ state, descriptors, navigation }) => {
                 size={30}
                 color={isFocused ? activeColor : inactiveColor}
               />
+              {/* Show badge only when there are notifications */}
+              {route.name === 'Notification' && notificationCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{notificationCount}</Text>
+                </View>
+              )}
               {isFocused && route.name !== 'List' && (
                 <Text
-                  style={[
-                    styles.activeText,
-                    { fontFamily: 'Lilita', fontSize: route.name === 'Notification' ? 15 : 15 },
-                  ]}
+                  style={[styles.activeText, { fontFamily: 'Lilita', fontSize: 15 }]}
                   numberOfLines={1}
                 >
                   {label}
@@ -81,6 +84,7 @@ const TabBar = ({ state, descriptors, navigation }) => {
   );
 };
 
+// TabBar styles (same as before)
 const styles = StyleSheet.create({
   tabbar: {
     flexDirection: 'row',
@@ -96,15 +100,15 @@ const styles = StyleSheet.create({
   },
   tabbarItem: {
     alignItems: 'center',
-    alignSelf: 'center', // Prevents stretching
+    alignSelf: 'center',
   },
   tabbarItemActive: {
     backgroundColor: '#FFF',
     borderRadius: 25,
     paddingVertical: 8,
     flexDirection: 'row',
-    alignSelf: 'center', // Hugs the content
-    paddingHorizontal: 10, // Minimal padding to hug content
+    alignSelf: 'center',
+    paddingHorizontal: 10,
   },
   iconContainer: {
     flexDirection: 'row',
@@ -114,6 +118,22 @@ const styles = StyleSheet.create({
   activeText: {
     marginLeft: 5,
     color: '#68C2FF',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF0000',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 
