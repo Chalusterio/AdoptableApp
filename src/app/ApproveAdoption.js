@@ -8,7 +8,7 @@ import {
   Image,
   Modal,
   Dimensions,
-  TouchableWithoutFeedback,
+  TouchableWithoutFeedback, ActivityIndicator,
 } from "react-native";
 import { TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,6 +29,11 @@ import {
 import { db, auth } from "../../firebase";
 import { getStorage, ref, getDownloadURL } from "firebase/storage"; // Firebase storage import
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { GOOGLE_API_KEY } from "../../config"; // Import the Google API key
+import Geolocation from 'react-native-geocoding';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
+
 
 const screenWidth = Dimensions.get("window").width; // Full screen width
 const adjustedWidth = screenWidth - 40; // Subtract 20 padding on both sides
@@ -37,6 +42,14 @@ export default function ApproveAdoption() {
   const router = useRouter();
   const { petRequestId } = useLocalSearchParams();
   const [isFinalized, setIsFinalized] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState([]); // Store autocomplete suggestions
+  const [selectedAddress, setSelectedAddress] = useState(""); // Store the selected address
+  const [isAddressModalVisible, setAddressModalVisible] = useState(false); // Correct initialization
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [locationPermission, setLocationPermission] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+
 
   // State for adopter and pet details
   const [petRequestDetails, setPetRequestDetails] = useState({});
@@ -122,6 +135,9 @@ export default function ApproveAdoption() {
   };
 
   useEffect(() => {
+
+    Geolocation.init(GOOGLE_API_KEY);
+
     const fetchPetDetails = async () => {
       if (petRequestId) {
         console.log(`Fetching pet details for petRequestId: ${petRequestId}`);
@@ -180,7 +196,87 @@ export default function ApproveAdoption() {
       ...prevDetails,
       expectedDate: estimatedDate,
     }));
+    requestLocationPermission();
   }, [petRequestId]);
+
+  const requestLocationPermission = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    setLocationPermission(status);
+
+    if (status === 'granted') {
+      const location = await Location.getCurrentPositionAsync({});
+      setSelectedLocation(location.coords);
+    } else {
+      // Handle case where permission is not granted
+      console.log("Permission to access location was denied");
+    }
+  };
+
+  // Update address directly as a string, not an object
+  const handleAddressChange = async (text) => {
+    setNewAddress(text);  // Set newAddress as a string directly
+    setShowSuggestions(true); // Show the suggestions dropdown when typing
+    if (text.length > 2) {
+      fetchAddressSuggestions(text);
+    }
+  };
+
+  // Fetch address suggestions from Google API
+  const fetchAddressSuggestions = async (query) => {
+    setIsSaving(true);
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${query}&key=${GOOGLE_API_KEY}`
+      );
+      const data = await response.json();
+      setAddressSuggestions(data.predictions);
+    } catch (error) {
+      console.error("Error fetching address suggestions:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  // Function when an address from the suggestions is selected
+  const handleAddressSelect = (address) => {
+    console.log('Selected address from suggestions:', address); // Debugging log
+    setNewAddress(address); // Update the new address state
+    setShowSuggestions(false); // Close the suggestions list
+
+     // Geocode the address to get the location
+     Location.geocodeAsync(address)
+     .then((response) => {
+       if (response && response[0]) {
+         const { latitude, longitude } = response[0];
+         setSelectedLocation({ latitude, longitude });
+         console.log('Geocoding successful. Location:', { latitude, longitude }); // Debugging log
+       } else {
+         alert("Could not geocode the address. Please try again.");
+         console.log('Geocoding failed. No response or incorrect data.'); // Debugging log
+       }
+     })
+     .catch((error) => {
+       console.error(error);
+       alert("Failed to get location. Please try again.");
+       console.log('Geocoding error:', error); // Debugging log
+     });
+  };
+
+  const handleSelectAddressClick = () => {
+    const address = newAddress; // Get the address from the state
+
+    console.log('Address on "Select Address" button click:', address); // Debugging log
+
+    // Remove the check for the same address
+    console.log('Updating selected address and geocoding it...'); // Debugging log
+    setSelectedAddress(address); // Set the selected address in state
+    setNewAddress(address); // Update the new address state
+
+
+    // Close the modal after selecting the address
+    setAddressModalVisible(false);
+    console.log('Modal closed after address selection.'); // Debugging log
+  };
+
 
   // Update transaction summary when delivery or adoption fee changes
   useEffect(() => {
@@ -477,6 +573,7 @@ export default function ApproveAdoption() {
               onPress={() => setEditModalVisible(true)}
             >
               <MaterialIcons name="edit" size={24} color="black" />
+
             </TouchableOpacity>
           </View>
 
@@ -585,7 +682,6 @@ export default function ApproveAdoption() {
         </View>
       </ScrollView>
 
-      {/* Edit Details Modal */}
       <Modal
         transparent={true}
         visible={editModalVisible}
@@ -599,18 +695,22 @@ export default function ApproveAdoption() {
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Edit Address and Phone Number</Text>
 
-          {/* Address Input */}
-          <Text style={styles.question}>Address:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter new address"
-            value={newAddress}
-            onChangeText={setNewAddress}
-            mode="outlined"
-            outlineColor="transparent"
-            activeOutlineColor="#68C2FF"
-            autoCapitalize="words"
-          />
+          {/* Address Field */}
+          <TouchableOpacity
+            style={styles.question}
+            onPress={() => setAddressModalVisible(true)} // Open the address modal
+          >
+            <TextInput
+              style={styles.addressDisplay}
+              placeholder="Enter new address"
+              value={newAddress || ""}
+              editable={false} // Make it read-only until edit is triggered
+              onChangeText={handleAddressChange}
+              mode="outlined"
+              outlineColor="transparent"
+              activeOutlineColor="#68C2FF"
+            />
+          </TouchableOpacity>
 
           {/* Phone Number Input */}
           <Text style={styles.question}>Phone Number:</Text>
@@ -638,13 +738,99 @@ export default function ApproveAdoption() {
             {/* Save Button */}
             <TouchableOpacity
               style={styles.saveButton}
-              onPress={handleEditDetails}
+              onPress={handleEditDetails} // Save the changes
             >
               <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+
+
+      {/* Address Modal */}
+      <Modal
+        visible={isAddressModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setAddressModalVisible(false)}
+      >
+        <View style={styles.modalAddressContainer}>
+          <View style={styles.modalAddressContent}>
+            <Text style={styles.modalAddressTitle}>Edit Address</Text>
+
+            {/* Address input field */}
+            <TextInput
+              style={styles.addressInput}
+              placeholder="Search for address"
+              value={newAddress}  // Set the value of the input field to newAddress
+              onChangeText={handleAddressChange}  // Handle the input change
+            />
+
+            {/* Display suggestions if any */}
+            {isSaving ? (
+              <ActivityIndicator size="large" color="#0000ff" />
+            ) : (
+              showSuggestions && (
+                <ScrollView
+                  style={styles.suggestionsContainer}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {addressSuggestions.map((item) => (
+                    <TouchableOpacity
+                      key={item.place_id}
+                      style={styles.suggestionItem}
+                      onPress={() => handleAddressSelect(item.description)} // Update the address and location
+                    >
+                      <Text>{item.description}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )
+            )}
+
+            {/* Map displaying pinpoint location */}
+            {selectedLocation && (
+              <MapView
+                style={styles.map}
+                region={{
+                  latitude: selectedLocation ? selectedLocation.latitude : 0,
+                  longitude: selectedLocation ? selectedLocation.longitude : 0,
+                  latitudeDelta: 0.0922,
+                  longitudeDelta: 0.0421,
+                }}
+              >
+                {selectedLocation && (
+                  <Marker
+                    coordinate={selectedLocation}
+                    title="Your Location"
+                  />
+                )}
+              </MapView>
+            )}
+            {/* Select Address Button */}
+            <TouchableOpacity
+              style={styles.selectAddressButton}
+              onPress={handleSelectAddressClick}
+            >
+              <Text style={styles.selectButtonText}>Select Address</Text>
+            </TouchableOpacity>
+
+            {/* Close Button */}
+            <TouchableOpacity
+              style={styles.closeAddressButton}
+              onPress={() => {
+                setAddressModalVisible(false); // Just close the modal, don't update the address
+                setNewAddress(''); // Optionally reset new address if not confirmed
+              }}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+
+
+          </View>
+        </View>
+      </Modal>
+
 
       {/* Cancel Adoption Modal */}
       <Modal
@@ -744,7 +930,7 @@ export default function ApproveAdoption() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }
 
@@ -1131,5 +1317,130 @@ const styles = StyleSheet.create({
   },
   disabledButtonText: {
     color: "#fff", // White text for disabled button
+  },
+  modalAddressContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    height: "80%",  // Modal takes 80% of screen height
+  },
+
+  // Content inside modal
+  modalAddressContent: {
+    width: "90%",  // 90% width for content container
+    backgroundColor: "white",
+    borderRadius: 10,
+    padding: 20,
+    position: "relative",  // For positioning overlay elements
+    maxHeight: "80%",  // Limit the height of the content
+  },
+
+  // Title of the modal
+  modalAddressTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+
+  // Close button at the top-right corner
+  editAddressButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 1,
+  },
+
+  // Address input field
+  addressInput: {
+    height: 40,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingLeft: 10,
+    marginBottom: 10,
+  },
+
+  // Display of selected address, larger field
+  addressDisplay: {
+    fontSize: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+    marginBottom: 10,
+    height: 50,
+  },
+
+  // Container for suggestions (overlaying the map)
+  suggestionsContainer: {
+    position: "absolute",
+    top: 100,  // Adjust to start below the input
+    left: 0,
+    right: 0,
+    maxHeight: 200,
+    backgroundColor: "white",
+    zIndex: 100,  // Ensure suggestions are on top
+    borderRadius: 5,
+    borderColor: "#ccc",
+    borderWidth: 1,
+  },
+
+  // Each suggestion item
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
+
+  // Save button styling
+  selectAddressButton: {
+    backgroundColor: '#0047AB',  // Blue color
+    width: '100%',
+    paddingVertical: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+
+  // Save button text
+  selectButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  // Close button styling
+  closeAddressButton: {
+    backgroundColor: '#ccc', // Light gray for cancel
+    width: '100%',
+    paddingVertical: 15,
+    borderRadius: 8,
+  },
+
+  // Close button text
+  closeButtonText: {
+    color: '#0047AB', // Blue for the close button
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  // Container for address input and edit button
+  addressFieldContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+
+  // Map styling (below input and suggestions)
+  map: {
+    height: 300,
+    marginBottom: 10,
+    borderRadius: 10,  // Optional for rounded corners
   },
 });

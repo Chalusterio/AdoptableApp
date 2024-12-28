@@ -9,6 +9,12 @@ import { Picker } from "@react-native-picker/picker"; // Import the Picker
 import { auth, signOut, db } from "../../../firebase"; // Ensure this imports your Firebase setup
 import { getDocs, collection, query, where, updateDoc, doc, } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { GOOGLE_API_KEY } from "../../../config"; // Import the Google API key
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import Geolocation from 'react-native-geocoding';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
+
 
 const Profile = () => {
   const router = useRouter();
@@ -24,15 +30,24 @@ const Profile = () => {
 
   const [editableInfo, setEditableInfo] = useState(profileInfo);
   const [isModalVisible, setModalVisible] = useState(false);
-  const [isLogoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [isEditConfirmVisible, setEditConfirmVisible] = useState(false);
   const houseTypeOptions = ["Apartment/Condo", "House"];
   const petOptions = ["Yes", "No"];
   const [isSaving, setIsSaving] = useState(false);
   const [isAddressEmpty, setIsAddressEmpty] = useState(false);
   const [coverImage, setCoverImage] = useState(null);
+  const [addressSuggestions, setAddressSuggestions] = useState([]); // Store autocomplete suggestions
+  const [selectedAddress, setSelectedAddress] = useState(""); // Store the selected address
+  const [isAddressModalVisible, setAddressModalVisible] = useState(false); // Correct initialization
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [locationPermission, setLocationPermission] = useState(null);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  
 
   useEffect(() => {
+
+    Geolocation.init(GOOGLE_API_KEY);
+
     const fetchUserData = async () => {
       const user = auth.currentUser;
       if (user) {
@@ -91,8 +106,86 @@ const Profile = () => {
         }
       }
     };
+    requestLocationPermission();
     fetchUserData();
   }, []); // Empty dependency array, will run once when component mounts
+
+  const requestLocationPermission = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    setLocationPermission(status);
+  
+    if (status === 'granted') {
+      const location = await Location.getCurrentPositionAsync({});
+      setSelectedLocation(location.coords);
+    } else {
+      // Handle case where permission is not granted
+      console.log("Permission to access location was denied");
+    }
+  };
+
+  // Handle address input and fetch suggestions
+  const handleAddressChange = async (text) => {
+    setEditableInfo((prevState) => ({ ...prevState, address: text }));
+    setShowSuggestions(true); // Show the suggestions dropdown when typing
+    if (text.length > 2) {
+      fetchAddressSuggestions(text);
+    }
+  };
+
+  // Fetch address suggestions from Google API
+  const fetchAddressSuggestions = async (query) => {
+    setIsSaving(true);
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${query}&key=${GOOGLE_API_KEY}`
+      );
+      const data = await response.json();
+      setAddressSuggestions(data.predictions);
+    } catch (error) {
+      console.error("Error fetching address suggestions:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+// Handle the address selection and map update
+const handleAddressSelect = (address) => {
+  setSelectedAddress(address); // Store the full address
+  setEditableInfo((prevState) => ({ ...prevState, address }));
+  setShowSuggestions(false); // Close the suggestions list
+
+  // Geocode the address to get latitude and longitude using Expo Location
+  Location.geocodeAsync(address)
+    .then((response) => {
+      if (response && response[0]) {
+        const { latitude, longitude } = response[0];
+        // Always update selectedLocation when a new address is selected
+        setSelectedLocation({ latitude, longitude });
+      } else {
+        alert("Could not geocode the address. Please try again.");
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+      alert("Failed to get location. Please try again.");
+    });
+};
+
+const handleSelectAddressClick = () => {
+  const address = editableInfo.address; // Get the address from the state
+
+  console.log('Address on "Select Address" button click:', address); // Debugging log
+
+  console.log('Updating selected address and geocoding it...'); // Debugging log
+  setSelectedAddress(address); // Set the selected address in state
+  
+  // Correctly update editableInfo without overwriting the object
+  setEditableInfo((prevState) => ({ ...prevState, address }));
+
+  // Close the modal after selecting the address
+  setAddressModalVisible(false);
+  console.log('Modal closed after address selection.'); // Debugging log
+};
 
   const handleSave = async () => {
     if (isSaving) return; // Prevent multiple clicks
@@ -102,10 +195,12 @@ const Profile = () => {
       const user = auth.currentUser;
       if (user) {
         const userRef = doc(db, "users", user.uid);
+
         const updatedData = {
           ...editableInfo,
           contactNumber: editableInfo.phone,
           bio: editableInfo.bio, // Save bio field
+          address: editableInfo.address, // Save the address
         };
 
         // Upload profile picture if exists
@@ -164,8 +259,8 @@ const Profile = () => {
       setIsSaving(false); // End the loading state
     }
 
-    if (!editableInfo.address) {
-      setIsAddressEmpty(true); // Set state to true if address is empty
+    if (!editableInfo.houseNumber || !editableInfo.streetAddress || !editableInfo.barangay || !editableInfo.city) {
+      setIsAddressEmpty(true); // Set state to true if address fields are empty
     } else {
       setIsAddressEmpty(false); // Clear the validation if address is filled
     }
@@ -420,17 +515,26 @@ const Profile = () => {
                     activeOutlineColor="#68C2FF"
                     autoCapitalize="sentences"
                   />
-                  <TextInput
-                    placeholder="Address"
-                    value={editableInfo.address}
-                    onChangeText={(text) => setEditableInfo({ ...editableInfo, address: text })}
-                    style={[styles.input, isAddressEmpty && styles.inputError]}
-                    mode="outlined"
-                    outlineColor="transparent"
-                    activeOutlineColor="#68C2FF"
-                    autoCapitalize="words"
-                  />
-                  {isAddressEmpty && <Text style={styles.errorText}>Address is required</Text>}
+
+                  {/* Address Field */}
+                  <View style={styles.addressFieldContainer}>
+                    <TextInput
+                      style={styles.addressDisplay}
+                      placeholder="Address"
+                      value={editableInfo.address || ""}
+                      editable={false} // Make it read-only until edit is triggered
+                      onChangeText={(text) => setEditableInfo({ ...editableInfo, address: text })}
+                      mode="outlined"
+                      outlineColor="transparent"
+                      activeOutlineColor="#68C2FF"
+                    />
+                    <TouchableOpacity
+                      style={styles.editAddressButton}
+                      onPress={() => setAddressModalVisible(true)}
+                    >
+                      <Icon name="edit" size={24} color="#68C2FF" />
+                    </TouchableOpacity>
+                  </View>
 
                   <View style={styles.input2}>
                     <Picker
@@ -490,6 +594,93 @@ const Profile = () => {
               </View>
             </View>
           </Modal>
+
+          {/* Address Modal */}
+          <Modal
+            visible={isAddressModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setAddressModalVisible(false)}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Edit Address</Text>
+
+                {/* Address input field */}
+                <TextInput
+                  style={styles.addressInput}
+                  placeholder="Search for address"
+                  value={editableInfo.address}
+                  onChangeText={handleAddressChange}
+                />
+
+               {/* Display suggestions if any */}
+            {isSaving ? (
+              <ActivityIndicator size="large" color="#0000ff" />
+            ) : (
+              showSuggestions && (
+                <ScrollView
+                  style={styles.suggestionsContainer}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {addressSuggestions.map((item) => (
+                    <TouchableOpacity
+                      key={item.place_id}
+                      style={styles.suggestionItem}
+                      onPress={() => handleAddressSelect(item.description)} // Update the address and location
+                    >
+                      <Text>{item.description}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )
+            )}
+
+                {/* Map displaying pinpoint location */}
+                {selectedLocation && (
+                 <MapView
+                 style={styles.map}
+                 region={{
+                   latitude: selectedLocation ? selectedLocation.latitude : 0,
+                   longitude: selectedLocation ? selectedLocation.longitude : 0,
+                   latitudeDelta: 0.0922,
+                   longitudeDelta: 0.0421,
+                 }}
+               >
+                 {selectedLocation && (
+                   <Marker
+                     coordinate={selectedLocation}
+                     title="Your Location"
+                   />
+                 )}
+               </MapView>
+               
+                )}
+
+                {/* Select Address Button */}
+            <TouchableOpacity
+              style={styles.selectAddressButton}
+              onPress={handleSelectAddressClick}
+            >
+              <Text style={styles.selectButtonText}>Select Address</Text>
+            </TouchableOpacity>
+
+               {/* Close Button */}
+            <TouchableOpacity
+              style={styles.closeAddressButton}
+              onPress={() => {
+                setAddressModalVisible(false); // Just close the modal, don't update the address
+                setEditableInfo.address(''); // Optionally reset new address if not confirmed
+              }}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+
+
+              </View>
+            </View>
+          </Modal>
+
 
           {/* Edit Confirmation Modal */}
           <Modal
@@ -552,6 +743,14 @@ const styles = StyleSheet.create({
     top: 20,
     right: 20,
     backgroundColor: "#444444",
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 1,
+  },
+  editAddressButton: {
+    position: "absolute",
+    top: 20,
+    right: 20,
     borderRadius: 20,
     padding: 8,
     zIndex: 1,
@@ -671,6 +870,59 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 5,
   },
+  addressInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    marginBottom: 15,
+    borderRadius: 5,
+  },
+  addressDisplay: {
+    flex: 1,                          // Take up remaining space
+    fontSize: 18,                     // Increase font size for better readability
+    paddingHorizontal: 12,            // Increase padding on left and right
+    paddingVertical: 10,              // Increase vertical padding for larger input
+    borderRadius: 8,                  // Rounded corners
+    backgroundColor: '#f0f0f0',       // Light background color for input
+    marginRight: 10,                  // Space between input and edit button
+    height: 50,                       // Adjust height for a bigger input field
+  },
+  suggestionsContainer: {
+    maxHeight: 200,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
+  selectAddressButton: {
+    backgroundColor: '#0047AB', // Blue background for save button
+    width: '100%',              // Full width button
+    paddingVertical: 15,        // Vertical padding for the button
+    borderRadius: 8,            // Rounded corners
+    marginBottom: 10,           // Space below the save button
+  },
+  // Save button text
+  selectButtonText: {
+    color: '#fff',              // White text
+    textAlign: 'center',        // Center the text inside the button
+    fontSize: 16,               // Text size for the save button
+    fontWeight: 'bold',         // Bold text
+  },
+  // Close (Cancel) button styles
+  closeAddressButton: {
+    backgroundColor: '#ccc',   // Light gray background for cancel button
+    width: '100%',              // Full width button
+    paddingVertical: 15,        // Vertical padding for the button
+    borderRadius: 8,            // Rounded corners
+  },
+  // Close button text
+  closeButtonText: {
+    color: '#0047AB',           // Blue text for cancel button
+    textAlign: 'center',        // Center the text inside the button
+    fontSize: 16,               // Text size for the cancel button
+    fontWeight: 'bold',         // Bold text
+  },
   buttonText: {
     color: "#fff",
     textAlign: "center",
@@ -720,6 +972,13 @@ const styles = StyleSheet.create({
   uploadContainer: {
     alignItems: "center",
     justifyContent: "center",
+  },
+  // Address Section styles
+  addressFieldContainer: {
+    flexDirection: 'row',             // Align text and button horizontally
+    justifyContent: 'space-between',  // Ensure there’s space between text and button
+    alignItems: 'center',             // Vertically center the text and button
+    marginVertical: 10,
   },
   profileImageContainer: {
     width: 244,
@@ -772,6 +1031,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6C757D",
     marginTop: 5,
+  },
+  map: {
+    width: '100%',
+    height: 200,
+    marginTop: 10,
+    borderRadius: 10,
   },
   bioText: {
     fontSize: 16,
