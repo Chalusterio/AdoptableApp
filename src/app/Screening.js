@@ -16,6 +16,7 @@ import {
   getDocs,
   collection,
   updateDoc,
+  setDoc,
   doc,
 } from "firebase/firestore";
 import { db } from "../../firebase"; // Ensure db is initialized
@@ -98,8 +99,17 @@ export default function Screening() {
   };
 
   const handleProceedWithRejection = async (reason) => {
-    setIsModalVisible(false); // Hide the modal
-    await updatePetRequestStatus("Rejected"); // Update the status to 'rejected'
+    setIsModalVisible(false); 
+    await updatePetRequestStatus("Rejected"); 
+
+    // Assuming you have a 'pet_request' Firestore collection
+    const petRequestRef = doc(db, "pet_request", petRequestId);
+
+    // Update the pet request document with the rejection reason and rejection date
+    await setDoc(petRequestRef, {
+      rejectReason: reason, // Add the rejection reason
+      rejectDate: new Date(), // Store the date of rejection
+    }, { merge: true }); // Use merge to avoid overwriting other fields
 
     // Navigate to RejectAdoption screen with the rejection reason
     navigation.navigate("RejectAdoption", {

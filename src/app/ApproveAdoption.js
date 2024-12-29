@@ -79,6 +79,8 @@ export default function ApproveAdoption() {
   const scrollViewRef = useRef(null);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
 
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+
 
   // State for image URLs and scroll functionality
   const [imageURLs, setImageURLs] = useState([]);
@@ -89,17 +91,33 @@ export default function ApproveAdoption() {
     const today = new Date();
 
     // Calculate minimum and maximum delivery dates
+    // Calculate minimum and maximum delivery dates
     const minDate = new Date(today);
+    minDate.setDate(today.getDate() + 5);
     minDate.setDate(today.getDate() + 5);
 
     const maxDate = new Date(today);
     maxDate.setDate(today.getDate() + 8);
+    maxDate.setDate(today.getDate() + 8);
 
+    // Get day and month names
     // Get day and month names
     const dayMin = minDate.getDate();
     const monthMin = minDate.toLocaleString("default", { month: "long" });
 
+    const monthMin = minDate.toLocaleString("default", { month: "long" });
+
     const dayMax = maxDate.getDate();
+    const monthMax = maxDate.toLocaleString("default", { month: "long" });
+
+    // Check if months are different
+    if (monthMin === monthMax) {
+      return `${monthMin} ${dayMin} - ${dayMax}`;
+    } else {
+      return `${monthMin} ${dayMin} - ${monthMax} ${dayMax}`;
+    }
+  };
+
     const monthMax = maxDate.toLocaleString("default", { month: "long" });
 
     // Check if months are different
@@ -393,21 +411,59 @@ export default function ApproveAdoption() {
   };
 
 
+  const handleCancelAdoption = async () => {
+    try {
+      if (!petRequestId) {
+        alert("No pet request found.");
+        return;
+      }
+
+      // Reference to the specific pet request document
+      const petRequestRef = doc(db, "pet_request", petRequestId);
+
+      // Get the current date to store as cancelDate
+      const cancelDate = new Date();
+
+      // Update the status field to 'Cancelled' and add cancelDate
+      await updateDoc(petRequestRef, {
+        status: "Cancelled",
+        cancelDate: cancelDate, // Add cancelDate to the document
+      });
+
+      alert("Adoption request cancelled successfully.");
+
+      // Optionally, navigate to another page or refresh the current screen
+      router.push("/Main/Notification");
+    } catch (error) {
+      console.error("Error cancelling adoption:", error);
+      alert("Failed to cancel adoption. Please try again.");
+    }
+  };
+
+  const handleShowCancelModal = () => {
+    setCancelModalVisible(true);
+  };
+
+
   const handleConfirmFinalization = async () => {
     if (!petRequestDetails.address) {
       alert("Can't proceed without an address");
       return;
     }
 
+
     console.log("Pet Request Details:", petRequestDetails); // Debugging log
+
 
     try {
       const { petName, listedBy, petDetail } = petRequestDetails;
+
 
       // Ensure petName and listedBy email are present
       if (!petName || !listedBy) {
         throw new Error("Missing petName or listedBy email. Cannot finalize adoption.");
       }
+
 
       // Fetch the pet document using petName and listedBy email
       const petQuery = query(
@@ -416,15 +472,19 @@ export default function ApproveAdoption() {
         where("listedBy", "==", listedBy)
       );
 
+
       const petQuerySnapshot = await getDocs(petQuery);
+
 
       if (petQuerySnapshot.empty) {
         throw new Error(`No pet found with name ${petName} listed by ${listedBy}`);
       }
 
+
       // Get the pet document ID from the query result
       const petDoc = petQuerySnapshot.docs[0]; // Assuming the first result is correct
       const petId = petDoc.id;
+
 
       const finalizedAdoptionData = {
         petRequestId,
@@ -438,17 +498,21 @@ export default function ApproveAdoption() {
         dateFinalized: new Date().toISOString(),
       };
 
+
       // Add finalized adoption data to Firestore
       const finalizedCollectionRef = collection(db, "finalized_adoption");
       await addDoc(finalizedCollectionRef, finalizedAdoptionData);
+
 
       // Update the status of the listed pet using the petId
       const listedPetRef = doc(db, "listed_pets", petId);
       await updateDoc(listedPetRef, { status: "finalized" });
 
+
       // Update local state and persist finalized state
       setIsFinalized(true);
       await AsyncStorage.setItem(`finalized-${petRequestId}`, "true");
+
 
       router.push("/FinalizedAdoption");
     } catch (error) {
@@ -456,6 +520,9 @@ export default function ApproveAdoption() {
       alert(`Failed to finalize adoption. Reason: ${error.message}`);
     }
   };
+
+
+
 
 
 
@@ -637,6 +704,8 @@ export default function ApproveAdoption() {
               <View style={styles.transactionTextContainer}>
                 <Text style={styles.titleSummaryText}>Total Cost</Text>
                 <Text style={styles.paymentTotalText}>
+                <Text style={styles.titleSummaryText}>Total Cost</Text>
+                <Text style={styles.paymentTotalText}>
                   ₱{calculateTotal().toFixed(2)}
                 </Text>
               </View>
@@ -648,6 +717,19 @@ export default function ApproveAdoption() {
 
           {/* Payment Section */}
           <View style={styles.paymentSectionContainer}>
+
+            <TouchableOpacity
+              style={[styles.finalizeCancelButton, isFinalized && styles.cancelDisabledButton]} // Apply disabled style
+              onPress={isFinalized ? null : handleShowCancelModal} // Prevent action if finalized
+              disabled={isFinalized} // Disable button if finalized
+            >
+              <Text
+                style={[styles.finalizeCancelButtonText, isFinalized && styles.disabledButtonText]} // Apply disabled text style
+              >
+                {isFinalized ? "Cannot Cancel" : "Cancel Adoption"}
+              </Text>
+            </TouchableOpacity>
+
 
             <TouchableOpacity
               style={[styles.finalizeCancelButton, isFinalized && styles.cancelDisabledButton]} // Apply disabled style
@@ -1280,13 +1362,16 @@ const styles = StyleSheet.create({
     fontFamily: "LatoBold",
     fontSize: 16,
     color: "red",
+    color: "red",
   },
   finalizeButton: {
     width: 160,
     height: 50,
     backgroundColor: "#444",
+    backgroundColor: "#444",
     borderRadius: 30,
     justifyContent: "center",
+    marginLeft: 10,
     marginLeft: 10,
   },
   finalizeButtonText: {
@@ -1309,8 +1394,25 @@ const styles = StyleSheet.create({
     color: "white",
     textAlign: "center",
   },
+  finalizeCancelButton: {
+    width: 160,
+    height: 50,
+    backgroundColor: "#EF5B5B",
+    borderRadius: 30,
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  finalizeCancelButtonText: {
+    fontFamily: "LatoBold",
+    fontSize: 16,
+    color: "white",
+    textAlign: "center",
+  },
   disabledButton: {
     backgroundColor: "#D3D3D3", // Gray background for disabled state
+  },
+  cancelDisabledButton: {
+    backgroundColor: "#f8baba", // Gray background for disabled state
   },
   cancelDisabledButton: {
     backgroundColor: "#f8baba", // Gray background for disabled state
