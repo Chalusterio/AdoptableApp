@@ -129,7 +129,7 @@ const PetDetails = () => {
 
     checkPendingRequest();
 
-     const fetchPetStatus = async () => {
+    const fetchPetStatus = async () => {
       try {
         const q = query(
           collection(db, "listed_pets"),
@@ -332,9 +332,9 @@ const PetDetails = () => {
           <Text style={styles.personalityText}>
             {petPersonality
               ? petPersonality
-                  .split(",")
-                  .map((trait) => trait.trim())
-                  .join("     ●     ")
+                .split(",")
+                .map((trait) => trait.trim())
+                .join("     ●     ")
               : "No personality traits available"}
           </Text>
           <Text style={styles.description}>{petDescription}</Text>
@@ -386,17 +386,18 @@ const PetDetails = () => {
             onPress={
               isOwnPet || isAdopted || hasPendingRequest ? null : handleAdopt // Combined check for both conditions
             }
-            disabled={isOwnPet|| isAdopted || hasPendingRequest} // Disable if either condition is true
+            disabled={isOwnPet || isAdopted || hasPendingRequest} // Disable if either condition is true
           >
-           <Text style={styles.adoptButtonText}>
-  {isOwnPet
-    ? "You can't adopt your own pet"
-    : isAdopted
-    ? "Adopted"
-    : hasPendingRequest
-    ? "Adoption Request Pending"
-    : "Adopt Now"}
-</Text>
+            <Text style={styles.adoptButtonText}>
+
+              {isOwnPet
+                ? "You can't adopt your own pet"
+                : isAdopted
+                  ? `${petName} has been adopted`
+                  : hasPendingRequest
+                    ? "Adoption Request Pending"
+                    : "Adopt Now"}
+            </Text>
 
           </TouchableOpacity>
         </View>
