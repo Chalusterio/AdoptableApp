@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, ActivityIndicator, } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  ActivityIndicator,
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,14 +16,20 @@ import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker"; // Import the Picker
 import { auth, signOut, db } from "../../../firebase"; // Ensure this imports your Firebase setup
-import { getDocs, collection, query, where, updateDoc, doc, } from "firebase/firestore";
+import {
+  getDocs,
+  collection,
+  query,
+  where,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { GOOGLE_API_KEY } from "../../../config"; // Import the Google API key
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
-import Geolocation from 'react-native-geocoding';
-import MapView, { Marker } from 'react-native-maps';
-import * as Location from 'expo-location';
-
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import Geolocation from "react-native-geocoding";
+import MapView, { Marker } from "react-native-maps";
+import * as Location from "expo-location";
 
 const Profile = () => {
   const router = useRouter();
@@ -42,10 +57,8 @@ const Profile = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
-  
 
   useEffect(() => {
-
     Geolocation.init(GOOGLE_API_KEY);
 
     const fetchUserData = async () => {
@@ -113,8 +126,8 @@ const Profile = () => {
   const requestLocationPermission = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     setLocationPermission(status);
-  
-    if (status === 'granted') {
+
+    if (status === "granted") {
       const location = await Location.getCurrentPositionAsync({});
       setSelectedLocation(location.coords);
     } else {
@@ -148,44 +161,44 @@ const Profile = () => {
     }
   };
 
-// Handle the address selection and map update
-const handleAddressSelect = (address) => {
-  setSelectedAddress(address); // Store the full address
-  setEditableInfo((prevState) => ({ ...prevState, address }));
-  setShowSuggestions(false); // Close the suggestions list
+  // Handle the address selection and map update
+  const handleAddressSelect = (address) => {
+    setSelectedAddress(address); // Store the full address
+    setEditableInfo((prevState) => ({ ...prevState, address }));
+    setShowSuggestions(false); // Close the suggestions list
 
-  // Geocode the address to get latitude and longitude using Expo Location
-  Location.geocodeAsync(address)
-    .then((response) => {
-      if (response && response[0]) {
-        const { latitude, longitude } = response[0];
-        // Always update selectedLocation when a new address is selected
-        setSelectedLocation({ latitude, longitude });
-      } else {
-        alert("Could not geocode the address. Please try again.");
-      }
-    })
-    .catch((error) => {
-      console.error(error);
-      alert("Failed to get location. Please try again.");
-    });
-};
+    // Geocode the address to get latitude and longitude using Expo Location
+    Location.geocodeAsync(address)
+      .then((response) => {
+        if (response && response[0]) {
+          const { latitude, longitude } = response[0];
+          // Always update selectedLocation when a new address is selected
+          setSelectedLocation({ latitude, longitude });
+        } else {
+          alert("Could not geocode the address. Please try again.");
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        alert("Failed to get location. Please try again.");
+      });
+  };
 
-const handleSelectAddressClick = () => {
-  const address = editableInfo.address; // Get the address from the state
+  const handleSelectAddressClick = () => {
+    const address = editableInfo.address; // Get the address from the state
 
-  console.log('Address on "Select Address" button click:', address); // Debugging log
+    console.log('Address on "Select Address" button click:', address); // Debugging log
 
-  console.log('Updating selected address and geocoding it...'); // Debugging log
-  setSelectedAddress(address); // Set the selected address in state
-  
-  // Correctly update editableInfo without overwriting the object
-  setEditableInfo((prevState) => ({ ...prevState, address }));
+    console.log("Updating selected address and geocoding it..."); // Debugging log
+    setSelectedAddress(address); // Set the selected address in state
 
-  // Close the modal after selecting the address
-  setAddressModalVisible(false);
-  console.log('Modal closed after address selection.'); // Debugging log
-};
+    // Correctly update editableInfo without overwriting the object
+    setEditableInfo((prevState) => ({ ...prevState, address }));
+
+    // Close the modal after selecting the address
+    setAddressModalVisible(false);
+    console.log("Modal closed after address selection."); // Debugging log
+  };
 
   const handleSave = async () => {
     if (isSaving) return; // Prevent multiple clicks
@@ -259,14 +272,17 @@ const handleSelectAddressClick = () => {
       setIsSaving(false); // End the loading state
     }
 
-    if (!editableInfo.houseNumber || !editableInfo.streetAddress || !editableInfo.barangay || !editableInfo.city) {
+    if (
+      !editableInfo.houseNumber ||
+      !editableInfo.streetAddress ||
+      !editableInfo.barangay ||
+      !editableInfo.city
+    ) {
       setIsAddressEmpty(true); // Set state to true if address fields are empty
     } else {
       setIsAddressEmpty(false); // Clear the validation if address is filled
     }
   };
-
-
 
   const handleEditPress = () => {
     setEditableInfo(profileInfo);
@@ -323,7 +339,6 @@ const handleSelectAddressClick = () => {
     }
   };
 
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
@@ -340,11 +355,10 @@ const handleSelectAddressClick = () => {
                 profileInfo.coverPhoto
                   ? { uri: profileInfo.coverPhoto } // Use the cover photo URL from Firestore
                   : coverImage?.uri
-                    ? { uri: coverImage.uri }  // Temporary cover photo if selected
-                    : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+                  ? { uri: coverImage.uri } // Temporary cover photo if selected
+                  : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
               }
             />
-
 
             <Image
               style={styles.profileImage}
@@ -355,7 +369,6 @@ const handleSelectAddressClick = () => {
               }
             />
 
-
             <Text style={styles.profileName}>{profileInfo.name}</Text>
             <Text
               style={[
@@ -365,7 +378,6 @@ const handleSelectAddressClick = () => {
             >
               {profileInfo.bio || "No bio set"}
             </Text>
-
           </View>
 
           {/* Profile Details */}
@@ -417,7 +429,6 @@ const handleSelectAddressClick = () => {
                 <Text style={styles.modalTitle}>Edit Profile</Text>
 
                 <ScrollView contentContainerStyle={styles.scrollViewContent2}>
-
                   <View style={styles.uploadContainer}>
                     <TouchableOpacity
                       style={styles.pickCoverImage}
@@ -429,8 +440,8 @@ const handleSelectAddressClick = () => {
                           editableInfo.coverImage
                             ? { uri: editableInfo.coverImage } // Use the saved cover photo if available
                             : coverImage?.uri
-                              ? { uri: coverImage.uri }  // Temporary cover photo if selected
-                              : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+                            ? { uri: coverImage.uri } // Temporary cover photo if selected
+                            : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
                         }
                       />
                       <TouchableOpacity
@@ -451,8 +462,8 @@ const handleSelectAddressClick = () => {
                           editableInfo.image?.uri
                             ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
                             : profileInfo.profilePicture
-                              ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
-                              : require("../../assets/Profile/dp.png") // Default image if no profile picture
+                            ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
+                            : require("../../assets/Profile/dp.png") // Default image if no profile picture
                         }
                       />
                       <TouchableOpacity
@@ -519,11 +530,13 @@ const handleSelectAddressClick = () => {
                   {/* Address Field */}
                   <View style={styles.addressFieldContainer}>
                     <TextInput
-                      style={styles.addressDisplay}
+                      style={styles.input1}
                       placeholder="Address"
                       value={editableInfo.address || ""}
                       editable={false} // Make it read-only until edit is triggered
-                      onChangeText={(text) => setEditableInfo({ ...editableInfo, address: text })}
+                      onChangeText={(text) =>
+                        setEditableInfo({ ...editableInfo, address: text })
+                      }
                       mode="outlined"
                       outlineColor="transparent"
                       activeOutlineColor="#68C2FF"
@@ -612,75 +625,81 @@ const handleSelectAddressClick = () => {
                   placeholder="Search for address"
                   value={editableInfo.address}
                   onChangeText={handleAddressChange}
+                  mode="outlined"
+                  outlineColor="transparent"
+                  activeOutlineColor="#68C2FF"
                 />
 
-               {/* Display suggestions if any */}
-            {isSaving ? (
-              <ActivityIndicator size="large" color="#0000ff" />
-            ) : (
-              showSuggestions && (
-                <ScrollView
-                  style={styles.suggestionsContainer}
-                  keyboardShouldPersistTaps="handled"
-                >
-                  {addressSuggestions.map((item) => (
-                    <TouchableOpacity
-                      key={item.place_id}
-                      style={styles.suggestionItem}
-                      onPress={() => handleAddressSelect(item.description)} // Update the address and location
+                {/* Display suggestions if any */}
+                {isSaving ? (
+                  <ActivityIndicator size="large" color="#0000ff" />
+                ) : (
+                  showSuggestions && (
+                    <ScrollView
+                      style={styles.suggestionsContainer}
+                      keyboardShouldPersistTaps="handled"
                     >
-                      <Text>{item.description}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )
-            )}
+                      {addressSuggestions.map((item) => (
+                        <TouchableOpacity
+                          key={item.place_id}
+                          style={styles.suggestionItem}
+                          onPress={() => handleAddressSelect(item.description)} // Update the address and location
+                        >
+                          <Text>{item.description}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )
+                )}
 
                 {/* Map displaying pinpoint location */}
                 {selectedLocation && (
-                 <MapView
-                 style={styles.map}
-                 region={{
-                   latitude: selectedLocation ? selectedLocation.latitude : 0,
-                   longitude: selectedLocation ? selectedLocation.longitude : 0,
-                   latitudeDelta: 0.0922,
-                   longitudeDelta: 0.0421,
-                 }}
-               >
-                 {selectedLocation && (
-                   <Marker
-                     coordinate={selectedLocation}
-                     title="Your Location"
-                   />
-                 )}
-               </MapView>
-               
+                  <MapView
+                    style={styles.map}
+                    region={{
+                      latitude: selectedLocation
+                        ? selectedLocation.latitude
+                        : 0,
+                      longitude: selectedLocation
+                        ? selectedLocation.longitude
+                        : 0,
+                      latitudeDelta: 0.0922,
+                      longitudeDelta: 0.0421,
+                    }}
+                  >
+                    {selectedLocation && (
+                      <Marker
+                        coordinate={selectedLocation}
+                        title="Your Location"
+                      />
+                    )}
+                  </MapView>
                 )}
 
                 {/* Select Address Button */}
-            <TouchableOpacity
-              style={styles.selectAddressButton}
-              onPress={handleSelectAddressClick}
-            >
-              <Text style={styles.selectButtonText}>Select Address</Text>
-            </TouchableOpacity>
-
-               {/* Close Button */}
-            <TouchableOpacity
-              style={styles.closeAddressButton}
-              onPress={() => {
-                setAddressModalVisible(false); // Just close the modal, don't update the address
-                setEditableInfo.address(''); // Optionally reset new address if not confirmed
-              }}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-
-
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => {
+                      setAddressModalVisible(false); // Just close the modal, don't update the address
+                      setEditableInfo((prevState) => ({
+                        ...prevState,
+                        address: profileInfo.address, // Revert to the original address if no changes are saved
+                      }));
+                    }}
+                  >
+                    <Text style={styles.buttonText}>Close</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={handleSelectAddressClick}
+                  >
+                    <Text style={styles.buttonText}>Select Address</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </Modal>
-
 
           {/* Edit Confirmation Modal */}
           <Modal
@@ -750,7 +769,7 @@ const styles = StyleSheet.create({
   editAddressButton: {
     position: "absolute",
     top: 20,
-    right: 20,
+    right: 10,
     borderRadius: 20,
     padding: 8,
     zIndex: 1,
@@ -783,6 +802,7 @@ const styles = StyleSheet.create({
     fontFamily: "Lato",
     fontSize: 16,
     marginLeft: 20,
+    paddingHorizontal: 20,
   },
   horizontalLine: {
     width: "100%",
@@ -831,6 +851,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 5,
     backgroundColor: "#F5F5F5",
+    width: "100%", // Ensures the input takes up full width
+  },
+  input1: {
+    marginTop: 10,
+    marginBottom: 5,
+    backgroundColor: "#F5F5F5",
+    width: "100%", // Ensures the input takes up full width
+    paddingRight: 40,
   },
   input2: {
     marginTop: 10,
@@ -871,24 +899,24 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   addressInput: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    marginBottom: 15,
-    borderRadius: 5,
+    marginTop: 10,
+    marginBottom: 5,
+    marginHorizontal: 20,
+    backgroundColor: "#F5F5F5",
   },
   addressDisplay: {
-    flex: 1,                          // Take up remaining space
-    fontSize: 18,                     // Increase font size for better readability
-    paddingHorizontal: 12,            // Increase padding on left and right
-    paddingVertical: 10,              // Increase vertical padding for larger input
-    borderRadius: 8,                  // Rounded corners
-    backgroundColor: '#f0f0f0',       // Light background color for input
-    marginRight: 10,                  // Space between input and edit button
-    height: 50,                       // Adjust height for a bigger input field
+    flex: 1, // Take up remaining space
+    fontSize: 18, // Increase font size for better readability
+    paddingHorizontal: 12, // Increase padding on left and right
+    paddingVertical: 10, // Increase vertical padding for larger input
+    borderRadius: 8, // Rounded corners
+    backgroundColor: "#f0f0f0", // Light background color for input
+    marginRight: 10, // Space between input and edit button
+    height: 50, // Adjust height for a bigger input field
   },
   suggestionsContainer: {
     maxHeight: 200,
+    paddingHorizontal: 20,
   },
   suggestionItem: {
     padding: 10,
@@ -896,32 +924,30 @@ const styles = StyleSheet.create({
     borderBottomColor: "#ddd",
   },
   selectAddressButton: {
-    backgroundColor: '#0047AB', // Blue background for save button
-    width: '100%',              // Full width button
-    paddingVertical: 15,        // Vertical padding for the button
-    borderRadius: 8,            // Rounded corners
-    marginBottom: 10,           // Space below the save button
+    backgroundColor: "#0047AB", // Blue background for save button
+    width: "100%", // Full width button
+    paddingVertical: 15, // Vertical padding for the button
+    borderRadius: 8, // Rounded corners
+    marginVertical: 20,
+    alignSelf: "center",
   },
-  // Save button text
   selectButtonText: {
-    color: '#fff',              // White text
-    textAlign: 'center',        // Center the text inside the button
-    fontSize: 16,               // Text size for the save button
-    fontWeight: 'bold',         // Bold text
+    color: "#fff", // White text
+    textAlign: "center", // Center the text inside the button
+    fontSize: 16, // Text size for the save button
+    fontWeight: "bold", // Bold text
   },
-  // Close (Cancel) button styles
   closeAddressButton: {
-    backgroundColor: '#ccc',   // Light gray background for cancel button
-    width: '100%',              // Full width button
-    paddingVertical: 15,        // Vertical padding for the button
-    borderRadius: 8,            // Rounded corners
+    backgroundColor: "#ccc", // Light gray background for cancel button
+    width: "100%", // Full width button
+    paddingVertical: 15, // Vertical padding for the button
+    borderRadius: 8, // Rounded corners
   },
-  // Close button text
   closeButtonText: {
-    color: '#0047AB',           // Blue text for cancel button
-    textAlign: 'center',        // Center the text inside the button
-    fontSize: 16,               // Text size for the cancel button
-    fontWeight: 'bold',         // Bold text
+    color: "#0047AB", // Blue text for cancel button
+    textAlign: "center", // Center the text inside the button
+    fontSize: 16, // Text size for the cancel button
+    fontWeight: "bold", // Bold text
   },
   buttonText: {
     color: "#fff",
@@ -975,10 +1001,10 @@ const styles = StyleSheet.create({
   },
   // Address Section styles
   addressFieldContainer: {
-    flexDirection: 'row',             // Align text and button horizontally
-    justifyContent: 'space-between',  // Ensure there’s space between text and button
-    alignItems: 'center',             // Vertically center the text and button
-    marginVertical: 10,
+    flexDirection: "row", // Align text and button horizontally
+    justifyContent: "space-between", // Ensure space between text and button
+    alignItems: "center", // Vertically center the text and button
+    width: "100%", // Make sure the container is the same width as other inputs
   },
   profileImageContainer: {
     width: 244,
@@ -1033,10 +1059,11 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   map: {
-    width: '100%',
+    width: "90%",
     height: 200,
-    marginTop: 10,
+    marginTop: 20,
     borderRadius: 10,
+    alignSelf: "center",
   },
   bioText: {
     fontSize: 16,
@@ -1047,8 +1074,8 @@ const styles = StyleSheet.create({
     marginBottom: -5,
   },
   noBioText: {
-    color: '#777',
-    textAlign: 'center',
+    color: "#777",
+    textAlign: "center",
   },
   errorText: {
     color: "red",
@@ -1063,7 +1090,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: -20, // Space below cover photo
   },
-
 });
 
 export default Profile;
