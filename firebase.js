@@ -31,7 +31,6 @@ export const persistSession = async (user) => {
   }
 };
 
-
 // Function to retrieve session data
 export const getSession = async () => {
   try {
@@ -53,24 +52,28 @@ export const clearSession = async () => {
   }
 };
 
-// Function to register a user and save their data in Firestore
-export const registerUser = async (email, password, name, contactNumber) => {
+// Function to register a user and save their data in Firestore, now including role
+export const registerUser = async (email, password, name, contactNumber, role) => {
   try {
+    // Register user with Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Save the user's additional data in Firestore
+    // Save additional user data in Firestore
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, {
       name,
       email,
       contactNumber,
+      role,  // Add the role field
       createdAt: new Date(),
     });
 
+    // Persist session in AsyncStorage
     await persistSession(user);
 
     console.log("User registered and data saved to Firestore");
+    return user;  // Return the user object
   } catch (error) {
     console.error("Error registering user: ", error.message);
     throw error;
