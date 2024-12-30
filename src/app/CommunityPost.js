@@ -1,11 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Modal, TextInput, Switch, ImageBackground } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Modal,
+  Switch,
+  SafeAreaView,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Surface, TextInput } from "react-native-paper";
 import SideBar from "../components/SideBar";
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from "@react-navigation/native";
 import { db, auth } from "../../firebase";
-import { doc, getDoc, collection, getDocs, addDoc, onSnapshot} from "firebase/firestore";
-import { Calendar } from 'react-native-calendars';
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  addDoc,
+  onSnapshot,
+} from "firebase/firestore";
+import { Calendar } from "react-native-calendars";
 
 const CommunityPost = () => {
   const navigation = useNavigation();
@@ -24,7 +42,6 @@ const CommunityPost = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false); // state for calendar visibility
 
-
   useEffect(() => {
     const fetchUserRoleAndPosts = async () => {
       if (auth.currentUser) {
@@ -41,7 +58,7 @@ const CommunityPost = () => {
           Alert.alert("Error", "Could not fetch user role.");
         }
       }
-  
+
       // Real-time listener for Community_post collection
       const postsRef = collection(db, "Community_post");
       const unsubscribe = onSnapshot(postsRef, (querySnapshot) => {
@@ -51,52 +68,55 @@ const CommunityPost = () => {
         });
         setPosts(fetchedPosts);
       });
-  
+
       return unsubscribe; // Return the unsubscribe function
     };
-  
+
     // Call fetchUserRoleAndPosts and capture unsubscribe
     const unsubscribe = fetchUserRoleAndPosts();
-  
+
     return () => {
       if (typeof unsubscribe === "function") {
         unsubscribe(); // Clean up the onSnapshot listener on unmount
       }
     };
   }, []);
-  
-
 
   const handlePostSubmit = async () => {
     if (postContent.title.trim() === "" || postContent.what.trim() === "") {
       Alert.alert("Error", "Please fill out the title and description.");
       return;
     }
-  
+
     try {
       const user = auth.currentUser; // Get the current authenticated user
       const userRef = doc(db, "users", user.uid); // Reference to the Firestore document
       const userDoc = await getDoc(userRef);
-  
+
       let userName = user.displayName || "Anonymous"; // Default to "Anonymous"
       if (userDoc.exists()) {
         userName = userDoc.data().name || userName; // Prefer Firestore name if available
       }
-  
+
       const userEmail = user.email; // Save email regardless
-      const profilePic = userDoc.exists() ? userDoc.data().profilePic || "" : "";
-  
+      const profilePic = userDoc.exists()
+        ? userDoc.data().profilePic || ""
+        : "";
+
       const postWithUserInfo = {
         ...postContent,
         postedBy: userName, // Save the user's name
-        email: userEmail,   // Save the email
-        profilePic,         // Save the profile picture URL
+        email: userEmail, // Save the email
+        profilePic, // Save the profile picture URL
         timestamp: new Date().toISOString(), // Optionally, include a timestamp
       };
-  
-      const docRef = await addDoc(collection(db, "Community_post"), postWithUserInfo);
+
+      const docRef = await addDoc(
+        collection(db, "Community_post"),
+        postWithUserInfo
+      );
       console.log("Post written with ID: ", docRef.id);
-  
+
       setPosts([postWithUserInfo, ...posts]);
       setPostContent({
         title: "",
@@ -113,10 +133,6 @@ const CommunityPost = () => {
       Alert.alert("Error", "Something went wrong. Please try again.");
     }
   };
-  
-  
-  
-  
 
   const sortedPosts = posts.sort((a, b) => {
     if (a.urgent !== b.urgent) return b.urgent - a.urgent;
@@ -141,57 +157,104 @@ const CommunityPost = () => {
   };
 
   return (
-    <ImageBackground source={require("../assets/post/postbg.png")} style={styles.backgroundImage}>
-      <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
+    <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
+      <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
           {userRole === "organization" && (
-            <TouchableOpacity
-              style={styles.profileButton}
-              onPress={() => navigateTo("PostEdit")}
-            >
-              <MaterialCommunityIcons name="pencil" size={30} color="white" />
-            </TouchableOpacity>
+            <Surface style={styles.titleContainer} elevation={3}>
+              <Text style={styles.title}>Curious About Community Posts?</Text>
+              <Text style={styles.instruction}>
+                Stay tuned for exciting updates!
+              </Text>
+              <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => navigateTo("PostEdit")}
+              >
+                <MaterialCommunityIcons name="pencil" size={24} color="white" />
+              </TouchableOpacity>
+            </Surface>
           )}
 
           {userRole !== "organization" && (
-            <Text style={[styles.messageText, { fontFamily: 'Lilita', textAlign: 'center' }]}>
-              Curious about the latest community posts? Stay tuned for exciting updates!
-            </Text>
+            <Surface style={styles.titleContainer} elevation={3}>
+              <Text style={styles.title}>Curious About Community Posts?</Text>
+              <Text style={styles.instruction}>
+                Stay tuned for exciting updates!
+              </Text>
+            </Surface>
           )}
 
           {userRole === "organization" && (
-            <TouchableOpacity
-              style={styles.rectangularButton}
-              onPress={() => setModalVisible(true)}  
-            >
-              <Text style={styles.buttonText}>Share something with us...</Text>
-            </TouchableOpacity>
+            <View style={styles.communityPostContainer1}>
+              <TouchableOpacity
+                style={styles.rectangularButton}
+                onPress={() => setModalVisible(true)}
+              >
+                <Text style={styles.buttonText}>Post</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           <ScrollView style={styles.postsContainer}>
-            {sortedPosts.map((post, index) => (
-              <TouchableOpacity key={index} onPress={() => openPostDetails(post)}>
-                <View style={styles.post}>
-                  <View style={styles.postImageContainer}>
-                    {post.profilePic ? (
-                      <Image source={{ uri: post.profilePic }} style={styles.profileImage} />
-                    ) : (
-                      <MaterialCommunityIcons name="account-circle" size={40} color="#ccc" />
-                    )}
-                  </View>
-                  <View style={styles.postDetails}>
-                    <Text style={styles.postTitle}>{post.title}</Text>
-                    <Text style={styles.postSubtitle}>
-                      {post.when ? `📅 ${post.when}` : "No date specified"}
-                    </Text>
-                    {post.urgent && <Text style={styles.urgentText}>🔥 Urgent</Text>}
-                    <Text style={styles.postUsername}>Posted by: {post.postedBy}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+            <View style={styles.communityPostContainer}>
+              {sortedPosts.map((post, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => openPostDetails(post)}
+                >
+                  <View style={styles.post}>
+                    <View style={styles.postImageContainer}>
+                      {post.profilePic ? (
+                        <Image
+                          source={{ uri: post.profilePic }}
+                          style={styles.profileImage}
+                        />
+                      ) : (
+                        <MaterialCommunityIcons
+                          name="account-circle"
+                          size={40}
+                          color="#ccc"
+                        />
+                      )}
+                    </View>
 
+                    <View style={styles.postDetails}>
+                      <Text style={styles.postTitle}>{post.title}</Text>
+
+                      <View style={styles.iconTextRowContainer}>
+                        <MaterialCommunityIcons
+                          name="calendar"
+                          size={16}
+                          color="#777"
+                        />
+                        <Text style={styles.postSubtitle}>
+                          {post.when ? `${post.when}` : "No date specified"}
+                        </Text>
+                      </View>
+
+                      {post.urgent && (
+                        <View style={styles.iconTextRowContainer}>
+                          <MaterialCommunityIcons
+                            name="clock-fast"
+                            size={16}
+                            color="red"
+                          />
+                          <Text style={styles.urgentText}>Urgent</Text>
+                        </View>
+                      )}
+                      <Text style={styles.postUsernameBy}>
+                        {"Posted by: "}{" "}
+                        <Text style={styles.postUsername}>
+                          {" "}
+                          {post.postedBy}
+                        </Text>
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
 
           {/* Modal for creating a new post */}
           <Modal
@@ -211,7 +274,13 @@ const CommunityPost = () => {
                       style={styles.textInput}
                       placeholder="Enter title"
                       value={postContent.title}
-                      onChangeText={(text) => setPostContent({ ...postContent, title: text })}
+                      onChangeText={(text) =>
+                        setPostContent({ ...postContent, title: text })
+                      }
+                      mode="outlined"
+                      outlineColor="transparent"
+                      activeOutlineColor="#68C2FF"
+                      autoCapitalize="sentences"
                     />
                   </View>
 
@@ -221,7 +290,13 @@ const CommunityPost = () => {
                       style={styles.textInput}
                       placeholder="Who can join or avail?"
                       value={postContent.who}
-                      onChangeText={(text) => setPostContent({ ...postContent, who: text })}
+                      onChangeText={(text) =>
+                        setPostContent({ ...postContent, who: text })
+                      }
+                      mode="outlined"
+                      outlineColor="transparent"
+                      activeOutlineColor="#68C2FF"
+                      autoCapitalize="sentences"
                     />
                   </View>
 
@@ -231,14 +306,25 @@ const CommunityPost = () => {
                       style={styles.textInput}
                       placeholder="Describe what the post is about"
                       value={postContent.what}
-                      onChangeText={(text) => setPostContent({ ...postContent, what: text })}
+                      onChangeText={(text) =>
+                        setPostContent({ ...postContent, what: text })
+                      }
+                      mode="outlined"
+                      outlineColor="transparent"
+                      activeOutlineColor="#68C2FF"
+                      autoCapitalize="sentences"
                     />
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Text style={styles.label}>When:</Text>
-                    <TouchableOpacity onPress={() => setCalendarVisible(true)} style={styles.dateButton}>
-                      <Text>{postContent.when ? postContent.when : "Select Date"}</Text>
+                    <Text style={styles.label1}>When:</Text>
+                    <TouchableOpacity
+                      onPress={() => setCalendarVisible(true)}
+                      style={styles.dateButton}
+                    >
+                      <Text style={styles.dateText}>
+                        {postContent.when ? postContent.when : "Select Date"}
+                      </Text>
                     </TouchableOpacity>
                   </View>
 
@@ -246,7 +332,12 @@ const CommunityPost = () => {
                     <View style={styles.calendarContainer}>
                       <Calendar
                         onDayPress={handleDateSelect}
-                        markedDates={{ [postContent.when]: { selected: true, selectedColor: '#68C2FF' } }}
+                        markedDates={{
+                          [postContent.when]: {
+                            selected: true,
+                            selectedColor: "#68C2FF",
+                          },
+                        }}
                       />
                     </View>
                   )}
@@ -257,23 +348,38 @@ const CommunityPost = () => {
                       style={styles.textInput}
                       placeholder="Where is it happening?"
                       value={postContent.where}
-                      onChangeText={(text) => setPostContent({ ...postContent, where: text })}
+                      onChangeText={(text) =>
+                        setPostContent({ ...postContent, where: text })
+                      }
+                      mode="outlined"
+                      outlineColor="transparent"
+                      activeOutlineColor="#68C2FF"
+                      autoCapitalize="sentences"
                     />
                   </View>
 
-                  <View style={styles.inputContainer}>
+                  <View style={styles.inputContainer1}>
                     <Text style={styles.label}>Urgent:</Text>
                     <Switch
                       value={postContent.urgent}
-                      onValueChange={(value) => setPostContent({ ...postContent, urgent: value })}
+                      onValueChange={(value) =>
+                        setPostContent({ ...postContent, urgent: value })
+                      }
+                      style={styles.urgentSwitch}
                     />
                   </View>
 
                   <View style={styles.buttonRow}>
-                    <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={() => setModalVisible(false)}
+                    >
                       <Text style={styles.buttonText}>Cancel</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.postButton} onPress={handlePostSubmit}>
+                    <TouchableOpacity
+                      style={styles.postButton}
+                      onPress={handlePostSubmit}
+                    >
                       <Text style={styles.buttonText}>Post</Text>
                     </TouchableOpacity>
                   </View>
@@ -282,41 +388,77 @@ const CommunityPost = () => {
             </View>
           </Modal>
         </View>
-      </SideBar>
-    </ImageBackground>
+      </SafeAreaView>
+    </SideBar>
   );
 };
 
-
 const styles = StyleSheet.create({
-  // other styles...
-  calendarContainer: {
-    backgroundColor: "white",  
-    borderRadius: 8,
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5, 
-    padding: 10,
-    marginTop: 10,
-  },
-
-  container: {
+  safeArea: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "transparent",
+    backgroundColor: "#fff",
   },
   backgroundImage: {
     flex: 1,
     resizeMode: "cover",
     justifyContent: "center",
   },
+  container: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
   profileButton: {
-    alignSelf: "flex-end",
+    position: "absolute",
+    top: 30,
+    right: 20,
+    backgroundColor: "#444444",
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 1,
+    backgroundColor: "#68C2FF",
+  },
+  titleContainer: {
+    width: "100%",
+    height: 95,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "white",
+    borderBottomEndRadius: 30,
+    borderBottomLeftRadius: 30,
+  },
+  title: {
+    fontFamily: "Lilita",
+    fontSize: 24,
+    color: "#68C2FF",
+  },
+  instruction: {
+    fontFamily: "Lato",
+    fontSize: 16,
+    color: "#444444",
+  },
+  communityPostContainer1: {
+    paddingHorizontal: 20,
+  },
+  rectangularButton: {
+    backgroundColor: "#68C2FF",
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 25,
+  },
+  buttonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
   },
   postsContainer: {
-    marginTop: 20,
+    marginTop: 0,
+  },
+  communityPostContainer: {
+    flex: 1,
+    padding: 20,
   },
   post: {
     flexDirection: "row",
@@ -324,29 +466,73 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 10,
     borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     elevation: 5,
   },
   postImageContainer: {
-    marginRight: 10,
+    marginRight: 20,
+    marginLeft: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   postDetails: {
     flex: 1,
   },
   postTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontFamily: "LatoBold",
+    marginBottom: 5,
+  },
+  iconTextRowContainer: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 5,
   },
   postSubtitle: {
     fontSize: 14,
-    color: "#888",
+    color: "#777",
+    fontFamily: "Lato",
+    textAlign: "center",
+    alignSelf: "center",
   },
   urgentText: {
+    fontSize: 14,
     color: "red",
-    fontSize: 12,
+    fontFamily: "Lato",
+    textAlign: "center",
+    alignSelf: "center",
+  },
+  postUsernameBy: {
+    fontSize: 16,
+    color: "black",
+    fontFamily: "LatoBold",
+    marginBottom: 5,
+  },
+  postUsername: {
+    fontSize: 16,
+    color: "#777",
+    fontFamily: "Lato",
+    marginBottom: 5,
+  },
+  calendarContainer: {
+    width: "95%",
+    backgroundColor: "white",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 10,
+    alignSelf: 'center',
   },
   toggleCalendarButton: {
     backgroundColor: "#68C2FF",
@@ -357,81 +543,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "transparent",
-  },
-  backgroundImage: {
-    flex: 1,
-    resizeMode: "cover",
-    justifyContent: "center",
-  },
-  profileButton: {
-    position: "absolute",
-    top: 20,
-    right: 20,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#68C2FF",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1,
-  },
-  rectangularButton: {
-    backgroundColor: "#68C2FF",
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-    marginTop: 100,
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
   messageText: {
     fontSize: 20,
     color: "#333",
     textAlign: "center",
     marginVertical: 20,
     color: "#68C2FF",
-  },
-  postsContainer: {
-    marginTop: 30,
-  },
-  post: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    paddingBottom: 15,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
-    borderRadius: 8,
-  },
-  postImageContainer: {
-    marginRight: 20,
-  },
-  postDetails: {
-    flex: 1,
-  },
-  postTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  postSubtitle: {
-    fontSize: 14,
-    color: "#777",
-  },
-  urgentText: {
-    color: "red",
-    fontWeight: "bold",
   },
   modalOverlay: {
     flex: 1,
@@ -447,30 +564,51 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontFamily: "LatoBold",
     textAlign: "center",
     marginBottom: 20,
   },
   scrollView: {
-    maxHeight: 500,  // Adjust the max height of scrollable content
+    maxHeight: 700, // Adjust the max height of scrollable content
   },
   inputContainer: {
     marginBottom: 15,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontFamily: "Lato",
+    fontSize: 18,
+  },
+  label1: {
+    fontFamily: "Lato",
+    fontSize: 18,
+    marginBottom: 5,
+  },
+  inputContainer1: {
+    marginTop: -20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
+  urgentSwitch: {
+    alignItems: "center",
+    justifyContent: 'center',
+    marginRight: -10,
+    marginTop: 5,
   },
   textInput: {
-    height: 40,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    paddingLeft: 10,
-    borderRadius: 5,
+    marginTop: 10,
+    marginBottom: 5,
+    backgroundColor: "#F5F5F5",
+  },
+  dateText: {
+    fontFamily: "Lato",
+    fontSize: 16,
+    color: '#525252',
   },
   dateButton: {
-    backgroundColor: "#f1f1f1",
-    paddingVertical: 10,
+    backgroundColor: "#F5F5F5",
+    paddingVertical: 20,
     paddingHorizontal: 15,
     borderRadius: 5,
     marginTop: 5,
@@ -488,7 +626,7 @@ const styles = StyleSheet.create({
     alignItems: "center", // Center text horizontally
     justifyContent: "center", // Center text vertically
   },
-  
+
   postButton: {
     backgroundColor: "#68C2FF",
     paddingVertical: 15, // Increase vertical padding
@@ -498,13 +636,6 @@ const styles = StyleSheet.create({
     alignItems: "center", // Center text horizontally
     justifyContent: "center", // Center text vertically
   },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },  
-  
 });
 
 export default CommunityPost;
