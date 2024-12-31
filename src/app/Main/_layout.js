@@ -4,20 +4,27 @@ import TabBar from "../../components/TabBar";
 import { useNotifications } from "../../context/NotificationContext";
 
 const Main = () => {
-  const { hasUnreadNotifications, role, markNotificationsAsRead, userEmail } = useNotifications();  // Now you get markNotificationsAsRead
+  const { hasUnreadNotifications, roles, markNotificationsAsRead, userEmail } = useNotifications();  
 
-  // Pass the appropriate notification state to TabBar based on the role
-  const hasUnreadNotificationsForRole = role === "adopter" ? hasUnreadNotifications : role === "lister" ? hasUnreadNotifications : false;
+  // Check the role of the user, and assign the appropriate unread notification state
+  const isAdopter = roles.includes("adopter");
+  const isLister = roles.includes("lister");
+
+  // Determine if there are unread notifications for the user based on their role
+  const hasUnreadNotificationsForRole = 
+    (isAdopter && hasUnreadNotifications) || 
+    (isLister && hasUnreadNotifications) || 
+    false;
 
   return (
     <Tabs
       tabBar={(props) => (
         <TabBar
           {...props}
-          hasUnreadNotifications={hasUnreadNotificationsForRole}
-          markNotificationsAsRead={markNotificationsAsRead}  // Passing the function
-          userEmail={userEmail}  // Pass userEmail
-          role={role}  // Pass role
+          hasUnreadNotifications={hasUnreadNotificationsForRole} // Passing correct unread notification status
+          markNotificationsAsRead={markNotificationsAsRead}  // Passing function to mark notifications as read
+          userEmail={userEmail}  // Passing user email
+          roles={roles}  // Passing roles (adopter, lister)
         />
       )}
     >

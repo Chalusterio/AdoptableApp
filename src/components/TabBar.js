@@ -3,9 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 
-const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNotificationsAsRead, userEmail, role }) => {
+const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNotificationsAsRead, userEmail, roles }) => {
   const activeColor = '#68C2FF'; // Color for active tab
   const inactiveColor = '#FFF'; // Color for inactive tab
+  
   console.log("Has unread notifications:", hasUnreadNotifications); // Log here
 
   const [fontsLoaded] = useFonts({
@@ -45,10 +46,15 @@ const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNo
 
         // Define onPress handler
         const onPress = () => {
+          console.log(`Tab pressed: ${route.name}`); // Log which tab was pressed
           // If the Notification tab is clicked and there are unread notifications, mark them as read
+     
           if (route.name === "Notification" && hasUnreadNotifications) {
-            markNotificationsAsRead(userEmail, role);
+            console.log("Unread notifications detected, calling markNotificationsAsRead"); // Log when marking notifications as read
+            markNotificationsAsRead(userEmail, roles);
+            console.log("Notifications marked as read. Triggered by user:", userEmail);
           }
+          
 
           // Emit tab press event
           const event = navigation.emit({
@@ -75,7 +81,7 @@ const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNo
                 color={isFocused ? activeColor : inactiveColor}
               />
               {/* Show badge only when there are notifications */}
-              {route.name === "Notification" && hasUnreadNotifications && (
+              {(route.name === "Notification" && hasUnreadNotifications) && (
                 <View style={styles.badge} />
               )}
               {isFocused && route.name !== 'List' && (

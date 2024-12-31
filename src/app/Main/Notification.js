@@ -49,6 +49,7 @@ const Notification = () => {
     );
 
     const unsubscribe = onSnapshot(petRequestsQuery, async (querySnapshot) => {
+      const newNotificationsMap = new Map(notificationsMap);
       querySnapshot.forEach((doc) => {
         const petRequest = doc.data();
 
@@ -105,11 +106,9 @@ const Notification = () => {
         }
 
         const notificationId = `${doc.id}-${petRequest.status}-${timestamp}`;
-        // Skip if notification already exists
-        if (newNotificationsMap.has(notificationId)) {
-          return; // Skip duplicate notification
-        }
 
+      // Add to the map to prevent duplicates
+      newNotificationsMap.set(notificationId, true);
 
         // Handle the Pending request notification
         if (
@@ -143,8 +142,7 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-             // Ensure notifications are updated after processing all pet requests
-        setNotifications([...notificationsList]); 
+
         }
 
         // Handle Accepted/Rejected notifications
@@ -177,8 +175,7 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-             // Ensure notifications are updated after processing all pet requests
-        setNotifications([...notificationsList]); 
+
         }
 
         // Handle Accepted notifications for Adopters
@@ -216,8 +213,7 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-             // Ensure notifications are updated after processing all pet requests
-        setNotifications([...notificationsList]); 
+
         }
 
 
@@ -254,8 +250,7 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-             // Ensure notifications are updated after processing all pet requests
-        setNotifications([...notificationsList]); 
+
         }
 
         // Handle Cancelled notifications for Adopters
@@ -280,8 +275,7 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-             // Ensure notifications are updated after processing all pet requests
-        setNotifications([...notificationsList]); 
+
         }
 
         // Handle Cancelled notifications for Listers
@@ -308,12 +302,11 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-             // Ensure notifications are updated after processing all pet requests
-        setNotifications([...notificationsList]); 
         }
-// Sort notifications after adding to the list
-notificationsList.sort((a, b) => b.timestamp - a.timestamp); // Sort by timestamp, latest first
+        // Sort notifications after adding to the list
+        notificationsList.sort((a, b) => b.timestamp - a.timestamp); // Sort by timestamp, latest first
         setNotificationsMap(newNotificationsMap);
+        setNotifications([...notificationsList]); // Update the notifications state
       });
 
       // After handling pet requests, fetch finalized adoptions
@@ -389,8 +382,8 @@ notificationsList.sort((a, b) => b.timestamp - a.timestamp); // Sort by timestam
             };
             // Add notification to the list
             notificationsList.push(notification);
-   // Ensure notifications are updated after processing all pet requests
-   setNotifications([...notificationsList]); 
+            // Ensure notifications are updated after processing all pet requests
+            setNotifications([...notificationsList]);
           }
 
         };
@@ -398,30 +391,34 @@ notificationsList.sort((a, b) => b.timestamp - a.timestamp); // Sort by timestam
         try {
           const adopterSnapshot = await getDocs(finalizedAdoptionsQuery);
           const listerSnapshot = await getDocs(finalizedListerQuery);
-        
+
           // Create notifications for adopters and listers
           adopterSnapshot.forEach((doc) => createNotification(doc, true));
           listerSnapshot.forEach((doc) => createNotification(doc, false));
-        
+
           // Sort notificationsList by timestamp (latest first)
           notificationsList.sort((a, b) => b.timestamp - a.timestamp);
-        
+
           // Update state with sorted notifications
           setNotifications([...notificationsList]);
+          setNotificationsMap(newNotificationsMap);
         } catch (error) {
           console.error("Error fetching finalized adoptions:", error);
-        }        
+        }
       };
 
       fetchFinalizedAdoptions();
 
-      
+
     });
 
     return () => unsubscribe();
-  }, [currentUser, users, router]);
+  }, [currentUser, users, router, notificationsMap]);
 
+  // Optimized fetchUserDetails with check to prevent duplicate fetches
   const fetchUserDetails = async (email) => {
+    if (users[email]) return users[email]; // Return cached user details if already fetched
+
     try {
       const usersQuery = query(
         collection(db, "users"),
@@ -430,10 +427,15 @@ notificationsList.sort((a, b) => b.timestamp - a.timestamp); // Sort by timestam
       const querySnapshot = await getDocs(usersQuery);
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0].data();
-        return {
+        const userDetails = {
           name: userDoc.name,
           profilePicture: userDoc.profilePicture || null,
         };
+        setUsers((prev) => ({
+          ...prev,
+          [email]: userDetails,
+        }));
+        return userDetails;
       } else {
         console.log("User not found for email:", email);
         return null;
@@ -443,8 +445,6 @@ notificationsList.sort((a, b) => b.timestamp - a.timestamp); // Sort by timestam
       return null;
     }
   };
-
-
   const deleteNotification = (id) => {
     setNotifications((prevNotifications) =>
       prevNotifications.filter((notif) => notif.id !== id)
