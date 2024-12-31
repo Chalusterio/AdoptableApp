@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 
-const TabBar = ({ state, descriptors, navigation, notificationCount }) => {
+const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNotificationsAsRead, userEmail, roles }) => {
   const activeColor = '#68C2FF'; // Color for active tab
   const inactiveColor = '#FFF'; // Color for inactive tab
+  
+  console.log("Has unread notifications:", hasUnreadNotifications); // Log here
 
   const [fontsLoaded] = useFonts({
     Lilita: require('../assets/fonts/LilitaOne-Regular.ttf'), // Custom font
@@ -23,6 +25,10 @@ const TabBar = ({ state, descriptors, navigation, notificationCount }) => {
     Profile: 'account',
   };
 
+  useEffect(() => {
+    console.log("Notification state changed:", hasUnreadNotifications);
+  }, [hasUnreadNotifications]);
+
   return (
     <View style={styles.tabbar}>
       {state.routes.map((route, index) => {
@@ -38,21 +44,33 @@ const TabBar = ({ state, descriptors, navigation, notificationCount }) => {
 
         const isFocused = state.index === index;
 
+        // Define onPress handler
         const onPress = () => {
+          console.log(`Tab pressed: ${route.name}`); // Log which tab was pressed
+          // If the Notification tab is clicked and there are unread notifications, mark them as read
+     
+          if (route.name === "Notification" && hasUnreadNotifications) {
+            console.log("Unread notifications detected, calling markNotificationsAsRead"); // Log when marking notifications as read
+            markNotificationsAsRead(userEmail, roles);
+            console.log("Notifications marked as read. Triggered by user:", userEmail);
+          }
+          
+
+          // Emit tab press event
           const event = navigation.emit({
             type: 'tabPress',
             target: route.key,
             canPreventDefault: true,
           });
 
+          // If the event isn't prevented, navigate to the route
           if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(route.name, route.params);
           }
         };
-
         return (
           <TouchableOpacity
-            key={route.name}
+          key={`${route.name}-${route.key}`}
             onPress={onPress}
             style={[styles.tabbarItem, isFocused && styles.tabbarItemActive]}
           >
@@ -63,10 +81,8 @@ const TabBar = ({ state, descriptors, navigation, notificationCount }) => {
                 color={isFocused ? activeColor : inactiveColor}
               />
               {/* Show badge only when there are notifications */}
-              {route.name === 'Notification' && notificationCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{notificationCount}</Text>
-                </View>
+              {(route.name === "Notification" && hasUnreadNotifications) && (
+                <View style={styles.badge} />
               )}
               {isFocused && route.name !== 'List' && (
                 <Text
@@ -121,12 +137,12 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -3,
+    right: -2,
     backgroundColor: '#FF0000',
     borderRadius: 10,
-    width: 20,
-    height: 20,
+    width: 15,
+    height: 15,
     justifyContent: 'center',
     alignItems: 'center',
   },

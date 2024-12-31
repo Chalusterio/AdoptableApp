@@ -1,413 +1,181 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
-import { db, auth } from "../../firebase";
-import {
-  collection,
-  query,
-  getDocs,
-  where,
-  onSnapshot,
-  setDoc,
-  doc,
-} from "firebase/firestore";
-import { useRouter } from "expo-router";
-import moment from "moment";
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { collection, query, where, onSnapshot, getDocs, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase"; // Firebase setup import
+import { auth } from "../../firebase"; // Assuming you have auth setup
+import { onAuthStateChanged } from "firebase/auth";
 
-// Create a context for notifications
 const NotificationContext = createContext();
 
-// Custom hook to use the NotificationContext
-export const useNotifications = () => {
-  return useContext(NotificationContext);
-};
-
-const NotificationProvider = ({ children }) => {
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [users, setUsers] = useState({});
-  const [currentUser, setCurrentUser] = useState(null);
-  const router = useRouter();
+export const NotificationProvider = ({ children }) => {
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false); // General unread notifications
+  const [roles, setRoles] = useState([]); // Roles: ['lister', 'adopter']
+  const [userEmail, setUserEmail] = useState(null); // Track user email
 
   useEffect(() => {
-    const user = auth.currentUser;
-    setCurrentUser(user);
-  }, []);
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserEmail(user.email); // Save user email
+        console.log("User logged in:", user.email);
 
-  useEffect(() => {
-    if (!currentUser) return;
+        let tempRoles = [];
+        let adopterUnread = false; // Flag for adopter unread
+        let listerUnread = false;  // Flag for lister unread
 
-    const petRequestsQuery = query(
-      collection(db, "pet_request"),
-      where("status", "in", ["Pending", "Accepted", "Rejected", "Cancelled"])
-    );
+        const qAdopter = query(
+          collection(db, "pet_request"),
+          where("adopterEmail", "==", user.email) // Check if user is adopter
+        );
 
-    const finalizedAdoptionsQuery = query(
-      collection(db, "finalized_adoption"),
-      where("petRequestDetails.adopterEmail", "==", currentUser.email)
-    );
+        const qLister = query(
+          collection(db, "pet_request"),
+          where("listedBy", "==", user.email) // Check if user is lister
+        );
 
-    const finalizedListerQuery = query(
-      collection(db, "finalized_adoption"),
-      where("petRequestDetails.listedBy", "==", currentUser.email)
-    );
+        const unsubscribeAdopter = onSnapshot(
+          qAdopter,
+          (snapshot) => {
+            if (!snapshot.empty) {
+              if (!tempRoles.includes("adopter")) tempRoles.push("adopter");
+              snapshot.docs.forEach((doc) => {
+                if (!doc.data().adopterNotificationRead) {
+                  adopterUnread = true; // Flag if there's an unread notification
+                }
+              });
+            }
+            // Set state for roles and unread notification status
+            setRoles([...tempRoles]);
+            setHasUnreadNotifications(adopterUnread || listerUnread); // Combine both flags
+          },
+          (error) => {
+            console.error("Error checking adopter notifications:", error);
+          }
+        );
 
-    const unsubscribe = onSnapshot(petRequestsQuery, async (querySnapshot) => {
-      const notificationsList = [];
-      const userEmailsToFetch = new Set();
+        const unsubscribeLister = onSnapshot(
+          qLister,
+          (snapshot) => {
+            if (!snapshot.empty) {
+              if (!tempRoles.includes("lister")) tempRoles.push("lister");
+              snapshot.docs.forEach((doc) => {
+                if (!doc.data().listerNotificationRead) {
+                  listerUnread = true; // Flag if there's an unread notification
+                }
+              });
+            }
+            // Set state for roles and unread notification status
+            setRoles([...tempRoles]);
+            setHasUnreadNotifications(adopterUnread || listerUnread); // Combine both flags
+          },
+          (error) => {
+            console.error("Error checking lister notifications:", error);
+          }
+        );
 
-      querySnapshot.forEach((doc) => {
-        const petRequest = doc.data();
-
-        // Collect adopter and lister email to fetch details later
-        if (!users[petRequest.adopterEmail]) {
-          userEmailsToFetch.add(petRequest.adopterEmail);
-        }
-
-        if (!users[petRequest.listedBy]) {
-          userEmailsToFetch.add(petRequest.listedBy);
-        }
-
-        const adopter = users[petRequest.adopterEmail] || {};
-        const petLister = users[petRequest.listedBy] || {};
-
-        let formattedTime = "";
-        if (petRequest.status === "Pending") {
-          formattedTime = moment(
-            petRequest.requestDate.seconds * 1000
-          ).fromNow();
-        } else if (petRequest.status === "Accepted") {
-          formattedTime = moment(
-            petRequest.acceptDate.seconds * 1000
-          ).fromNow();
-        } else if (petRequest.status === "Rejected") {
-          formattedTime = moment(
-            petRequest.rejectDate.seconds * 1000
-          ).fromNow();
-        } else if (petRequest.status === "Cancelled") {
-          formattedTime = moment(
-            petRequest.rejectDate.seconds * 1000
-          ).fromNow();
-        }
-
-        const handleNotification = (notification) => {
-          notificationsList.push(notification);
-          storeNotification(
-            notification.id,
-            petRequest,
-            currentUser.email,
-            false
-          );
+        // Cleanup listeners on unmount
+        return () => {
+          unsubscribeAdopter();
+          unsubscribeLister();
         };
-
-        // Handle Pending Request Notification
-        if (
-          petRequest.status === "Pending" &&
-          currentUser.email === petRequest.listedBy
-        ) {
-          const notification = {
-            id: doc.id,
-            image: adopter.profilePicture
-              ? { uri: adopter.profilePicture }
-              : null,
-            name: adopter.name || "Adopter",
-            content: `has requested to adopt your pet ${petRequest.petName}.`,
-            time: formattedTime,
-            action: () =>
-              router.push({
-                pathname: "/Screening",
-                params: {
-                  adopterEmail: petRequest.adopterEmail,
-                  petRequestId: doc.id,
-                  petName: petRequest.petName,
-                },
-              }),
-            read: false, // Ensuring notifications are marked as unread initially
-          };
-
-          notificationsList.push(notification);
-          storeNotification(doc.id, petRequest, currentUser.email, false);
-        }
-
-        // Handle Accepted or Rejected Request Notification
-        if (
-          currentUser.email === petRequest.listedBy &&
-          ["Accepted", "Rejected"].includes(petRequest.status)
-        ) {
-          const message =
-            petRequest.status === "Accepted"
-              ? `You have accepted ${
-                  adopter.name || "the adopter"
-                }'s request to adopt ${petRequest.petName}.`
-              : `You have rejected ${
-                  adopter.name || "the adopter"
-                }'s request to adopt ${petRequest.petName}.`;
-
-          notificationsList.push({
-            id: `${doc.id}-${petRequest.status}`,
-            image: require("../assets/Icon_white.png"),
-            name: "System Notification",
-            content: message,
-            time: formattedTime,
-            action: null,
-            read: false, // Ensuring notifications are marked as unread initially
-          });
-
-          storeNotification(
-            `${doc.id}-${petRequest.status}`,
-            petRequest,
-            currentUser.email,
-            false
-          );
-        }
-
-        // Handle Accepted Request for Adopter Notification
-        if (
-          petRequest.status === "Accepted" &&
-          currentUser.email === petRequest.adopterEmail
-        ) {
-          const notification = {
-            id: doc.id,
-            image: petLister.profilePicture
-              ? { uri: petLister.profilePicture }
-              : null,
-            name: petLister.name || "Pet Lister",
-            content: `${
-              petLister.name || "Pet Lister"
-            } has accepted your request to adopt ${petRequest.petName}.`,
-            time: formattedTime,
-            action: () =>
-              router.push({
-                pathname: "/ApproveAdoption",
-                params: {
-                  petRequestId: doc.id,
-                  petName: petRequest.petName,
-                  listedBy: petRequest.listedBy,
-                },
-              }),
-            read: false, // Ensuring notifications are marked as unread initially
-          };
-
-          notificationsList.push(notification);
-          storeNotification(doc.id, petRequest, currentUser.email, false);
-        }
-
-        // Handle Rejected Request for Adopter Notification
-        if (
-          petRequest.status === "Rejected" &&
-          currentUser.email === petRequest.adopterEmail
-        ) {
-          const notification = {
-            id: doc.id,
-            image: petLister.profilePicture
-              ? { uri: petLister.profilePicture }
-              : null,
-            name: petLister.name || "Pet Lister",
-            content: `${
-              petLister.name || "Pet Lister"
-            } has rejected your adoption request for ${petRequest.petName}.`,
-            time: formattedTime,
-            action: null,
-            read: false, // Ensuring notifications are marked as unread initially
-          };
-
-          notificationsList.push(notification);
-          storeNotification(doc.id, petRequest, currentUser.email, false);
-        }
-
-        // Handle Cancelled Request Notification for Lister
-        if (
-          petRequest.status === "Cancelled" &&
-          currentUser.email === petRequest.listedBy
-        ) {
-          const message = `${
-            adopter.name || "Adopter"
-          } cancelled the adoption request for your pet ${petRequest.petName}.`;
-
-          notificationsList.push({
-            id: doc.id,
-            image: adopter.profilePicture
-              ? { uri: adopter.profilePicture }
-              : null,
-            name: adopter.name || "Adopter",
-            content: message,
-            time: formattedTime,
-            action: null,
-            read: false, // Ensuring notifications are marked as unread initially
-          });
-
-          storeNotification(doc.id, petRequest, currentUser.email, false);
-        }
-
-        // Handle Cancelled Request Notification for Adopter
-        if (
-          petRequest.status === "Cancelled" &&
-          currentUser.email === petRequest.adopterEmail
-        ) {
-          const message = `You have cancelled the adoption request for ${petRequest.petName}.`;
-
-          notificationsList.push({
-            id: `${doc.id}-${petRequest.status}`,
-            image: require("../assets/Icon_white.png"),
-            name: "System Notification",
-            content: message,
-            time: formattedTime,
-            action: null,
-            read: false, // Ensuring notifications are marked as unread initially
-          });
-
-          storeNotification(
-            `${doc.id}-${petRequest.status}`,
-            petRequest,
-            currentUser.email,
-            false
-          );
-        }
-      });
-
-      const fetchFinalizedAdoptions = async () => {
-        const createNotification = async (doc, isAdopter) => {
-          const data = doc.data();
-          const finalizedDate = new Date(data.dateFinalized.seconds * 1000);
-          const formattedTime = moment(finalizedDate).fromNow();
-          const notificationId = `${doc.id}-${
-            isAdopter ? "adopter" : "lister"
-          }`;
-
-          const notification = {
-            id: notificationId,
-            image: require("../assets/Icon_white.png"),
-            name: "System Notification",
-            content: isAdopter
-              ? `The adoption of ${data.petRequestDetails.petName} has been finalized.`
-              : `Adoption for ${
-                  data.petRequestDetails.petName
-                } has been finalized by ${
-                  data.petRequestDetails.name || "Adopter"
-                }.`,
-            time: formattedTime,
-            action: () => router.push("/Main/Track"),
-            read: false,
-          };
-
-          notificationsList.push(notification);
-
-          // Always store the notification in Firestore
-          await storeNotification(
-            notificationId,
-            data,
-            currentUser.email,
-            false
-          );
-        };
-
-        const adopterSnapshot = await getDocs(finalizedAdoptionsQuery);
-        const listerSnapshot = await getDocs(finalizedListerQuery);
-
-        // Create and store notifications for each snapshot
-        for (const doc of adopterSnapshot.docs) {
-          await createNotification(doc, true);
-        }
-        for (const doc of listerSnapshot.docs) {
-          await createNotification(doc, false);
-        }
-      };
-
-      // Fetch user details in parallel for all missing emails
-      const missingUsers = Array.from(userEmailsToFetch);
-      for (const email of missingUsers) {
-        const userDetails = await fetchUserDetails(email);
-        if (userDetails) {
-          setUsers((prev) => ({
-            ...prev,
-            [email]: userDetails,
-          }));
-        }
+      } else {
+        console.log("No user is logged in.");
+        setUserEmail(null);
+        setRoles([]);
+        setHasUnreadNotifications(false);
       }
-
-      notificationsList.sort((a, b) => b.time.localeCompare(a.time));
-      setNotifications(notificationsList);
-
-      // Update unread count
-      const unreadNotifications = notificationsList.filter(
-        (notif) => !notif.read
-      ).length;
-      setUnreadCount(unreadNotifications);
     });
 
-    return () => unsubscribe();
-  }, [currentUser, users]);
+    return () => {
+      unsubscribeAuth(); // Stop listening for auth state changes
+    };
+  }, []); // Empty dependency array so this effect runs on mount and unmount
 
-  const fetchUserDetails = async (email) => {
+  const markNotificationsAsRead = async (userEmail, roles) => {
+    if (!userEmail || !Array.isArray(roles) || roles.length === 0) {
+      console.error("Invalid userEmail or roles:", userEmail, roles);
+      return;
+    }
+  
     try {
-      const usersQuery = query(
-        collection(db, "users"),
-        where("email", "==", email)
-      );
-      const querySnapshot = await getDocs(usersQuery);
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0].data();
-        return {
-          name: userDoc.name,
-          profilePicture: userDoc.profilePicture || null,
-        };
+      let adopterUnread = false;
+      let listerUnread = false;
+  
+      // Iterate through all roles (adopter, lister)
+      for (const role of roles) {
+        if (typeof role !== 'string') {
+          console.error("Invalid role:", role);
+          continue; // Skip invalid roles
+        }
+  
+        let queryRef;
+  
+        // Build query based on role
+        if (role === "adopter") {
+          queryRef = query(collection(db, "pet_request"), where("adopterEmail", "==", userEmail));
+        } else if (role === "lister") {
+          queryRef = query(collection(db, "pet_request"), where("listedBy", "==", userEmail));
+        }
+  
+        // Fetch notifications for this role
+        const snapshot = await getDocs(queryRef);
+  
+        if (!snapshot.empty) {
+          // Perform batch update for each notification for this role
+          const updates = snapshot.docs.map((doc) => {
+            const docRef = doc.ref;
+            const updateData = role === "adopter"
+              ? { adopterNotificationRead: true }
+              : { listerNotificationRead: true };
+  
+            return updateDoc(docRef, updateData);
+          });
+  
+          // Wait for all updates to finish
+          await Promise.all(updates);
+  
+          // After batch updates, re-fetch to check for unread notifications
+          const reCheckSnapshot = await getDocs(queryRef);
+  
+          // Check if there are still any unread notifications for the current role
+          if (role === "adopter") {
+            adopterUnread = reCheckSnapshot.docs.some(doc => !doc.data().adopterNotificationRead);
+          }
+  
+          if (role === "lister") {
+            listerUnread = reCheckSnapshot.docs.some(doc => !doc.data().listerNotificationRead);
+          }
+        }
       }
-      return null;
+  
+      // Update the overall unread notifications flag based on both roles
+      const hasUnread = adopterUnread || listerUnread;
+      setHasUnreadNotifications(hasUnread); // Assuming setHasUnreadNotifications updates state
+  
+      console.log("Notifications marked as read. Unread status:", hasUnread);
+  
     } catch (error) {
-      console.error("Error fetching user details: ", error);
-      return null;
+      console.error("Error marking notifications as read:", error);
     }
   };
+  
+  
 
-  const storeNotification = async (
-    notificationId,
-    petRequest,
-    userEmail,
-    read
-  ) => {
-    try {
-      const notificationRef = doc(db, "notifications", notificationId);
-
-      console.log("Storing notification with ID:", notificationId); // Log for debugging
-      await setDoc(notificationRef, {
-        petRequestId: notificationId,
-        status: petRequest.status,
-        userEmail: userEmail,
-        petName: petRequest.petName,
-        timestamp: petRequest.requestDate || new Date(),
-        read: read, // Ensuring notifications are unread initially
-      });
-
-      console.log("Notification stored successfully!"); // Success log
-    } catch (error) {
-      console.error("Error storing notification: ", error); // More descriptive error
-    }
-  };
-
-  const markAsRead = async (notificationId) => {
-    setNotifications((prevNotifications) =>
-      prevNotifications.map((notif) =>
-        notif.id === notificationId ? { ...notif, read: true } : notif
-      )
-    );
-
-    // Update Firestore to mark as read
-    await setDoc(
-      doc(db, "notifications", notificationId),
-      { read: true },
-      { merge: true }
-    );
-  };
+  useEffect(() => {
+    console.log("Has unread notifications:", hasUnreadNotifications);
+    console.log("User roles:", roles);
+  }, [hasUnreadNotifications, roles]); // Log after state update
 
   return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        unreadCount,
-        markAsRead,
-      }}
-    >
+    <NotificationContext.Provider value={{ hasUnreadNotifications, roles, markNotificationsAsRead, userEmail }}>
       {children}
     </NotificationContext.Provider>
   );
 };
 
-export { NotificationProvider };
+export const useNotifications = () => {
+  const context = useContext(NotificationContext);
+  if (!context) {
+    console.error("useNotifications must be used within a NotificationProvider.");
+    throw new Error("useNotifications must be used within a NotificationProvider.");
+  }
+  return context;
+};

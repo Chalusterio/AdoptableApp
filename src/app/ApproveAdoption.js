@@ -373,6 +373,8 @@ export default function ApproveAdoption() {
       await updateDoc(petRequestRef, {
         status: "Cancelled",
         cancelDate: cancelDate, // Add cancelDate to the document
+        adopterNotificationRead: false, // Reset adopter notificationRead to false
+        listerNotificationRead: false, // Reset lister notificationRead to false
       });
 
       alert("Adoption request cancelled successfully.");
@@ -394,38 +396,46 @@ export default function ApproveAdoption() {
       alert("Can't proceed without an address");
       return;
     }
-
+  
     console.log("Pet Request Details:", petRequestDetails); // Debugging log
-
+  
     try {
       const { petName, listedBy, petDetail } = petRequestDetails;
-
+  
       // Ensure petName and listedBy email are present
       if (!petName || !listedBy) {
         throw new Error(
           "Missing petName or listedBy email. Cannot finalize adoption."
         );
       }
-
+  
       // Fetch the pet document using petName and listedBy email
       const petQuery = query(
         collection(db, "listed_pets"),
         where("petName", "==", petName),
         where("listedBy", "==", listedBy)
       );
-
+  
       const petQuerySnapshot = await getDocs(petQuery);
-
+  
       if (petQuerySnapshot.empty) {
         throw new Error(
           `No pet found with name ${petName} listed by ${listedBy}`
         );
       }
-
+  
       // Get the pet document ID from the query result
       const petDoc = petQuerySnapshot.docs[0]; // Assuming the first result is correct
       const petId = petDoc.id;
-
+  
+      // Fetch the pet request document using petRequestId
+      const petRequestRef = doc(db, "pet_request", petRequestId);
+      const petRequestDoc = await getDoc(petRequestRef);
+      if (!petRequestDoc.exists()) {
+        throw new Error(`Pet request with ID ${petRequestId} not found`);
+      }
+  
+      // Add finalized adoption data to Firestore
       const finalizedAdoptionData = {
         petRequestId,
         petRequestDetails,
@@ -437,19 +447,26 @@ export default function ApproveAdoption() {
         tracking_status: "Preparing",
         dateFinalized: new Date().toISOString(),
       };
-
-      // Add finalized adoption data to Firestore
+  
+      // Add finalized adoption data to the 'finalized_adoption' collection
       const finalizedCollectionRef = collection(db, "finalized_adoption");
       await addDoc(finalizedCollectionRef, finalizedAdoptionData);
-
+  
       // Update the status of the listed pet using the petId
       const listedPetRef = doc(db, "listed_pets", petId);
       await updateDoc(listedPetRef, { status: "finalized" });
-
+  
+      // Now update the original pet_request document with notification read status
+    console.log(`Updating pet request document with adopterNotificationRead and listerNotificationRead for petRequestId: ${petRequestId}`);
+    await updateDoc(petRequestRef, {
+      adopterNotificationRead: false,
+      listerNotificationRead: false,
+    });
+  
       // Update local state and persist finalized state
       setIsFinalized(true);
       await AsyncStorage.setItem(`finalized-${petRequestId}`, "true");
-
+  
       router.push("/FinalizedAdoption");
     } catch (error) {
       console.error("Error finalizing adoption:", error);
