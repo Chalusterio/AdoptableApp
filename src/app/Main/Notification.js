@@ -48,37 +48,6 @@ const Notification = () => {
       where("status", "in", ["Pending", "Accepted", "Rejected", "Cancelled"])
     );
 
-    const storeNotificationToFirestore = async (notification) => {
-      try {
-        const q = query(
-          collection(db, "notifications"),
-          where("id", "==", notification.id)
-        );
-    
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          console.log("Notification already exists:", notification.id);
-          return;
-        }
-    
-        await addDoc(collection(db, "notifications"), {
-          id: notification.id,
-          name: notification.name,
-          image: notification.image || null,
-          timestamp: notification.timestamp,
-          time: notification.time,
-          email: notification.email || null,
-          read: false,
-        });
-        console.log("Notification stored:", notification);
-    
-        // After storing, directly update state to ensure immediate UI update
-        setNotifications((prev) => [notification, ...prev]);
-      } catch (error) {
-        console.error("Error storing notification:", error);
-      }
-    };
-    
     const unsubscribe = onSnapshot(petRequestsQuery, async (querySnapshot) => {
       querySnapshot.forEach((doc) => {
         const petRequest = doc.data();
@@ -136,6 +105,11 @@ const Notification = () => {
         }
 
         const notificationId = `${doc.id}-${petRequest.status}-${timestamp}`;
+        // Skip if notification already exists
+        if (newNotificationsMap.has(notificationId)) {
+          return; // Skip duplicate notification
+        }
+
 
         // Handle the Pending request notification
         if (
@@ -169,13 +143,8 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-  
-          // Track if already processed
-          if (!newNotificationsMap.has(notification.id)) {
-            newNotificationsList.push(notification);
-            newNotificationsMap.set(notification.id, true);
-            storeNotificationToFirestore(notification);
-          }
+             // Ensure notifications are updated after processing all pet requests
+        setNotifications([...notificationsList]); 
         }
 
         // Handle Accepted/Rejected notifications
@@ -208,13 +177,8 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-
-         // Track if already processed
-         if (!newNotificationsMap.has(notification.id)) {
-          newNotificationsList.push(notification);
-          newNotificationsMap.set(notification.id, true);
-          storeNotificationToFirestore(notification);
-        }
+             // Ensure notifications are updated after processing all pet requests
+        setNotifications([...notificationsList]); 
         }
 
         // Handle Accepted notifications for Adopters
@@ -252,13 +216,8 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-
-        // Track if already processed
-        if (!newNotificationsMap.has(notification.id)) {
-          newNotificationsList.push(notification);
-          newNotificationsMap.set(notification.id, true);
-          storeNotificationToFirestore(notification);
-        }
+             // Ensure notifications are updated after processing all pet requests
+        setNotifications([...notificationsList]); 
         }
 
 
@@ -295,13 +254,8 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-
-        // Track if already processed
-        if (!newNotificationsMap.has(notification.id)) {
-          newNotificationsList.push(notification);
-          newNotificationsMap.set(notification.id, true);
-          storeNotificationToFirestore(notification);
-        }
+             // Ensure notifications are updated after processing all pet requests
+        setNotifications([...notificationsList]); 
         }
 
         // Handle Cancelled notifications for Adopters
@@ -326,13 +280,8 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-
-        // Track if already processed
-        if (!newNotificationsMap.has(notification.id)) {
-          newNotificationsList.push(notification);
-          newNotificationsMap.set(notification.id, true);
-          storeNotificationToFirestore(notification);
-        }
+             // Ensure notifications are updated after processing all pet requests
+        setNotifications([...notificationsList]); 
         }
 
         // Handle Cancelled notifications for Listers
@@ -359,16 +308,11 @@ const Notification = () => {
           };
           // Add notification to the list
           notificationsList.push(notification);
-
-      // Track if already processed
-      if (!newNotificationsMap.has(notification.id)) {
-        newNotificationsList.push(notification);
-        newNotificationsMap.set(notification.id, true);
-        storeNotificationToFirestore(notification);
-      }
+             // Ensure notifications are updated after processing all pet requests
+        setNotifications([...notificationsList]); 
         }
-
-        setNotifications(newNotificationsList);
+// Sort notifications after adding to the list
+notificationsList.sort((a, b) => b.timestamp - a.timestamp); // Sort by timestamp, latest first
         setNotificationsMap(newNotificationsMap);
       });
 
@@ -445,43 +389,39 @@ const Notification = () => {
             };
             // Add notification to the list
             notificationsList.push(notification);
+   // Ensure notifications are updated after processing all pet requests
+   setNotifications([...notificationsList]); 
+          }
 
-            // Track if already processed
-            if (!newNotificationsMap.has(notification.id)) {
-              newNotificationsList.push(notification);
-              newNotificationsMap.set(notification.id, true);
-              storeNotificationToFirestore(notification);
-          }
-          }
-          setNotifications(newNotificationsList);
-          setNotificationsMap(newNotificationsMap);
         };
 
         try {
           const adopterSnapshot = await getDocs(finalizedAdoptionsQuery);
           const listerSnapshot = await getDocs(finalizedListerQuery);
-
+        
+          // Create notifications for adopters and listers
           adopterSnapshot.forEach((doc) => createNotification(doc, true));
           listerSnapshot.forEach((doc) => createNotification(doc, false));
-
-          // Sort combined notifications by time (latest first)
+        
+          // Sort notificationsList by timestamp (latest first)
           notificationsList.sort((a, b) => b.timestamp - a.timestamp);
+        
+          // Update state with sorted notifications
           setNotifications([...notificationsList]);
         } catch (error) {
           console.error("Error fetching finalized adoptions:", error);
-        }
+        }        
       };
 
       fetchFinalizedAdoptions();
+
+      
     });
 
     return () => unsubscribe();
   }, [currentUser, users, router]);
 
-  // Optimized fetchUserDetails with check to prevent duplicate fetches
   const fetchUserDetails = async (email) => {
-    if (users[email]) return users[email]; // Return cached user details if already fetched
-
     try {
       const usersQuery = query(
         collection(db, "users"),
@@ -490,15 +430,10 @@ const Notification = () => {
       const querySnapshot = await getDocs(usersQuery);
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0].data();
-        const userDetails = {
+        return {
           name: userDoc.name,
           profilePicture: userDoc.profilePicture || null,
         };
-        setUsers((prev) => ({
-          ...prev,
-          [email]: userDetails,
-        }));
-        return userDetails;
       } else {
         console.log("User not found for email:", email);
         return null;
@@ -508,7 +443,6 @@ const Notification = () => {
       return null;
     }
   };
-
 
 
   const deleteNotification = (id) => {
@@ -542,7 +476,7 @@ const Notification = () => {
         ) : (
           notifications.map((notif) => (
             <Swipeable
-              key={notif.id}
+              key={`${notif.id}-${notif.timestamp}`}
               renderRightActions={() => renderRightActions(notif.id)}
             >
               <View style={styles.horizontalLine}></View>

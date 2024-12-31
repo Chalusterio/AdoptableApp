@@ -192,6 +192,8 @@ const PetDetails = () => {
         requestDate: new Date(),
         status: "Pending",
         petDetail, // Adding the petDetail object
+        adopterNotificationRead: true, // Adding the adopter's notificationRead
+        listerNotificationRead: false, // Adding the lister's notificationRead
       };
 
       // Add the adoption request

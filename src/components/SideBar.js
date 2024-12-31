@@ -74,8 +74,10 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
         return;
       }
   
+      // Redirect after successful logout
       console.log("User logged out");
       router.push("/Login"); // Ensure the route is correct
+  
     } catch (error) {
       console.error("Error logging out: ", error.message);
     } finally {

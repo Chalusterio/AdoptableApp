@@ -57,29 +57,32 @@ export default function Screening() {
   }, [adopterEmail]);
 
   // Function to update the pet request status and store the respective date field
-  const updatePetRequestStatus = async (status) => {
+  const updatePetRequestStatus = async (status, reason = null) => {
     try {
-      const petRequestRef = doc(db, "pet_request", petRequestId); // Reference to the pet request document
-      const actionDate = new Date(); // Get the current date
-
+      const petRequestRef = doc(db, "pet_request", petRequestId);
+      const actionDate = new Date();
+  
       const updateData = {
-        status: status, // Update the status to either 'accepted' or 'rejected'
+        status,
+        adopterNotificationRead: false,
+        listerNotificationRead: false,
       };
-
+  
       if (status === "Accepted") {
-        updateData.acceptDate = actionDate; // Store the acceptance date
+        updateData.acceptDate = actionDate;
       } else if (status === "Rejected") {
-        updateData.rejectDate = actionDate; // Store the rejection date
+        updateData.rejectDate = actionDate;
+        updateData.rejectReason = reason;
       }
-
-      // Update the document in Firestore
-      await updateDoc(petRequestRef, updateData);
-
-      console.log(`Pet request status updated to ${status}`);
+  
+      console.log("Updating pet request with:", updateData);
+      await updateDoc(petRequestRef, updateData); // Firestore update
+      console.log("Pet request updated successfully!");
     } catch (error) {
-      console.error("Error updating pet request status: ", error);
+      console.error("Error updating pet request:", error);
     }
   };
+  
 
   const handleAcceptAdoption = async () => {
     await updatePetRequestStatus("Accepted"); // Update the status to 'accepted'
