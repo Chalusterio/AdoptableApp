@@ -9,8 +9,11 @@ import {
   Modal,
   Switch,
   SafeAreaView,
+  Image,
+  ImageBackground,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Entypo from "@expo/vector-icons/Entypo";
 import { Surface, TextInput } from "react-native-paper";
 import SideBar from "../components/SideBar";
 import { useNavigation } from "@react-navigation/native";
@@ -157,246 +160,261 @@ const CommunityPost = () => {
   };
 
   return (
-    <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
-          {userRole === "organization" && (
-            <Surface style={styles.titleContainer} elevation={3}>
-              <Text style={styles.title}>Curious About Community Posts?</Text>
-              <Text style={styles.instruction}>
-                Stay tuned for exciting updates!
-              </Text>
-              <TouchableOpacity
-                style={styles.profileButton}
-                onPress={() => navigateTo("PostEdit")}
-              >
-                <MaterialCommunityIcons name="pencil" size={24} color="white" />
-              </TouchableOpacity>
-            </Surface>
-          )}
-
-          {userRole !== "organization" && (
-            <Surface style={styles.titleContainer} elevation={3}>
-              <Text style={styles.title}>Curious About Community Posts?</Text>
-              <Text style={styles.instruction}>
-                Stay tuned for exciting updates!
-              </Text>
-            </Surface>
-          )}
-
-          {userRole === "organization" && (
-            <View style={styles.communityPostContainer1}>
-              <TouchableOpacity
-                style={styles.rectangularButton}
-                onPress={() => setModalVisible(true)}
-              >
-                <Text style={styles.buttonText}>Post</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <ScrollView style={styles.postsContainer}>
-            <View style={styles.communityPostContainer}>
-              {sortedPosts.map((post, index) => (
+    <ImageBackground
+      source={require("../assets/post/board.png")}
+      style={styles.backgroundImage}
+    >
+      <SideBar selectedItem={selectedItem} setSelectedItem={setSelectedItem}>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.container}>
+            {userRole === "organization" && (
+              <Surface style={styles.titleContainer} elevation={3}>
+                <Text style={styles.title}>Curious About Community Events?</Text>
+                <Text style={styles.instruction}>
+                  Stay tuned for exciting updates!
+                </Text>
                 <TouchableOpacity
-                  key={index}
-                  onPress={() => openPostDetails(post)}
+                  style={styles.profileButton}
+                  onPress={() => navigateTo("PostEdit")}
                 >
-                  <View style={styles.post}>
-                    <View style={styles.postImageContainer}>
-                      {post.profilePic ? (
-                        <Image
-                          source={{ uri: post.profilePic }}
-                          style={styles.profileImage}
-                        />
-                      ) : (
-                        <MaterialCommunityIcons
-                          name="account-circle"
-                          size={40}
-                          color="#ccc"
-                        />
-                      )}
-                    </View>
+                  <MaterialCommunityIcons
+                    name="pencil"
+                    size={24}
+                    color="white"
+                  />
+                </TouchableOpacity>
+              </Surface>
+            )}
 
-                    <View style={styles.postDetails}>
-                      <Text style={styles.postTitle}>{post.title}</Text>
+            {userRole !== "organization" && (
+              <Surface style={styles.titleContainer} elevation={3}>
+                <Text style={styles.title}>Community Events</Text>
+                <Text style={styles.instruction}>
+                  Stay tuned for exciting updates!
+                </Text>
+              </Surface>
+            )}
 
-                      <View style={styles.iconTextRowContainer}>
-                        <MaterialCommunityIcons
-                          name="calendar"
-                          size={16}
-                          color="#777"
-                        />
-                        <Text style={styles.postSubtitle}>
-                          {post.when ? `${post.when}` : "No date specified"}
-                        </Text>
+            {userRole === "organization" && (
+              <View style={styles.communityPostContainer1}>
+                <TouchableOpacity
+                  style={styles.rectangularButton}
+                  onPress={() => setModalVisible(true)}
+                >
+                  <Text style={styles.buttonText}>Post</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <ScrollView style={styles.postsContainer}>
+              <View style={styles.communityPostContainer}>
+                {sortedPosts.map((post, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => openPostDetails(post)}
+                  >
+                    <View style={styles.post}>
+                      <View style={styles.postImageContainer}>
+                        {post.profilePic ? (
+                          <Image
+                            source={{ uri: post.profilePic }}
+                            style={styles.profileImage}
+                          />
+                        ) : (
+                          <MaterialCommunityIcons
+                            name="account-circle"
+                            size={40}
+                            color="#ccc"
+                          />
+                        )}
                       </View>
 
-                      {post.urgent && (
+                      <View style={styles.postDetails}>
+                        <Text style={styles.postTitle}>{post.title}</Text>
+
                         <View style={styles.iconTextRowContainer}>
                           <MaterialCommunityIcons
-                            name="clock-fast"
+                            name="calendar"
                             size={16}
-                            color="red"
+                            color="#777"
                           />
-                          <Text style={styles.urgentText}>Urgent</Text>
+                          <Text style={styles.postSubtitle}>
+                            {post.when ? `${post.when}` : "No date specified"}
+                          </Text>
+                        </View>
+
+                        {post.urgent && (
+                          <View style={styles.iconTextRowContainer}>
+                            <MaterialCommunityIcons
+                              name="clock-fast"
+                              size={16}
+                              color="red"
+                            />
+                            <Text style={styles.urgentText}>Urgent</Text>
+                          </View>
+                        )}
+                        <Text style={styles.postUsernameBy}>
+                          {"Posted by: "}{" "}
+                          <Text style={styles.postUsername}>
+                            {" "}
+                            {post.postedBy}
+                          </Text>
+                        </Text>
+                      </View>
+                      {/* Pin Icon */}
+                      {post.urgent && (
+                        <View style={styles.pinContainer}>
+                          <Entypo name="pin" size={30} color="red" />
                         </View>
                       )}
-                      <Text style={styles.postUsernameBy}>
-                        {"Posted by: "}{" "}
-                        <Text style={styles.postUsername}>
-                          {" "}
-                          {post.postedBy}
-                        </Text>
-                      </Text>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
 
-          {/* Modal for creating a new post */}
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={modalVisible}
-            onRequestClose={() => setModalVisible(false)}
-          >
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContainer}>
-                <Text style={styles.modalTitle}>Create a Post</Text>
+            {/* Modal for creating a new post */}
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={modalVisible}
+              onRequestClose={() => setModalVisible(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContainer}>
+                  <Text style={styles.modalTitle}>Create a Post</Text>
 
-                <ScrollView style={styles.scrollView}>
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Title:</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Enter title"
-                      value={postContent.title}
-                      onChangeText={(text) =>
-                        setPostContent({ ...postContent, title: text })
-                      }
-                      mode="outlined"
-                      outlineColor="transparent"
-                      activeOutlineColor="#68C2FF"
-                      autoCapitalize="sentences"
-                    />
-                  </View>
-
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Who:</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Who can join or avail?"
-                      value={postContent.who}
-                      onChangeText={(text) =>
-                        setPostContent({ ...postContent, who: text })
-                      }
-                      mode="outlined"
-                      outlineColor="transparent"
-                      activeOutlineColor="#68C2FF"
-                      autoCapitalize="sentences"
-                    />
-                  </View>
-
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>What:</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Describe what the post is about"
-                      value={postContent.what}
-                      onChangeText={(text) =>
-                        setPostContent({ ...postContent, what: text })
-                      }
-                      mode="outlined"
-                      outlineColor="transparent"
-                      activeOutlineColor="#68C2FF"
-                      autoCapitalize="sentences"
-                    />
-                  </View>
-
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label1}>When:</Text>
-                    <TouchableOpacity
-                      onPress={() => setCalendarVisible(true)}
-                      style={styles.dateButton}
-                    >
-                      <Text style={styles.dateText}>
-                        {postContent.when ? postContent.when : "Select Date"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {calendarVisible && (
-                    <View style={styles.calendarContainer}>
-                      <Calendar
-                        onDayPress={handleDateSelect}
-                        markedDates={{
-                          [postContent.when]: {
-                            selected: true,
-                            selectedColor: "#68C2FF",
-                          },
-                        }}
+                  <ScrollView style={styles.scrollView}>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.label}>Title:</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Enter title"
+                        value={postContent.title}
+                        onChangeText={(text) =>
+                          setPostContent({ ...postContent, title: text })
+                        }
+                        mode="outlined"
+                        outlineColor="transparent"
+                        activeOutlineColor="#68C2FF"
+                        autoCapitalize="sentences"
                       />
                     </View>
-                  )}
 
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Where:</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Where is it happening?"
-                      value={postContent.where}
-                      onChangeText={(text) =>
-                        setPostContent({ ...postContent, where: text })
-                      }
-                      mode="outlined"
-                      outlineColor="transparent"
-                      activeOutlineColor="#68C2FF"
-                      autoCapitalize="sentences"
-                    />
-                  </View>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.label}>Who:</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Who can join or avail?"
+                        value={postContent.who}
+                        onChangeText={(text) =>
+                          setPostContent({ ...postContent, who: text })
+                        }
+                        mode="outlined"
+                        outlineColor="transparent"
+                        activeOutlineColor="#68C2FF"
+                        autoCapitalize="sentences"
+                      />
+                    </View>
 
-                  <View style={styles.inputContainer1}>
-                    <Text style={styles.label}>Urgent:</Text>
-                    <Switch
-                      value={postContent.urgent}
-                      onValueChange={(value) =>
-                        setPostContent({ ...postContent, urgent: value })
-                      }
-                      style={styles.urgentSwitch}
-                    />
-                  </View>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.label}>What:</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Describe what the post is about"
+                        value={postContent.what}
+                        onChangeText={(text) =>
+                          setPostContent({ ...postContent, what: text })
+                        }
+                        mode="outlined"
+                        outlineColor="transparent"
+                        activeOutlineColor="#68C2FF"
+                        autoCapitalize="sentences"
+                      />
+                    </View>
 
-                  <View style={styles.buttonRow}>
-                    <TouchableOpacity
-                      style={styles.cancelButton}
-                      onPress={() => setModalVisible(false)}
-                    >
-                      <Text style={styles.buttonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.postButton}
-                      onPress={handlePostSubmit}
-                    >
-                      <Text style={styles.buttonText}>Post</Text>
-                    </TouchableOpacity>
-                  </View>
-                </ScrollView>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.label1}>When:</Text>
+                      <TouchableOpacity
+                        onPress={() => setCalendarVisible(true)}
+                        style={styles.dateButton}
+                      >
+                        <Text style={styles.dateText}>
+                          {postContent.when ? postContent.when : "Select Date"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {calendarVisible && (
+                      <View style={styles.calendarContainer}>
+                        <Calendar
+                          onDayPress={handleDateSelect}
+                          markedDates={{
+                            [postContent.when]: {
+                              selected: true,
+                              selectedColor: "#68C2FF",
+                            },
+                          }}
+                        />
+                      </View>
+                    )}
+
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.label}>Where:</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Where is it happening?"
+                        value={postContent.where}
+                        onChangeText={(text) =>
+                          setPostContent({ ...postContent, where: text })
+                        }
+                        mode="outlined"
+                        outlineColor="transparent"
+                        activeOutlineColor="#68C2FF"
+                        autoCapitalize="sentences"
+                      />
+                    </View>
+
+                    <View style={styles.inputContainer1}>
+                      <Text style={styles.label}>Urgent:</Text>
+                      <Switch
+                        value={postContent.urgent}
+                        onValueChange={(value) =>
+                          setPostContent({ ...postContent, urgent: value })
+                        }
+                        style={styles.urgentSwitch}
+                      />
+                    </View>
+
+                    <View style={styles.buttonRow}>
+                      <TouchableOpacity
+                        style={styles.cancelButton}
+                        onPress={() => setModalVisible(false)}
+                      >
+                        <Text style={styles.buttonText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.postButton}
+                        onPress={handlePostSubmit}
+                      >
+                        <Text style={styles.buttonText}>Post</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </ScrollView>
+                </View>
               </View>
-            </View>
-          </Modal>
-        </View>
-      </SafeAreaView>
-    </SideBar>
+            </Modal>
+          </View>
+        </SafeAreaView>
+      </SideBar>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
   },
   backgroundImage: {
     flex: 1,
@@ -440,7 +458,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   rectangularButton: {
-    backgroundColor: "#68C2FF",
+    backgroundColor: "#336AEA",
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 8,
@@ -532,7 +550,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 10,
     marginBottom: 10,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   toggleCalendarButton: {
     backgroundColor: "#68C2FF",
@@ -592,8 +610,7 @@ const styles = StyleSheet.create({
   },
   urgentSwitch: {
     alignItems: "center",
-    justifyContent: 'center',
-    marginRight: -10,
+    justifyContent: "center",
     marginTop: 5,
   },
   textInput: {
@@ -604,7 +621,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontFamily: "Lato",
     fontSize: 16,
-    color: '#525252',
+    color: "#525252",
   },
   dateButton: {
     backgroundColor: "#F5F5F5",
@@ -635,6 +652,11 @@ const styles = StyleSheet.create({
     minWidth: 130, // Ensure the button has a minimum width for a larger size
     alignItems: "center", // Center text horizontally
     justifyContent: "center", // Center text vertically
+  },
+  pinContainer: {
+    alignItems: "center",
+    right: -20,
+    top: -20,
   },
 });
 
