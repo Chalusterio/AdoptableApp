@@ -1,16 +1,24 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFonts } from 'expo-font';
+import React, { useEffect } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFonts } from "expo-font";
 
-const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNotificationsAsRead, userEmail, roles }) => {
-  const activeColor = '#68C2FF'; // Color for active tab
-  const inactiveColor = '#FFF'; // Color for inactive tab
-  
+const TabBar = ({
+  state,
+  descriptors,
+  navigation,
+  hasUnreadNotifications,
+  markNotificationsAsRead,
+  userEmail,
+  roles,
+}) => {
+  const activeColor = "#68C2FF"; // Color for active tab
+  const inactiveColor = "#FFF"; // Color for inactive tab
+
   console.log("Has unread notifications:", hasUnreadNotifications); // Log here
 
   const [fontsLoaded] = useFonts({
-    Lilita: require('../assets/fonts/LilitaOne-Regular.ttf'), // Custom font
+    Lilita: require("../assets/fonts/LilitaOne-Regular.ttf"), // Custom font
   });
 
   if (!fontsLoaded) {
@@ -18,11 +26,11 @@ const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNo
   }
 
   const icons = {
-    index: 'paw',
-    Track: 'truck',
-    List: 'plus-circle-outline',
-    Notification: 'bell',
-    Profile: 'account',
+    index: "paw",
+    Track: "truck",
+    List: "plus-circle-outline",
+    Notification: "bell",
+    Profile: "account",
   };
 
   useEffect(() => {
@@ -40,7 +48,7 @@ const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNo
             ? options.title
             : route.name;
 
-        if (['_sitemap', '+not-found'].includes(route.name)) return null;
+        if (["_sitemap", "+not-found"].includes(route.name)) return null;
 
         const isFocused = state.index === index;
 
@@ -48,17 +56,21 @@ const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNo
         const onPress = () => {
           console.log(`Tab pressed: ${route.name}`); // Log which tab was pressed
           // If the Notification tab is clicked and there are unread notifications, mark them as read
-     
+
           if (route.name === "Notification" && hasUnreadNotifications) {
-            console.log("Unread notifications detected, calling markNotificationsAsRead"); // Log when marking notifications as read
+            console.log(
+              "Unread notifications detected, calling markNotificationsAsRead"
+            ); // Log when marking notifications as read
             markNotificationsAsRead(userEmail, roles);
-            console.log("Notifications marked as read. Triggered by user:", userEmail);
+            console.log(
+              "Notifications marked as read. Triggered by user:",
+              userEmail
+            );
           }
-          
 
           // Emit tab press event
           const event = navigation.emit({
-            type: 'tabPress',
+            type: "tabPress",
             target: route.key,
             canPreventDefault: true,
           });
@@ -70,7 +82,7 @@ const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNo
         };
         return (
           <TouchableOpacity
-          key={`${route.name}-${route.key}`}
+            key={`${route.name}-${route.key}`}
             onPress={onPress}
             style={[styles.tabbarItem, isFocused && styles.tabbarItemActive]}
           >
@@ -81,12 +93,20 @@ const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNo
                 color={isFocused ? activeColor : inactiveColor}
               />
               {/* Show badge only when there are notifications */}
-              {(route.name === "Notification" && hasUnreadNotifications) && (
-                <View style={styles.badge} />
+              {route.name === "Notification" && hasUnreadNotifications && (
+                <View
+                  style={[
+                    styles.badge,
+                    isFocused && styles.badgeFocused, // Add conditional styling for focused state
+                  ]}
+                />
               )}
-              {isFocused && route.name !== 'List' && (
+              {isFocused && route.name !== "List" && (
                 <Text
-                  style={[styles.activeText, { fontFamily: 'Lilita', fontSize: 15 }]}
+                  style={[
+                    styles.activeText,
+                    { fontFamily: "Lilita", fontSize: 15 },
+                  ]}
                   numberOfLines={1}
                 >
                   {label}
@@ -103,53 +123,57 @@ const TabBar = ({ state, descriptors, navigation, hasUnreadNotifications, markNo
 // TabBar styles (same as before)
 const styles = StyleSheet.create({
   tabbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     padding: 15,
-    backgroundColor: '#68C2FF',
+    backgroundColor: "#68C2FF",
     borderTopWidth: 1,
-    borderColor: 'transparent',
+    borderColor: "transparent",
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
     paddingLeft: 25,
     paddingRight: 25,
   },
   tabbarItem: {
-    alignItems: 'center',
-    alignSelf: 'center',
+    alignItems: "center",
+    alignSelf: "center",
   },
   tabbarItemActive: {
-    backgroundColor: '#FFF',
+    backgroundColor: "#FFF",
     borderRadius: 25,
     paddingVertical: 8,
-    flexDirection: 'row',
-    alignSelf: 'center',
+    flexDirection: "row",
+    alignSelf: "center",
     paddingHorizontal: 10,
   },
   iconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   activeText: {
     marginLeft: 5,
-    color: '#68C2FF',
+    color: "#68C2FF",
   },
   badge: {
-    position: 'absolute',
+    position: "absolute",
     top: -3,
     right: -2,
-    backgroundColor: '#FF0000',
+    backgroundColor: "#FF0000",
     borderRadius: 10,
     width: 15,
     height: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeFocused: {
+    top: -10, // Move the badge higher
+    right: -10,
   },
   badgeText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 
