@@ -29,6 +29,7 @@ const Notification = () => {
   const [notifications, setNotifications] = useState([]);
   const [users, setUsers] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
+  const [notificationsMap, setNotificationsMap] = useState(new Map()); // To track notifications already processed
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -47,9 +48,43 @@ const Notification = () => {
       where("status", "in", ["Pending", "Accepted", "Rejected", "Cancelled"])
     );
 
+    const storeNotificationToFirestore = async (notification) => {
+      try {
+        const q = query(
+          collection(db, "notifications"),
+          where("id", "==", notification.id)
+        );
+    
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          console.log("Notification already exists:", notification.id);
+          return;
+        }
+    
+        await addDoc(collection(db, "notifications"), {
+          id: notification.id,
+          name: notification.name,
+          image: notification.image || null,
+          timestamp: notification.timestamp,
+          time: notification.time,
+          email: notification.email || null,
+          read: false,
+        });
+        console.log("Notification stored:", notification);
+    
+        // After storing, directly update state to ensure immediate UI update
+        setNotifications((prev) => [notification, ...prev]);
+      } catch (error) {
+        console.error("Error storing notification:", error);
+      }
+    };
+    
     const unsubscribe = onSnapshot(petRequestsQuery, async (querySnapshot) => {
       querySnapshot.forEach((doc) => {
         const petRequest = doc.data();
+
+        const newNotificationsMap = new Map(notificationsMap);
+        const newNotificationsList = [...notificationsList];
 
         if (!users[petRequest.adopterEmail]) {
           fetchUserDetails(petRequest.adopterEmail).then((userDetails) => {
@@ -75,7 +110,6 @@ const Notification = () => {
 
         const adopter = users[petRequest.adopterEmail] || {};
         const petLister = users[petRequest.listedBy] || {};
-        const notificationId = `${doc.id}-${petRequest.status}-${timestamp}`;
 
         let formattedTime = "";
         let timestamp = 0;
@@ -101,12 +135,14 @@ const Notification = () => {
           timestamp = petRequest.cancelDate.seconds * 1000;
         }
 
+        const notificationId = `${doc.id}-${petRequest.status}-${timestamp}`;
+
         // Handle the Pending request notification
         if (
           petRequest.status === "Pending" &&
           currentUser.email === petRequest.listedBy
         ) {
-          notificationsList.push({
+          const notification = {
             id: notificationId,
             image: adopter.profilePicture
               ? { uri: adopter.profilePicture }
@@ -119,6 +155,7 @@ const Notification = () => {
               </Text>
             ),
             time: formattedTime,
+            email: petRequest.listedBy,
             timestamp,
             action: () =>
               router.push({
@@ -129,7 +166,16 @@ const Notification = () => {
                   petName: petRequest.petName,
                 },
               }),
-          });
+          };
+          // Add notification to the list
+          notificationsList.push(notification);
+  
+          // Track if already processed
+          if (!newNotificationsMap.has(notification.id)) {
+            newNotificationsList.push(notification);
+            newNotificationsMap.set(notification.id, true);
+            storeNotificationToFirestore(notification);
+          }
         }
 
         // Handle Accepted/Rejected notifications
@@ -150,15 +196,25 @@ const Notification = () => {
               </Text>
             );
 
-          notificationsList.push({
+          const notification = {
             id: notificationId,
             image: require("../../assets/Icon_white.png"),
             name: "System Notification",
             content: message,
+            email: petRequest.listedBy,
             time: formattedTime,
             action: null,
             timestamp, // Ensure the timestamp is added for sorting
-          });
+          };
+          // Add notification to the list
+          notificationsList.push(notification);
+
+         // Track if already processed
+         if (!newNotificationsMap.has(notification.id)) {
+          newNotificationsList.push(notification);
+          newNotificationsMap.set(notification.id, true);
+          storeNotificationToFirestore(notification);
+        }
         }
 
         // Handle Accepted notifications for Adopters
@@ -166,7 +222,7 @@ const Notification = () => {
           petRequest.status === "Accepted" &&
           currentUser.email === petRequest.adopterEmail
         ) {
-          notificationsList.push({
+          const notification = {
             id: notificationId,
             image: petLister.profilePicture
               ? { uri: petLister.profilePicture }
@@ -182,6 +238,7 @@ const Notification = () => {
               </Text>
             ),
             time: formattedTime,
+            email: petRequest.adopterEmail,
             timestamp,
             action: () =>
               router.push({
@@ -192,16 +249,25 @@ const Notification = () => {
                   listedBy: petRequest.listedBy,
                 },
               }),
-          });
+          };
+          // Add notification to the list
+          notificationsList.push(notification);
+
+        // Track if already processed
+        if (!newNotificationsMap.has(notification.id)) {
+          newNotificationsList.push(notification);
+          newNotificationsMap.set(notification.id, true);
+          storeNotificationToFirestore(notification);
         }
-    
+        }
+
 
         // Handle Rejected notifications for Adopters
         if (
           petRequest.status === "Rejected" &&
           currentUser.email === petRequest.adopterEmail
         ) {
-          notificationsList.push({
+          const notification = {
             id: notificationId,
             image: petLister.profilePicture
               ? { uri: petLister.profilePicture }
@@ -212,31 +278,61 @@ const Notification = () => {
                 {petLister.name || "Pet Lister"} has rejected your adoption
                 request for{" "}
                 <Text style={styles.boldText}>{petRequest.petName}</Text>.
+                {petRequest.rejectReason && (
+                  <Text>
+                    {"\n\nReason: "}
+                    <Text style={styles.rejectText}>
+                      {petRequest.rejectReason}
+                    </Text>
+                  </Text>
+                )}
               </Text>
             ),
             time: formattedTime,
+            email: petRequest.adopterEmail,
             timestamp,
             action: null,
-          });
+          };
+          // Add notification to the list
+          notificationsList.push(notification);
+
+        // Track if already processed
+        if (!newNotificationsMap.has(notification.id)) {
+          newNotificationsList.push(notification);
+          newNotificationsMap.set(notification.id, true);
+          storeNotificationToFirestore(notification);
         }
+        }
+
         // Handle Cancelled notifications for Adopters
         if (
           petRequest.status === "Cancelled" &&
           currentUser.email === petRequest.adopterEmail
         ) {
-          notificationsList.push({
+          const notification = {
             id: notificationId,
             image: require("../../assets/Icon_white.png"),
             name: "System Notification",
             content: (
               <Text>
-                You cancelled adoption for <Text style={styles.boldText}>{petRequest.petName}</Text>.
+                You cancelled adoption for{" "}
+                <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             ),
+            email: petRequest.adopterEmail,
             time: formattedTime,
             timestamp,
             action: null,
-          });
+          };
+          // Add notification to the list
+          notificationsList.push(notification);
+
+        // Track if already processed
+        if (!newNotificationsMap.has(notification.id)) {
+          newNotificationsList.push(notification);
+          newNotificationsMap.set(notification.id, true);
+          storeNotificationToFirestore(notification);
+        }
         }
 
         // Handle Cancelled notifications for Listers
@@ -244,10 +340,12 @@ const Notification = () => {
           petRequest.status === "Cancelled" &&
           currentUser.email === petRequest.listedBy
         ) {
-          notificationsList.push({
+          const notification = {
             id: notificationId,
-            image: adopter.ProfilePicture ? { uri: adopter.ProfilePicture } : null,
-            name: adopter.name  || "Adopter",
+            image: adopter.profilePicture
+              ? { uri: adopter.profilePicture }
+              : null,
+            name: adopter.name || "Adopter",
             content: (
               <Text>
                 {adopter.name || "Adopter"} cancelled adoption for your pet{" "}
@@ -255,10 +353,23 @@ const Notification = () => {
               </Text>
             ),
             time: formattedTime,
+            email: petRequest.listedBy,
             timestamp,
             action: null,
-          });
+          };
+          // Add notification to the list
+          notificationsList.push(notification);
+
+      // Track if already processed
+      if (!newNotificationsMap.has(notification.id)) {
+        newNotificationsList.push(notification);
+        newNotificationsMap.set(notification.id, true);
+        storeNotificationToFirestore(notification);
+      }
         }
+
+        setNotifications(newNotificationsList);
+        setNotificationsMap(newNotificationsMap);
       });
 
       // After handling pet requests, fetch finalized adoptions
@@ -287,6 +398,11 @@ const Notification = () => {
           if (notificationsList.some((notif) => notif.id === notificationId)) {
             return; // Skip duplicate notification
           }
+          // Determine the email of the recipient
+          const recipientEmail = isAdopter
+            ? data.petRequestDetails.adopterEmail
+            : data.petRequestDetails.listedBy;
+
           if (isAdopter) {
             notificationsList.push({
               id: `${doc.id}-finalized-adopter`,
@@ -302,12 +418,13 @@ const Notification = () => {
                   has been finalized. Track their journey here.
                 </Text>
               ),
+              email: recipientEmail, // Store the email of the adopter
               time: formattedTime,
               timestamp,
               action: () => router.push("/Main/Track"),
             });
           } else {
-            notificationsList.push({
+            const notification = {
               id: `${doc.id}-finalized-lister`,
               image: require("../../assets/Icon_white.png"),
               name: "System Notification",
@@ -321,11 +438,23 @@ const Notification = () => {
                   . Check the process here.
                 </Text>
               ),
+              email: recipientEmail, // Store the email of the adopter
               time: formattedTime,
               timestamp,
               action: () => router.push("/Main/Track"),
-            });
+            };
+            // Add notification to the list
+            notificationsList.push(notification);
+
+            // Track if already processed
+            if (!newNotificationsMap.has(notification.id)) {
+              newNotificationsList.push(notification);
+              newNotificationsMap.set(notification.id, true);
+              storeNotificationToFirestore(notification);
           }
+          }
+          setNotifications(newNotificationsList);
+          setNotificationsMap(newNotificationsMap);
         };
 
         try {
@@ -335,10 +464,9 @@ const Notification = () => {
           adopterSnapshot.forEach((doc) => createNotification(doc, true));
           listerSnapshot.forEach((doc) => createNotification(doc, false));
 
-          // Sort combined notifications by time
-       // Set unique notifications
-      notificationsList.sort((a, b) => b.timestamp - a.timestamp);
-      setNotifications([...notificationsList]);
+          // Sort combined notifications by time (latest first)
+          notificationsList.sort((a, b) => b.timestamp - a.timestamp);
+          setNotifications([...notificationsList]);
         } catch (error) {
           console.error("Error fetching finalized adoptions:", error);
         }
@@ -350,7 +478,10 @@ const Notification = () => {
     return () => unsubscribe();
   }, [currentUser, users, router]);
 
+  // Optimized fetchUserDetails with check to prevent duplicate fetches
   const fetchUserDetails = async (email) => {
+    if (users[email]) return users[email]; // Return cached user details if already fetched
+
     try {
       const usersQuery = query(
         collection(db, "users"),
@@ -359,10 +490,15 @@ const Notification = () => {
       const querySnapshot = await getDocs(usersQuery);
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0].data();
-        return {
+        const userDetails = {
           name: userDoc.name,
           profilePicture: userDoc.profilePicture || null,
         };
+        setUsers((prev) => ({
+          ...prev,
+          [email]: userDetails,
+        }));
+        return userDetails;
       } else {
         console.log("User not found for email:", email);
         return null;
@@ -372,6 +508,8 @@ const Notification = () => {
       return null;
     }
   };
+
+
 
   const deleteNotification = (id) => {
     setNotifications((prevNotifications) =>

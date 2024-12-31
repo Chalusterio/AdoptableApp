@@ -8,7 +8,8 @@ import {
   Image,
   Modal,
   Dimensions,
-  TouchableWithoutFeedback, ActivityIndicator,
+  TouchableWithoutFeedback,
+  ActivityIndicator,
 } from "react-native";
 import { TextInput } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -30,10 +31,9 @@ import { db, auth } from "../../firebase";
 import { getStorage, ref, getDownloadURL } from "firebase/storage"; // Firebase storage import
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GOOGLE_API_KEY } from "../../config"; // Import the Google API key
-import Geolocation from 'react-native-geocoding';
-import MapView, { Marker } from 'react-native-maps';
-import * as Location from 'expo-location';
-
+import Geolocation from "react-native-geocoding";
+import MapView, { Marker } from "react-native-maps";
+import * as Location from "expo-location";
 
 const screenWidth = Dimensions.get("window").width; // Full screen width
 const adjustedWidth = screenWidth - 40; // Subtract 20 padding on both sides
@@ -49,7 +49,6 @@ export default function ApproveAdoption() {
   const [locationPermission, setLocationPermission] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
-
 
   // State for adopter and pet details
   const [petRequestDetails, setPetRequestDetails] = useState({});
@@ -78,7 +77,6 @@ export default function ApproveAdoption() {
     useState(false);
   const scrollViewRef = useRef(null);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
-
 
   // State for image URLs and scroll functionality
   const [imageURLs, setImageURLs] = useState([]);
@@ -110,7 +108,6 @@ export default function ApproveAdoption() {
     }
   };
 
-
   const expectedDate = getEstimatedDeliveryDate();
 
   const fetchImageURLs = async (imagePaths) => {
@@ -135,7 +132,6 @@ export default function ApproveAdoption() {
   };
 
   useEffect(() => {
-
     Geolocation.init(GOOGLE_API_KEY);
 
     const fetchPetDetails = async () => {
@@ -203,7 +199,7 @@ export default function ApproveAdoption() {
     const { status } = await Location.requestForegroundPermissionsAsync();
     setLocationPermission(status);
 
-    if (status === 'granted') {
+    if (status === "granted") {
       const location = await Location.getCurrentPositionAsync({});
       setSelectedLocation(location.coords);
     } else {
@@ -214,7 +210,7 @@ export default function ApproveAdoption() {
 
   // Update address directly as a string, not an object
   const handleAddressChange = async (text) => {
-    setNewAddress(text);  // Set newAddress as a string directly
+    setNewAddress(text); // Set newAddress as a string directly
     setShowSuggestions(true); // Show the suggestions dropdown when typing
     if (text.length > 2) {
       fetchAddressSuggestions(text);
@@ -238,27 +234,30 @@ export default function ApproveAdoption() {
   };
   // Function when an address from the suggestions is selected
   const handleAddressSelect = (address) => {
-    console.log('Selected address from suggestions:', address); // Debugging log
+    console.log("Selected address from suggestions:", address); // Debugging log
     setNewAddress(address); // Update the new address state
     setShowSuggestions(false); // Close the suggestions list
 
-     // Geocode the address to get the location
-     Location.geocodeAsync(address)
-     .then((response) => {
-       if (response && response[0]) {
-         const { latitude, longitude } = response[0];
-         setSelectedLocation({ latitude, longitude });
-         console.log('Geocoding successful. Location:', { latitude, longitude }); // Debugging log
-       } else {
-         alert("Could not geocode the address. Please try again.");
-         console.log('Geocoding failed. No response or incorrect data.'); // Debugging log
-       }
-     })
-     .catch((error) => {
-       console.error(error);
-       alert("Failed to get location. Please try again.");
-       console.log('Geocoding error:', error); // Debugging log
-     });
+    // Geocode the address to get the location
+    Location.geocodeAsync(address)
+      .then((response) => {
+        if (response && response[0]) {
+          const { latitude, longitude } = response[0];
+          setSelectedLocation({ latitude, longitude });
+          console.log("Geocoding successful. Location:", {
+            latitude,
+            longitude,
+          }); // Debugging log
+        } else {
+          alert("Could not geocode the address. Please try again.");
+          console.log("Geocoding failed. No response or incorrect data."); // Debugging log
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        alert("Failed to get location. Please try again.");
+        console.log("Geocoding error:", error); // Debugging log
+      });
   };
 
   const handleSelectAddressClick = () => {
@@ -267,16 +266,14 @@ export default function ApproveAdoption() {
     console.log('Address on "Select Address" button click:', address); // Debugging log
 
     // Remove the check for the same address
-    console.log('Updating selected address and geocoding it...'); // Debugging log
+    console.log("Updating selected address and geocoding it..."); // Debugging log
     setSelectedAddress(address); // Set the selected address in state
     setNewAddress(address); // Update the new address state
 
-
     // Close the modal after selecting the address
     setAddressModalVisible(false);
-    console.log('Modal closed after address selection.'); // Debugging log
+    console.log("Modal closed after address selection."); // Debugging log
   };
-
 
   // Update transaction summary when delivery or adoption fee changes
   useEffect(() => {
@@ -392,7 +389,6 @@ export default function ApproveAdoption() {
     setCancelModalVisible(true);
   };
 
-
   const handleConfirmFinalization = async () => {
     if (!petRequestDetails.address) {
       alert("Can't proceed without an address");
@@ -406,7 +402,9 @@ export default function ApproveAdoption() {
 
       // Ensure petName and listedBy email are present
       if (!petName || !listedBy) {
-        throw new Error("Missing petName or listedBy email. Cannot finalize adoption.");
+        throw new Error(
+          "Missing petName or listedBy email. Cannot finalize adoption."
+        );
       }
 
       // Fetch the pet document using petName and listedBy email
@@ -419,7 +417,9 @@ export default function ApproveAdoption() {
       const petQuerySnapshot = await getDocs(petQuery);
 
       if (petQuerySnapshot.empty) {
-        throw new Error(`No pet found with name ${petName} listed by ${listedBy}`);
+        throw new Error(
+          `No pet found with name ${petName} listed by ${listedBy}`
+        );
       }
 
       // Get the pet document ID from the query result
@@ -456,9 +456,6 @@ export default function ApproveAdoption() {
       alert(`Failed to finalize adoption. Reason: ${error.message}`);
     }
   };
-
-
-
 
   useEffect(() => {
     const checkFinalizedState = async () => {
@@ -573,7 +570,6 @@ export default function ApproveAdoption() {
               onPress={() => setEditModalVisible(true)}
             >
               <MaterialIcons name="edit" size={24} color="black" />
-
             </TouchableOpacity>
           </View>
 
@@ -648,14 +644,19 @@ export default function ApproveAdoption() {
 
           {/* Payment Section */}
           <View style={styles.paymentSectionContainer}>
-
             <TouchableOpacity
-              style={[styles.finalizeCancelButton, isFinalized && styles.cancelDisabledButton]} // Apply disabled style
+              style={[
+                styles.finalizeCancelButton,
+                isFinalized && styles.cancelDisabledButton,
+              ]} // Apply disabled style
               onPress={isFinalized ? null : handleShowCancelModal} // Prevent action if finalized
               disabled={isFinalized} // Disable button if finalized
             >
               <Text
-                style={[styles.finalizeCancelButtonText, isFinalized && styles.disabledButtonText]} // Apply disabled text style
+                style={[
+                  styles.finalizeCancelButtonText,
+                  isFinalized && styles.disabledButtonText,
+                ]} // Apply disabled text style
               >
                 {isFinalized ? "Cannot Cancel" : "Cancel Adoption"}
               </Text>
@@ -696,12 +697,9 @@ export default function ApproveAdoption() {
           <Text style={styles.modalTitle}>Edit Address and Phone Number</Text>
 
           {/* Address Field */}
-          <TouchableOpacity
-            style={styles.question}
-            onPress={() => setAddressModalVisible(true)} // Open the address modal
-          >
+          <View style={styles.addressFieldContainer}>
             <TextInput
-              style={styles.addressDisplay}
+              style={styles.input1}
               placeholder="Enter new address"
               value={newAddress || ""}
               editable={false} // Make it read-only until edit is triggered
@@ -710,7 +708,13 @@ export default function ApproveAdoption() {
               outlineColor="transparent"
               activeOutlineColor="#68C2FF"
             />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.editAddressButton}
+              onPress={() => setAddressModalVisible(true)} // Open the address modal
+            >
+              <MaterialIcons name="edit" size={24} color="#68C2FF" />
+            </TouchableOpacity>
+          </View>
 
           {/* Phone Number Input */}
           <Text style={styles.question}>Phone Number:</Text>
@@ -746,7 +750,6 @@ export default function ApproveAdoption() {
         </View>
       </Modal>
 
-
       {/* Address Modal */}
       <Modal
         visible={isAddressModalVisible}
@@ -762,8 +765,11 @@ export default function ApproveAdoption() {
             <TextInput
               style={styles.addressInput}
               placeholder="Search for address"
-              value={newAddress}  // Set the value of the input field to newAddress
-              onChangeText={handleAddressChange}  // Handle the input change
+              value={newAddress} // Set the value of the input field to newAddress
+              onChangeText={handleAddressChange} // Handle the input change
+              mode="outlined"
+              outlineColor="transparent"
+              activeOutlineColor="#68C2FF"
             />
 
             {/* Display suggestions if any */}
@@ -800,37 +806,34 @@ export default function ApproveAdoption() {
                 }}
               >
                 {selectedLocation && (
-                  <Marker
-                    coordinate={selectedLocation}
-                    title="Your Location"
-                  />
+                  <Marker coordinate={selectedLocation} title="Your Location" />
                 )}
               </MapView>
             )}
+
             {/* Select Address Button */}
-            <TouchableOpacity
-              style={styles.selectAddressButton}
-              onPress={handleSelectAddressClick}
-            >
-              <Text style={styles.selectButtonText}>Select Address</Text>
-            </TouchableOpacity>
+            <View style={styles.modalButtons}>
+              {/* Close Button */}
+              <TouchableOpacity
+                style={styles.closeAddressButton}
+                onPress={() => {
+                  setAddressModalVisible(false); // Just close the modal, don't update the address
+                  setNewAddress(petRequestDetails.address || ""); // Revert to the original address
+                }}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
 
-            {/* Close Button */}
-            <TouchableOpacity
-              style={styles.closeAddressButton}
-              onPress={() => {
-                setAddressModalVisible(false); // Just close the modal, don't update the address
-                setNewAddress(''); // Optionally reset new address if not confirmed
-              }}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-
-
+              <TouchableOpacity
+                style={styles.selectAddressButton}
+                onPress={handleSelectAddressClick}
+              >
+                <Text style={styles.selectButtonText}>Select Address</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
-
 
       {/* Cancel Adoption Modal */}
       <Modal
@@ -839,9 +842,7 @@ export default function ApproveAdoption() {
         animationType="fade"
         onRequestClose={() => setCancelModalVisible(false)}
       >
-        <TouchableWithoutFeedback
-          onPress={() => setCancelModalVisible(false)}
-        >
+        <TouchableWithoutFeedback onPress={() => setCancelModalVisible(false)}>
           <View style={styles.modalOverlay}></View>
         </TouchableWithoutFeedback>
 
@@ -867,7 +868,6 @@ export default function ApproveAdoption() {
           </View>
         </View>
       </Modal>
-
 
       {/* Modal for Delivery Options */}
       <Modal
@@ -930,7 +930,7 @@ export default function ApproveAdoption() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView >
+    </SafeAreaView>
   );
 }
 
@@ -1015,8 +1015,15 @@ const styles = StyleSheet.create({
   },
   input: {
     marginTop: 10,
+    marginBottom: 20,
+    backgroundColor: "#F5F5F5",
+  },
+  input1: {
+    marginTop: 10,
     marginBottom: 5,
     backgroundColor: "#F5F5F5",
+    width: "100%", // Ensures the input takes up full width
+    paddingRight: 40,
   },
   editAdopterContainer: {
     width: "100%",
@@ -1116,7 +1123,20 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: "LatoBold",
     fontSize: 18,
-    marginBottom: 20,
+  },
+  addressFieldContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  editAddressButton: {
+    position: "absolute",
+    top: 20,
+    right: 10,
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 1,
   },
   modalOption: {
     paddingVertical: 15,
@@ -1322,46 +1342,77 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    height: "80%",  // Modal takes 80% of screen height
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
-
-  // Content inside modal
   modalAddressContent: {
-    width: "90%",  // 90% width for content container
+    width: "90%", // Adjust the width as needed
+    maxHeight: "100%", // Restrict height of the modal content
     backgroundColor: "white",
     borderRadius: 10,
-    padding: 20,
-    position: "relative",  // For positioning overlay elements
-    maxHeight: "80%",  // Limit the height of the content
   },
-
-  // Title of the modal
   modalAddressTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 15,
+    marginBottom: 10,
+    textAlign: "center",
+    marginTop: 20,
+  },
+  addressInput: {
+    marginTop: 10,
+    marginBottom: 5,
+    marginHorizontal: 20,
+    backgroundColor: "#F5F5F5",
+  },
+  suggestionsContainer: {
+    maxHeight: 200,
+    paddingHorizontal: 20,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
+  map: {
+    width: "90%",
+    height: 200,
+    marginTop: 20,
+    borderRadius: 10,
+    alignSelf: "center",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+    padding: 20,
+    gap: 10,
+  },
+  selectAddressButton: {
+    flex: 1,
+    backgroundColor: "#68C2FF",
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+  },
+  selectButtonText: {
+    fontSize: 18,
+    fontFamily: "LatoBold",
+    color: "#fff",
     textAlign: "center",
   },
-
-  // Close button at the top-right corner
-  editAddressButton: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    borderRadius: 20,
-    padding: 8,
-    zIndex: 1,
-  },
-
-  // Address input field
-  addressInput: {
+  closeAddressButton: {
+    flex: 1,
+    backgroundColor: "#444",
     height: 40,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingLeft: 10,
-    marginBottom: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+  },
+  closeButtonText: {
+    fontSize: 18,
+    fontFamily: "LatoBold",
+    color: "#fff",
+    textAlign: "center",
   },
 
   // Display of selected address, larger field
@@ -1373,74 +1424,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     marginBottom: 10,
     height: 50,
-  },
-
-  // Container for suggestions (overlaying the map)
-  suggestionsContainer: {
-    position: "absolute",
-    top: 100,  // Adjust to start below the input
-    left: 0,
-    right: 0,
-    maxHeight: 200,
-    backgroundColor: "white",
-    zIndex: 100,  // Ensure suggestions are on top
-    borderRadius: 5,
-    borderColor: "#ccc",
-    borderWidth: 1,
-  },
-
-  // Each suggestion item
-  suggestionItem: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-  },
-
-  // Save button styling
-  selectAddressButton: {
-    backgroundColor: '#0047AB',  // Blue color
-    width: '100%',
-    paddingVertical: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-
-  // Save button text
-  selectButtonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-
-  // Close button styling
-  closeAddressButton: {
-    backgroundColor: '#ccc', // Light gray for cancel
-    width: '100%',
-    paddingVertical: 15,
-    borderRadius: 8,
-  },
-
-  // Close button text
-  closeButtonText: {
-    color: '#0047AB', // Blue for the close button
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-
-  // Container for address input and edit button
-  addressFieldContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-
-  // Map styling (below input and suggestions)
-  map: {
-    height: 300,
-    marginBottom: 10,
-    borderRadius: 10,  // Optional for rounded corners
   },
 });
