@@ -49,6 +49,7 @@ export default function ApproveAdoption() {
   const [locationPermission, setLocationPermission] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // State for adopter and pet details
   const [petRequestDetails, setPetRequestDetails] = useState({});
@@ -396,45 +397,46 @@ export default function ApproveAdoption() {
       alert("Can't proceed without an address");
       return;
     }
-  
+
     console.log("Pet Request Details:", petRequestDetails); // Debugging log
-  
+
+    setIsProcessing(true);
     try {
       const { petName, listedBy, petDetail } = petRequestDetails;
-  
+
       // Ensure petName and listedBy email are present
       if (!petName || !listedBy) {
         throw new Error(
           "Missing petName or listedBy email. Cannot finalize adoption."
         );
       }
-  
+
       // Fetch the pet document using petName and listedBy email
       const petQuery = query(
         collection(db, "listed_pets"),
         where("petName", "==", petName),
         where("listedBy", "==", listedBy)
       );
-  
+
       const petQuerySnapshot = await getDocs(petQuery);
-  
+
       if (petQuerySnapshot.empty) {
         throw new Error(
           `No pet found with name ${petName} listed by ${listedBy}`
         );
       }
-  
+
       // Get the pet document ID from the query result
       const petDoc = petQuerySnapshot.docs[0]; // Assuming the first result is correct
       const petId = petDoc.id;
-  
+
       // Fetch the pet request document using petRequestId
       const petRequestRef = doc(db, "pet_request", petRequestId);
       const petRequestDoc = await getDoc(petRequestRef);
       if (!petRequestDoc.exists()) {
         throw new Error(`Pet request with ID ${petRequestId} not found`);
       }
-  
+
       // Add finalized adoption data to Firestore
       const finalizedAdoptionData = {
         petRequestId,
@@ -447,30 +449,34 @@ export default function ApproveAdoption() {
         tracking_status: "Preparing",
         dateFinalized: new Date().toISOString(),
       };
-  
+
       // Add finalized adoption data to the 'finalized_adoption' collection
       const finalizedCollectionRef = collection(db, "finalized_adoption");
       await addDoc(finalizedCollectionRef, finalizedAdoptionData);
-  
+
       // Update the status of the listed pet using the petId
       const listedPetRef = doc(db, "listed_pets", petId);
       await updateDoc(listedPetRef, { status: "finalized" });
-  
+
       // Now update the original pet_request document with notification read status
-    console.log(`Updating pet request document with adopterNotificationRead and listerNotificationRead for petRequestId: ${petRequestId}`);
-    await updateDoc(petRequestRef, {
-      adopterNotificationRead: false,
-      listerNotificationRead: false,
-    });
-  
+      console.log(
+        `Updating pet request document with adopterNotificationRead and listerNotificationRead for petRequestId: ${petRequestId}`
+      );
+      await updateDoc(petRequestRef, {
+        adopterNotificationRead: false,
+        listerNotificationRead: false,
+      });
+
       // Update local state and persist finalized state
       setIsFinalized(true);
       await AsyncStorage.setItem(`finalized-${petRequestId}`, "true");
-  
+
       router.push("/FinalizedAdoption");
     } catch (error) {
       console.error("Error finalizing adoption:", error);
       alert(`Failed to finalize adoption. Reason: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -503,7 +509,12 @@ export default function ApproveAdoption() {
     !petDetails.petName ||
     !petRequestDetails.name
   ) {
-    return <Text>Loading...</Text>;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#68C2FF" />
+        <Text style={styles.loadingText}>Loading pet details...</Text>
+      </View>
+    );
   }
 
   return (
@@ -939,10 +950,15 @@ export default function ApproveAdoption() {
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.confirmButton}
+              style={[styles.confirmButton, isProcessing && { opacity: 0.5 }]}
               onPress={handleConfirmFinalization}
+              disabled={isProcessing}
             >
-              <Text style={styles.confirmButtonText}>Confirm</Text>
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.confirmButtonText}>Confirm</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -955,6 +971,18 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: "Lato",
+    color: "#68C2FF",
   },
   scrollViewContent: {
     paddingBottom: 0,
