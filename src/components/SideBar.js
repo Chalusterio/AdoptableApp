@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,11 +8,12 @@ import {
   Dimensions,
   TouchableWithoutFeedback,
   Image,
-  Modal
+  Modal,
+  BackHandler,
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useRouter } from "expo-router";
 import { auth, signOut, clearSession, getSession } from "../../firebase"; // Ensure this imports your Firebase setup
 
@@ -23,6 +24,19 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
   const screenWidth = Dimensions.get("window").width;
   const drawerWidth = screenWidth * 0.8; // Adjust the width of the drawer (80% of screen width)
   const drawerTranslateX = useState(new Animated.Value(-drawerWidth))[0]; // Start off-screen
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (selectedItem !== "Main") {
+        setSelectedItem("Main");
+        router.push("/Main");
+        return true; // Prevent default behavior (going back to the previous page)
+      }
+      return false; // Allow default behavior
+    });
+
+    return () => backHandler.remove();
+  }, [selectedItem]);
 
   const toggleDrawer = () => {
     Animated.timing(drawerTranslateX, {
@@ -56,35 +70,34 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
         console.error("No session found, user is not logged in.");
         return;
       }
-  
+
       // Clear session in Firebase
       await signOut(auth);
       console.log("Firebase session cleared");
-  
+
       // Clear custom session
       await clearSession();
       console.log("Custom session cleared");
-  
+
       // Ensure session is completely cleared
       const newSession = await getSession();
       console.log("Session after logout:", newSession); // Debug log
-  
+
       if (newSession) {
         console.error("Session not cleared properly");
         return;
       }
-  
+
       // Redirect after successful logout
       console.log("User logged out");
       router.push("/Login"); // Ensure the route is correct
-  
+
     } catch (error) {
       console.error("Error logging out: ", error.message);
     } finally {
       setLogoutConfirmVisible(false); // Close logout confirmation modal
     }
   };
-  
 
   const handleLogoutConfirm = () => {
     setLogoutConfirmVisible(true); // Show confirmation modal
@@ -119,7 +132,7 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
           </View>
           {/* Drawer items */}
           <TouchableOpacity
-            onPress={() => navigateTo("Main")}
+            onPress={() => router.replace("Main")}
             style={[styles.drawerItem, selectedItem === "Main" && styles.activeDrawerItem]}
           >
             <MaterialCommunityIcons
@@ -134,7 +147,7 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigateTo("Favorites")}
+            onPress={() => router.replace("Favorites")}
             style={[styles.drawerItem, selectedItem === "Favorites" && styles.activeDrawerItem]}
           >
             <FontAwesome
@@ -149,7 +162,7 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigateTo("Uploads")}
+            onPress={() => router.replace("Uploads")}
             style={[styles.drawerItem, selectedItem === "Uploads" && styles.activeDrawerItem]}
           >
             <MaterialCommunityIcons
@@ -164,7 +177,7 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigateTo("Requests")}
+            onPress={() => router.replace("Requests")}
             style={[styles.drawerItem, selectedItem === "Requests" && styles.activeDrawerItem]}
           >
             <MaterialCommunityIcons
@@ -179,7 +192,7 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigateTo("Donate")}
+            onPress={() => router.replace("Donate")}
             style={[styles.drawerItem, selectedItem === "Donate" && styles.activeDrawerItem]}
           >
             <MaterialCommunityIcons
@@ -194,7 +207,7 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigateTo("CommunityPost")}
+            onPress={() => router.replace("CommunityPost")}
             style={[styles.drawerItem, selectedItem === "CommunityPost" && styles.activeDrawerItem]}
           >
             <MaterialCommunityIcons

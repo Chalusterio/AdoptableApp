@@ -10,7 +10,13 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { db } from "../../../firebase";
-import { collection, query, where, onSnapshot, getDocs } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  getDocs,
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 // PetCard component to display each pet's details and tracking information
@@ -52,6 +58,8 @@ const PetCard = ({
 
   const currentSteps = stepStatus[trackingStatus] || []; // Default to no steps
 
+  const petAge = parseInt(pet.age, 10); // Ensure pet age is treated as a number
+
   return (
     <TouchableOpacity onPress={onToggle} style={styles.petCard}>
       <View style={styles.rowContainer}>
@@ -66,7 +74,7 @@ const PetCard = ({
             )}
           </Text>
           <Text style={styles.petDetails}>
-            {pet.age} years | {pet.weight} kg
+            {petAge} {petAge === 1 ? "year old" : "years old"} | {pet.weight} kg
           </Text>
 
           <View style={styles.deliveryDetailBox}>
@@ -80,17 +88,24 @@ const PetCard = ({
       {isExpanded && (
         <>
           <View style={styles.trackingContainer}>
+            <View style={styles.horizontalLine}></View>
             {pet.listedBy === currentUserEmail ? (
               // If the current user is the pet lister, show the adopter's details
               <View style={styles.adopterInfoContainer}>
-                <Text style={styles.adopterName}>Adopter: {pet.adopterName}</Text>
-                <Text style={styles.adopterAddress}>Address: {pet.adopterAddress}</Text>
+                <Text style={styles.adopterName}>
+                  Adopter: {pet.adopterName}
+                </Text>
+                <Text style={styles.adopterAddress}>
+                  Address: {pet.adopterAddress}
+                </Text>
               </View>
             ) : (
               // If the current user is the pet adopter, show the lister's details
               <View style={styles.adopterInfoContainer}>
                 <Text style={styles.adopterName}>Lister: {pet.listerName}</Text>
-                <Text style={styles.adopterAddress}>Address: {pet.listerAddress}</Text>
+                <Text style={styles.adopterAddress}>
+                  Address: {pet.listerAddress}
+                </Text>
               </View>
             )}
 
@@ -104,6 +119,9 @@ const PetCard = ({
               </Text>
             </View>
 
+            {/* Add horizontal line below delivery details container */}
+            <View style={styles.horizontalLine}></View>
+
             <View style={styles.bigStepContainer}>
               {bigSteps.map((step, index) => (
                 <View key={index} style={styles.bigStepColumnContainer}>
@@ -112,8 +130,9 @@ const PetCard = ({
                       style={[
                         styles.iconContainer,
                         {
-                          backgroundColor:
-                            currentSteps.includes(index) ? "#68C2FF" : "#ddd",
+                          backgroundColor: currentSteps.includes(index)
+                            ? "#68C2FF"
+                            : "#ddd",
                         },
                       ]}
                     >
@@ -186,57 +205,58 @@ const Track = () => {
             const petId = petRequestDetails.petName; // Correct the property reference here
             const listerEmail = petRequestDetails.listedBy; // Assuming 'listedBy' stores the lister's email
             console.log("Adopted Pet ID:", petId);
-      
+
             // Query to get pet details
             const petRef = collection(db, "listed_pets");
             const petQuery = query(petRef, where("petName", "==", petId));
-      
+
             // Query to get lister details from the 'users' collection
             const userRef = collection(db, "users");
             const userQuery = query(userRef, where("email", "==", listerEmail)); // Only fetch lister details
-      
+
             // Use getDocs instead of onSnapshot
-            Promise.all([getDocs(petQuery), getDocs(userQuery)]).then(([petSnapshot, userSnapshot]) => {
-              petSnapshot.forEach((petDoc) => {
-                const petDetails = petDoc.data();
-                console.log("Fetched Pet Details:", petDetails);
-      
-                // Initialize variables for lister details
-                let listerName = '';
-                let listerAddress = '';
-      
-                // Fetch lister details
-                userSnapshot.forEach((userDoc) => {
-                  const userData = userDoc.data();
-                  if (userData.email === listerEmail) {
-                    listerName = userData.name; // Assuming 'name' field exists
-                    listerAddress = userData.address; // Assuming 'address' field exists
-                  }
+            Promise.all([getDocs(petQuery), getDocs(userQuery)]).then(
+              ([petSnapshot, userSnapshot]) => {
+                petSnapshot.forEach((petDoc) => {
+                  const petDetails = petDoc.data();
+                  console.log("Fetched Pet Details:", petDetails);
+
+                  // Initialize variables for lister details
+                  let listerName = "";
+                  let listerAddress = "";
+
+                  // Fetch lister details
+                  userSnapshot.forEach((userDoc) => {
+                    const userData = userDoc.data();
+                    if (userData.email === listerEmail) {
+                      listerName = userData.name; // Assuming 'name' field exists
+                      listerAddress = userData.address; // Assuming 'address' field exists
+                    }
+                  });
+
+                  // Push pet and lister details into petData array
+                  petData.push({
+                    id: petDoc.id,
+                    name: petDetails.petName,
+                    age: petDetails.petAge,
+                    weight: petDetails.petWeight,
+                    image: petDetails.images[0],
+                    totalAmount: adoptionData.totalAmount,
+                    deliveryType: adoptionData.deliveryDetails?.type,
+                    expectedDate: adoptionData.deliveryDetails?.expectedDate,
+                    trackingStatus: adoptionData.tracking_status,
+                    listerName, // Add lister details
+                    listerAddress, // Add lister details
+                  });
                 });
-      
-                // Push pet and lister details into petData array
-                petData.push({
-                  id: petDoc.id,
-                  name: petDetails.petName,
-                  age: petDetails.petAge,
-                  weight: petDetails.petWeight,
-                  image: petDetails.images[0],
-                  totalAmount: adoptionData.totalAmount,
-                  deliveryType: adoptionData.deliveryDetails?.type,
-                  expectedDate: adoptionData.deliveryDetails?.expectedDate,
-                  trackingStatus: adoptionData.tracking_status,
-                  listerName, // Add lister details
-                  listerAddress, // Add lister details
-                });
-              });
-      
-              // Update state with fetched pets for lister
-              setAdopterPets(petData);
-            });
+
+                // Update state with fetched pets for lister
+                setAdopterPets(petData);
+              }
+            );
           });
         }
       );
-      
 
       // Fetch finalized adoptions for lister
       const finalizedAdoptionQueryLister = query(
@@ -244,7 +264,6 @@ const Track = () => {
         where("status", "==", "finalized"),
         where("petRequestDetails.listedBy", "==", currentUserEmail) // For lister
       );
-
 
       const unsubscribeLister = onSnapshot(
         finalizedAdoptionQueryLister,
@@ -257,60 +276,68 @@ const Track = () => {
             const adopterEmail = petRequestDetails.adopterEmail; // Assuming you have adopterEmail
             const listerEmail = petRequestDetails.listedBy; // Assuming 'listedBy' stores the lister's email
             console.log("Lister Pet ID:", petId);
-      
+
             const petRef = collection(db, "listed_pets");
             const petQuery = query(petRef, where("petName", "==", petId));
-      
+
             // Query to get both adopter and lister details from the 'users' collection
             const userRef = collection(db, "users");
-            const userQuery = query(userRef, where("email", "in", [adopterEmail, listerEmail])); // 'in' query to fetch both adopter and lister
-      
-            Promise.all([getDocs(petQuery), getDocs(userQuery)]).then(([petSnapshot, userSnapshot]) => {
-              petSnapshot.forEach((petDoc) => {
-                const petDetails = petDoc.data();
-                console.log("Fetched Pet Details:", petDetails);
-      
-                // Initialize variables for adopter details
-                let adopterName = '';
-                let adopterAddress = '';
-      
-                // Fetch user details (only for adopter)
-                userSnapshot.forEach((userDoc) => {
-                  const userData = userDoc.data();
-                  if (userData.email === adopterEmail) {
-                    adopterName = userData.name; // Assuming 'name' field exists
-                    adopterAddress = userData.address; // Assuming 'address' field exists
-                  }
-                });
-      
-                // Query for pet details and update petData
-                onSnapshot(petQuery, (petSnapshot) => {
-                  petSnapshot.forEach((petDoc) => {
-                    const petDetails = petDoc.data();
-                    console.log("Fetched Pet Details for Lister:", petDetails);
-                    petData.push({
-                      id: petDoc.id,
-                      name: petDetails.petName,
-                      age: petDetails.petAge,
-                      weight: petDetails.petWeight,
-                      image: petDetails.images[0],
-                      totalAmount: adoptionData.totalAmount,
-                      deliveryType: adoptionData.deliveryDetails?.type,
-                      expectedDate: adoptionData.deliveryDetails?.expectedDate,
-                      trackingStatus: adoptionData.tracking_status,
-                      listedBy: petDetails.listedBy, // Ensure listedBy is included
-                      adopterName, // Add adopter details
-                      adopterAddress, // Add adopter details
-                    });
+            const userQuery = query(
+              userRef,
+              where("email", "in", [adopterEmail, listerEmail])
+            ); // 'in' query to fetch both adopter and lister
+
+            Promise.all([getDocs(petQuery), getDocs(userQuery)]).then(
+              ([petSnapshot, userSnapshot]) => {
+                petSnapshot.forEach((petDoc) => {
+                  const petDetails = petDoc.data();
+                  console.log("Fetched Pet Details:", petDetails);
+
+                  // Initialize variables for adopter details
+                  let adopterName = "";
+                  let adopterAddress = "";
+
+                  // Fetch user details (only for adopter)
+                  userSnapshot.forEach((userDoc) => {
+                    const userData = userDoc.data();
+                    if (userData.email === adopterEmail) {
+                      adopterName = userData.name; // Assuming 'name' field exists
+                      adopterAddress = userData.address; // Assuming 'address' field exists
+                    }
                   });
-                  setListerPets(petData); // Update state with fetched pets for lister
+
+                  // Query for pet details and update petData
+                  onSnapshot(petQuery, (petSnapshot) => {
+                    petSnapshot.forEach((petDoc) => {
+                      const petDetails = petDoc.data();
+                      console.log(
+                        "Fetched Pet Details for Lister:",
+                        petDetails
+                      );
+                      petData.push({
+                        id: petDoc.id,
+                        name: petDetails.petName,
+                        age: petDetails.petAge,
+                        weight: petDetails.petWeight,
+                        image: petDetails.images[0],
+                        totalAmount: adoptionData.totalAmount,
+                        deliveryType: adoptionData.deliveryDetails?.type,
+                        expectedDate:
+                          adoptionData.deliveryDetails?.expectedDate,
+                        trackingStatus: adoptionData.tracking_status,
+                        listedBy: petDetails.listedBy, // Ensure listedBy is included
+                        adopterName, // Add adopter details
+                        adopterAddress, // Add adopter details
+                      });
+                    });
+                    setListerPets(petData); // Update state with fetched pets for lister
+                  });
                 });
-              });
-            });
+              }
+            );
           });
         }
       );
-      
 
       // Cleanup listeners when component unmounts or currentUserEmail changes
       return () => {
@@ -446,16 +473,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   deliveryDetailsContainer: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#C2C2C2",
-    paddingBottom: 10,
-    marginBottom: 20, // Optional: for spacing between elements
+    paddingVertical: 20,
   },
   deliveryType: {
     fontSize: 16,
     color: "#333",
     fontWeight: "bold",
-    marginBottom: 5,
+  },
+  expectedDate: {
+    fontSize: 14,
+    color: "#666",
   },
   deliveryDetailBox: {
     borderWidth: 2,
@@ -472,13 +499,18 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   trackingContainer: {
-    marginTop: 50,
+    paddingTop: 20,
+  },
+  horizontalLine: {
+    width: "100%",
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "gray",
+    alignSelf: "center",
   },
   bigStepContainer: {
-    marginBottom: 0,
+    paddingTop: 20,
   },
-  bigStepColumnContainer: {
-  },
+  bigStepColumnContainer: {},
   bigStepRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -507,10 +539,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   adopterInfoContainer: {
-    marginTop: 15,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#C2C2C2",
+    paddingTop: 20,
   },
   adopterName: {
     fontSize: 16,
@@ -521,7 +550,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
   },
-
 });
 
 export default Track;

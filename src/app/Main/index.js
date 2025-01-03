@@ -147,56 +147,56 @@ const Feed = () => {
       const preferencesSnapshot = await getDocs(preferencesQuery);
 
       let rankedPets = pets
-      .filter((pet) => pet.status !== "finalized")  // Exclude finalized pets
-      .map((pet) => {
-        let score = 0;
+        .filter((pet) => pet.status !== "finalized") // Exclude finalized pets
+        .map((pet) => {
+          let score = 0;
 
-        if (preferencesSnapshot.empty) {
-          return { ...pet, score: 0 };
-        }
+          if (preferencesSnapshot.empty) {
+            return { ...pet, score: 0 };
+          }
 
-        const userPreferences = preferencesSnapshot.docs[0].data();
+          const userPreferences = preferencesSnapshot.docs[0].data();
 
-        if (
-          pet.petPersonality &&
-          pet.petPersonality.includes(userPreferences.personalityLabel)
-        ) {
-          score += 1;
-        }
-
-        const petWeight = parseInt(pet.petWeight, 10);
-        let matchesSizeLabel = false;
-        const sizeRangeMatch =
-          userPreferences.petSizeLabel.match(/(\d+)-(\d+)/);
-        if (sizeRangeMatch) {
-          const minSize = parseInt(sizeRangeMatch[1], 10);
-          const maxSize = parseInt(sizeRangeMatch[2], 10);
-          matchesSizeLabel = petWeight >= minSize && petWeight <= maxSize;
-          if (matchesSizeLabel) {
+          if (
+            pet.petPersonality &&
+            pet.petPersonality.includes(userPreferences.personalityLabel)
+          ) {
             score += 1;
           }
-        }
 
-        const matchesGender =
-          userPreferences.selectedGender === "any" ||
-          (pet.petGender &&
-            pet.petGender.toLowerCase() ===
-              userPreferences.selectedGender.toLowerCase());
-        if (matchesGender) {
-          score += 1;
-        }
+          const petWeight = parseInt(pet.petWeight, 10);
+          let matchesSizeLabel = false;
+          const sizeRangeMatch =
+            userPreferences.petSizeLabel.match(/(\d+)-(\d+)/);
+          if (sizeRangeMatch) {
+            const minSize = parseInt(sizeRangeMatch[1], 10);
+            const maxSize = parseInt(sizeRangeMatch[2], 10);
+            matchesSizeLabel = petWeight >= minSize && petWeight <= maxSize;
+            if (matchesSizeLabel) {
+              score += 1;
+            }
+          }
 
-        const matchesPetType =
-          userPreferences.selectedPet === "any" ||
-          (pet.petType &&
-            pet.petType.toLowerCase() ===
-              userPreferences.selectedPet.toLowerCase());
-        if (matchesPetType) {
-          score += 1;
-        }
+          const matchesGender =
+            userPreferences.selectedGender === "any" ||
+            (pet.petGender &&
+              pet.petGender.toLowerCase() ===
+                userPreferences.selectedGender.toLowerCase());
+          if (matchesGender) {
+            score += 1;
+          }
 
-        return { ...pet, score };
-      });
+          const matchesPetType =
+            userPreferences.selectedPet === "any" ||
+            (pet.petType &&
+              pet.petType.toLowerCase() ===
+                userPreferences.selectedPet.toLowerCase());
+          if (matchesPetType) {
+            score += 1;
+          }
+
+          return { ...pet, score };
+        });
 
       if (preferencesSnapshot.empty) {
         rankedPets = pets.map((pet) => ({ ...pet, score: 0 }));
@@ -232,7 +232,8 @@ const Feed = () => {
 
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets[item.id];
-    
+    const petAge = parseInt(item.petAge, 10); // Ensure petAge is treated as a number
+
     <View style={styles.imageContainer}>
       <FastImage
         style={styles.image}
@@ -242,7 +243,7 @@ const Feed = () => {
         }}
         resizeMode={FastImage.resizeMode.cover}
       />
-    </View>
+    </View>;
 
     return (
       <TouchableOpacity
@@ -282,7 +283,9 @@ const Feed = () => {
               )}
             </View>
           </View>
-          <Text style={styles.age}>{item.petAge} years old</Text>
+          <Text style={styles.age}>
+            {petAge} {petAge === 1 ? "year old" : "years old"}
+          </Text>
         </View>
       </TouchableOpacity>
     );
@@ -299,7 +302,7 @@ const Feed = () => {
           </View>
         ) : (
           <FlatList
-          data={filteredPets.filter(pet => pet.status !== "finalized")} 
+            data={filteredPets.filter((pet) => pet.status !== "finalized")}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             numColumns={2}

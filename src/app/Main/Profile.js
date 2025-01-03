@@ -381,41 +381,43 @@ const Profile = () => {
           </View>
 
           {/* Profile Details */}
-          <View style={styles.detailsContainer}>
-            <Icon name="email" size={24} color="#444444" />
-            <Text style={styles.detailsText}>{profileInfo.email}</Text>
-          </View>
-          <View style={styles.horizontalLine}></View>
+          <View style={styles.profileDetailsContain}>
+            <View style={styles.detailsContainer}>
+              <Icon name="email" size={24} color="#444444" />
+              <Text style={styles.detailsText}>{profileInfo.email}</Text>
+            </View>
+            <View style={styles.horizontalLine}></View>
 
-          <View style={styles.detailsContainer}>
-            <Icon name="phone" size={24} color="#444444" />
-            <Text style={styles.detailsText}>{profileInfo.phone}</Text>
-          </View>
-          <View style={styles.horizontalLine}></View>
+            <View style={styles.detailsContainer}>
+              <Icon name="phone" size={24} color="#444444" />
+              <Text style={styles.detailsText}>{profileInfo.phone}</Text>
+            </View>
+            <View style={styles.horizontalLine}></View>
 
-          <View style={styles.detailsContainer}>
-            <Icon name="location-on" size={24} color="#444444" />
-            <Text style={styles.detailsText}>
-              {profileInfo.address || "No Address Provided"}
-            </Text>
-          </View>
-          <View style={styles.horizontalLine}></View>
+            <View style={styles.detailsContainer}>
+              <Icon name="location-on" size={24} color="#444444" />
+              <Text style={styles.detailsText}>
+                {profileInfo.address || "No Address Provided"}
+              </Text>
+            </View>
+            <View style={styles.horizontalLine}></View>
 
-          <View style={styles.detailsContainer}>
-            <Icon name="home" size={24} color="#444444" />
-            <Text style={styles.detailsText}>
-              House Type: {profileInfo.houseType}
-            </Text>
-          </View>
-          <View style={styles.horizontalLine}></View>
+            <View style={styles.detailsContainer}>
+              <Icon name="home" size={24} color="#444444" />
+              <Text style={styles.detailsText}>
+                House Type: {profileInfo.houseType}
+              </Text>
+            </View>
+            <View style={styles.horizontalLine}></View>
 
-          <View style={styles.detailsContainer}>
-            <Icon name="pets" size={24} color="#444444" />
-            <Text style={styles.detailsText}>
-              Pet Owner: {profileInfo.hasPet}
-            </Text>
+            <View style={styles.detailsContainer}>
+              <Icon name="pets" size={24} color="#444444" />
+              <Text style={styles.detailsText}>
+                Pet Owner: {profileInfo.hasPet}
+              </Text>
+            </View>
+            <View style={styles.horizontalLine}></View>
           </View>
-          <View style={styles.horizontalLine}></View>
 
           {/* Edit Modal */}
           <Modal
@@ -437,10 +439,10 @@ const Profile = () => {
                       <Image
                         style={styles.coverImage}
                         source={
-                          editableInfo.coverImage
-                            ? { uri: editableInfo.coverImage } // Use the saved cover photo if available
-                            : coverImage?.uri
-                            ? { uri: coverImage.uri } // Temporary cover photo if selected
+                          editableInfo.coverImage?.uri
+                            ? { uri: editableInfo.coverImage.uri } // Use the temporary URI selected by the user
+                            : profileInfo.coverPhoto
+                            ? { uri: profileInfo.coverPhoto } // Use saved cover photo from Firestore
                             : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
                         }
                       />
@@ -755,7 +757,6 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     flexDirection: "column",
-    padding: 20,
   },
   editButton: {
     position: "absolute",
@@ -791,6 +792,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginVertical: 50,
     color: "#68C2FF",
+  },
+  profileDetailsContain: {
+    paddingHorizontal: 20,
   },
   detailsContainer: {
     flex: 1,
@@ -1014,7 +1018,7 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: -100,
+    marginTop: -105,
   },
   profileImage: {
     width: 240,
@@ -1035,7 +1039,7 @@ const styles = StyleSheet.create({
     marginTop: -50,
   },
   coverImage: {
-    width: "115%",
+    width: "100%",
     height: 210, // Adjust as needed
     resizeMode: "cover",
     marginBottom: 10,

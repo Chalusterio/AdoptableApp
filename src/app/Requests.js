@@ -16,7 +16,14 @@ import SideBar from "../components/SideBar";
 import { Surface } from "react-native-paper";
 import { usePets } from "../context/PetContext"; // Adjust the path as needed
 import { db, auth } from "../../firebase"; // Ensure `auth` and `db` are imported from Firebase
-import { collection, query, where, getDocs, getDoc, doc } from "firebase/firestore"; // Import Firestore functions
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  doc,
+} from "firebase/firestore"; // Import Firestore functions
 
 const Requests = () => {
   const { favoritedPets, cancelRequest, pets, toggleFavorite } = usePets();
@@ -71,13 +78,10 @@ const Requests = () => {
       }
       setAdoptedPets(adoptedList);
     };
-    
 
     fetchUserRequests();
     fetchAdoptedPets();
   }, [pets]); // Re-run only when `pets` changes
-
-
 
   const handleLongPress = (petName) => {
     setLongPressedPetId(petName);
@@ -94,15 +98,14 @@ const Requests = () => {
 
       setLongPressedPetId(null); // Reset the long-press state
     }
-
   };
-
 
   // Render pet item
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets.some((favPet) => favPet.id === item.id);
     const isLongPressed = longPressedPetId === item.petName; // Check petName for long-press
     const isAdopted = adoptedPets.includes(item.id);
+    const petAge = parseInt(item.petAge, 10); // Ensure petAge is treated as a number
 
     return (
       <View style={styles.cardContainer}>
@@ -132,9 +135,7 @@ const Requests = () => {
               />
             </TouchableOpacity>
             <Image source={{ uri: item.images[0] }} style={styles.image} />
-            {isAdopted && (
-              <Text style={styles.adoptedBadge}>Adopted</Text>
-            )}
+            {isAdopted && <Text style={styles.adoptedBadge}>Adopted</Text>}
           </View>
 
           <View style={styles.petDetailsContainer}>
@@ -148,7 +149,9 @@ const Requests = () => {
                 )}
               </View>
             </View>
-            <Text style={styles.age}>{item.petAge} years old</Text>
+            <Text style={styles.age}>
+              {petAge} {petAge === 1 ? "year old" : "years old"}
+            </Text>
           </View>
         </TouchableOpacity>
         {isLongPressed && (
@@ -168,7 +171,9 @@ const Requests = () => {
       <SafeAreaView style={styles.safeArea}>
         <Surface style={styles.titleContainer} elevation={3}>
           <Text style={styles.title}>Your Requested Pets</Text>
-          <Text style={styles.instruction}>Press and hold the pet card to cancel your request.</Text>
+          <Text style={styles.instruction}>
+            Press and hold the pet card to cancel your request.
+          </Text>
         </Surface>
 
         {isLoading ? ( // Display loading spinner while fetching data

@@ -157,18 +157,18 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: "absolute",
-    top: -3,
-    right: -2,
+    top: 0,
+    left: 17,
     backgroundColor: "#FF0000",
     borderRadius: 10,
-    width: 15,
-    height: 15,
+    width: 10,
+    height: 10,
     justifyContent: "center",
     alignItems: "center",
   },
   badgeFocused: {
-    top: -10, // Move the badge higher
-    right: -10,
+    top: 0, // Move the badge higher
+    left: 17,
   },
   badgeText: {
     color: "#FFF",

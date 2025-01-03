@@ -56,19 +56,19 @@ const Favorites = () => {
 
     const fetchAdoptedPets = async () => {
       const adoptedList = [];
-  
+
       // Check each favorited pet's status
       for (const pet of favoritedPets) {
         const petRef = doc(db, "listed_pets", pet.id);
         const petDoc = await getDoc(petRef);
-  
+
         if (petDoc.exists() && petDoc.data().status === "finalized") {
           adoptedList.push(pet.id);
         }
       }
       setAdoptedPets(adoptedList);
     };
-  
+
     if (favoritedPets.length > 0) {
       fetchAdoptedPets();
     }
@@ -80,6 +80,7 @@ const Favorites = () => {
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets.some((favPet) => favPet.id === item.id);
     const isAdopted = adoptedPets.includes(item.id);
+    const petAge = parseInt(item.petAge, 10); // Ensure petAge is treated as a number
 
     return (
       <TouchableOpacity
@@ -107,9 +108,7 @@ const Favorites = () => {
             />
           </TouchableOpacity>
           <Image source={{ uri: item.images[0] }} style={styles.image} />
-        {isAdopted && (
-          <Text style={styles.adoptedBadge}>Adopted</Text>
-        )}
+          {isAdopted && <Text style={styles.adoptedBadge}>Adopted</Text>}
         </View>
         <View style={styles.petDetailsContainer}>
           <View style={styles.nameGenderContainer}>
@@ -122,7 +121,9 @@ const Favorites = () => {
               )}
             </View>
           </View>
-          <Text style={styles.age}>{item.petAge} years old</Text>
+          <Text style={styles.age}>
+            {petAge} {petAge === 1 ? "year old" : "years old"}
+          </Text>
         </View>
       </TouchableOpacity>
     );
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "LatoBold",
     overflow: "hidden",
-  }
+  },
 });
 
 export default Favorites;

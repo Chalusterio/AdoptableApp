@@ -525,14 +525,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   buttonContainer: {
-    justifyContent: "center", // Center vertically
-    alignItems: "center", // Center horizontally
+    flexDirection: "row", // Arrange buttons in a row
+    justifyContent: "space-between", // Space between buttons
+    alignItems: "center", // Center vertically
     marginTop: 20,
   },
   buttonStyle: {
     justifyContent: "center", // Center vertically
     alignItems: "center", // Center horizontally
-    width: "70%",
+    width: "48%", // Half width
     borderWidth: 1,
     borderRadius: 30,
     borderColor: "white",
@@ -548,13 +549,12 @@ const styles = StyleSheet.create({
   preferencesButton: {
     justifyContent: "center", // Center vertically
     alignItems: "center", // Center horizontally
-    width: "70%",
+    width: "48%", // Half width
     borderWidth: 1,
     borderRadius: 30,
     borderColor: "white",
     height: 50,
     backgroundColor: "#68C2FF",
-    marginTop: 20,
   },
   preferencesText: {
     textAlign: "center",

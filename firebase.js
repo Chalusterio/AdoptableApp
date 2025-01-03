@@ -27,6 +27,8 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app); // Initialize Firebase Storage
 
+let unsubscribeFunctions = []; // Array to store Firestore unsubscribe functions
+
 // Function to persist session data
 export const persistSession = async (user) => {
   try {
@@ -164,6 +166,17 @@ export const getUserData = async (userId) => {
     console.error("Error fetching user data: ", error.message);
     throw error;
   }
+};
+
+// Function to add a Firestore listener and keep track of the unsubscribe function
+export const addFirestoreListener = (listener) => {
+  unsubscribeFunctions.push(listener);
+};
+
+// Function to unsubscribe from all Firestore listeners
+const unsubscribeFromAll = () => {
+  unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
+  unsubscribeFunctions = [];
 };
 
 export { auth, db, signInWithEmailAndPassword, signOut };
