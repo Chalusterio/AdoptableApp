@@ -15,9 +15,6 @@ import {
   getDocs,
   where,
   onSnapshot,
-  setDoc,
-  doc,
-  deleteDoc, addDoc,
 } from "firebase/firestore";
 import Swipeable from "react-native-gesture-handler/Swipeable";
 import { db, auth } from "../../../firebase";
@@ -29,7 +26,6 @@ const Notification = () => {
   const [notifications, setNotifications] = useState([]);
   const [users, setUsers] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
-  const [notificationsMap, setNotificationsMap] = useState(new Map()); // To track notifications already processed
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -39,78 +35,63 @@ const Notification = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Initialize the notifications list
-    let notificationsList = [];
+    const fetchNotifications = async () => {
+      let notificationsList = [];
+      const newNotificationsMap = new Map();
 
-    // First, handle pet requests
-    const petRequestsQuery = query(
-      collection(db, "pet_request"),
-      where("status", "in", ["Pending", "Accepted", "Rejected", "Cancelled"])
-    );
+      const petRequestsQuery = query(
+        collection(db, "pet_request"),
+        where("status", "in", ["Pending", "Accepted", "Rejected", "Cancelled"])
+      );
 
-    const storeNotificationToFirestore = async (notification) => {
-      try {
-        const q = query(
-          collection(db, "notifications"),
-          where("id", "==", notification.id)
-        );
-    
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          console.log("Notification already exists:", notification.id);
-          return;
+      const finalizedAdoptionsQuery = query(
+        collection(db, "finalized_adoption"),
+        where("petRequestDetails.adopterEmail", "==", currentUser.email)
+      );
+
+      const finalizedListerQuery = query(
+        collection(db, "finalized_adoption"),
+        where("petRequestDetails.listedBy", "==", currentUser.email)
+      );
+
+      const petRequestsSnapshot = await getDocs(petRequestsQuery);
+      const adopterSnapshot = await getDocs(finalizedAdoptionsQuery);
+      const listerSnapshot = await getDocs(finalizedListerQuery);
+
+      // Fetch user details function
+      const fetchUserDetails = async (email) => {
+        if (users[email]) return users[email];
+        try {
+          const usersQuery = query(
+            collection(db, "users"),
+            where("email", "==", email)
+          );
+          const querySnapshot = await getDocs(usersQuery);
+          if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0].data();
+            const userDetails = {
+              name: userDoc.name,
+              profilePicture: userDoc.profilePicture || null,
+            };
+            setUsers((prev) => ({
+              ...prev,
+              [email]: userDetails,
+            }));
+            return userDetails;
+          } else {
+            console.log("User not found for email:", email);
+            return null;
+          }
+        } catch (error) {
+          console.error("Error fetching user details: ", error);
+          return null;
         }
-    
-        await addDoc(collection(db, "notifications"), {
-          id: notification.id,
-          name: notification.name,
-          image: notification.image || null,
-          timestamp: notification.timestamp,
-          time: notification.time,
-          email: notification.email || null,
-          read: false,
-        });
-        console.log("Notification stored:", notification);
-    
-        // After storing, directly update state to ensure immediate UI update
-        setNotifications((prev) => [notification, ...prev]);
-      } catch (error) {
-        console.error("Error storing notification:", error);
-      }
-    };
-    
-    const unsubscribe = onSnapshot(petRequestsQuery, async (querySnapshot) => {
-      const newNotificationsMap = new Map(notificationsMap);
-      querySnapshot.forEach((doc) => {
+      };
+
+      petRequestsSnapshot.forEach(async (doc) => {
         const petRequest = doc.data();
-
-        const newNotificationsMap = new Map(notificationsMap);
-        const newNotificationsList = [...notificationsList];
-
-        if (!users[petRequest.adopterEmail]) {
-          fetchUserDetails(petRequest.adopterEmail).then((userDetails) => {
-            if (userDetails) {
-              setUsers((prev) => ({
-                ...prev,
-                [petRequest.adopterEmail]: userDetails,
-              }));
-            }
-          });
-        }
-
-        if (!users[petRequest.listedBy]) {
-          fetchUserDetails(petRequest.listedBy).then((userDetails) => {
-            if (userDetails) {
-              setUsers((prev) => ({
-                ...prev,
-                [petRequest.listedBy]: userDetails,
-              }));
-            }
-          });
-        }
-
-        const adopter = users[petRequest.adopterEmail] || {};
-        const petLister = users[petRequest.listedBy] || {};
+        const adopter = await fetchUserDetails(petRequest.adopterEmail);
+        const petLister = await fetchUserDetails(petRequest.listedBy);
 
         let formattedTime = "";
         let timestamp = 0;
@@ -138,15 +119,13 @@ const Notification = () => {
 
         const notificationId = `${doc.id}-${petRequest.status}-${timestamp}`;
 
-      // Add to the map to prevent duplicates
-      newNotificationsMap.set(notificationId, true);
+        newNotificationsMap.set(notificationId, true);
 
-        // Handle the Pending request notification
         if (
           petRequest.status === "Pending" &&
           currentUser.email === petRequest.listedBy
         ) {
-          const notification = {
+          notificationsList.push({
             id: notificationId,
             image: adopter.profilePicture
               ? { uri: adopter.profilePicture }
@@ -159,7 +138,6 @@ const Notification = () => {
               </Text>
             ),
             time: formattedTime,
-            email: petRequest.listedBy,
             timestamp,
             action: () =>
               router.push({
@@ -170,13 +148,9 @@ const Notification = () => {
                   petName: petRequest.petName,
                 },
               }),
-          };
-          // Add notification to the list
-          notificationsList.push(notification);
-
+          });
         }
 
-        // Handle Accepted/Rejected notifications
         if (
           currentUser.email === petRequest.listedBy &&
           ["Accepted", "Rejected"].includes(petRequest.status)
@@ -194,27 +168,22 @@ const Notification = () => {
               </Text>
             );
 
-          const notification = {
+          notificationsList.push({
             id: notificationId,
             image: require("../../assets/Icon_white.png"),
             name: "System Notification",
             content: message,
-            email: petRequest.listedBy,
             time: formattedTime,
             action: null,
-            timestamp, // Ensure the timestamp is added for sorting
-          };
-          // Add notification to the list
-          notificationsList.push(notification);
-
+            timestamp,
+          });
         }
 
-        // Handle Accepted notifications for Adopters
         if (
           petRequest.status === "Accepted" &&
           currentUser.email === petRequest.adopterEmail
         ) {
-          const notification = {
+          notificationsList.push({
             id: notificationId,
             image: petLister.profilePicture
               ? { uri: petLister.profilePicture }
@@ -230,7 +199,6 @@ const Notification = () => {
               </Text>
             ),
             time: formattedTime,
-            email: petRequest.adopterEmail,
             timestamp,
             action: () =>
               router.push({
@@ -241,19 +209,14 @@ const Notification = () => {
                   listedBy: petRequest.listedBy,
                 },
               }),
-          };
-          // Add notification to the list
-          notificationsList.push(notification);
-
+          });
         }
 
-
-        // Handle Rejected notifications for Adopters
         if (
           petRequest.status === "Rejected" &&
           currentUser.email === petRequest.adopterEmail
         ) {
-          const notification = {
+          notificationsList.push({
             id: notificationId,
             image: petLister.profilePicture
               ? { uri: petLister.profilePicture }
@@ -275,21 +238,16 @@ const Notification = () => {
               </Text>
             ),
             time: formattedTime,
-            email: petRequest.adopterEmail,
             timestamp,
             action: null,
-          };
-          // Add notification to the list
-          notificationsList.push(notification);
-
+          });
         }
 
-        // Handle Cancelled notifications for Adopters
         if (
           petRequest.status === "Cancelled" &&
           currentUser.email === petRequest.adopterEmail
         ) {
-          const notification = {
+          notificationsList.push({
             id: notificationId,
             image: require("../../assets/Icon_white.png"),
             name: "System Notification",
@@ -299,22 +257,17 @@ const Notification = () => {
                 <Text style={styles.boldText}>{petRequest.petName}</Text>.
               </Text>
             ),
-            email: petRequest.adopterEmail,
             time: formattedTime,
             timestamp,
             action: null,
-          };
-          // Add notification to the list
-          notificationsList.push(notification);
-
+          });
         }
 
-        // Handle Cancelled notifications for Listers
         if (
           petRequest.status === "Cancelled" &&
           currentUser.email === petRequest.listedBy
         ) {
-          const notification = {
+          notificationsList.push({
             id: notificationId,
             image: adopter.profilePicture
               ? { uri: adopter.profilePicture }
@@ -327,155 +280,81 @@ const Notification = () => {
               </Text>
             ),
             time: formattedTime,
-            email: petRequest.listedBy,
             timestamp,
             action: null,
-          };
-          // Add notification to the list
-          notificationsList.push(notification);
+          });
         }
-        // Sort notifications after adding to the list
-        notificationsList.sort((a, b) => b.timestamp - a.timestamp); // Sort by timestamp, latest first
-        setNotificationsMap(newNotificationsMap);
-        setNotifications([...notificationsList]); // Update the notifications state
+
+        notificationsList.sort((a, b) => b.timestamp - a.timestamp);
+        setNotifications([...notificationsList]);
       });
 
-      // After handling pet requests, fetch finalized adoptions
-      const finalizedAdoptionsQuery = query(
-        collection(db, "finalized_adoption"),
-        where("petRequestDetails.adopterEmail", "==", currentUser.email) // Adopter notifications
-      );
+      const createFinalizedAdoptionNotification = (doc, isAdopter) => {
+        const data = doc.data();
+        const finalizedDate = new Date(data.dateFinalized);
+        const formattedTime = moment(finalizedDate).fromNow();
+        const timestamp = finalizedDate.getTime();
 
-      const finalizedListerQuery = query(
-        collection(db, "finalized_adoption"),
-        where("petRequestDetails.listedBy", "==", currentUser.email) // Lister notifications
-      );
+        const notificationId = isAdopter
+          ? `${doc.id}-finalized-adopter`
+          : `${doc.id}-finalized-lister`;
 
-      const fetchFinalizedAdoptions = async () => {
-        const createNotification = (doc, isAdopter) => {
-          const data = doc.data();
-          const finalizedDate = new Date(data.dateFinalized); // Parse the ISO string into a Date object
-          const formattedTime = moment(finalizedDate).fromNow(); // Use moment to format
-          const timestamp = finalizedDate.getTime(); // Get UNIX timestamp
+        newNotificationsMap.set(notificationId, true);
 
-          const notificationId = isAdopter
-            ? `${doc.id}-finalized-adopter`
-            : `${doc.id}-finalized-lister`;
-
-          // Check if the notification already exists
-          if (notificationsList.some((notif) => notif.id === notificationId)) {
-            return; // Skip duplicate notification
-          }
-          // Determine the email of the recipient
-          const recipientEmail = isAdopter
-            ? data.petRequestDetails.adopterEmail
-            : data.petRequestDetails.listedBy;
-
-          if (isAdopter) {
-            notificationsList.push({
-              id: `${doc.id}-finalized-adopter`,
-              image: require("../../assets/Icon_white.png"),
-              name: "System Notification",
-              content: (
-                <Text>
-                  Congratulations, {data.petRequestDetails.name}! The adoption
-                  of{" "}
-                  <Text style={styles.boldText}>
-                    {data.petRequestDetails.petName}
-                  </Text>{" "}
-                  has been finalized. Track their journey here.
+        if (isAdopter) {
+          notificationsList.push({
+            id: `${doc.id}-finalized-adopter`,
+            image: require("../../assets/Icon_white.png"),
+            name: "System Notification",
+            content: (
+              <Text>
+                Congratulations, {data.petRequestDetails.name}! The adoption of{" "}
+                <Text style={styles.boldText}>
+                  {data.petRequestDetails.petName}
+                </Text>{" "}
+                has been finalized. Track their journey here.
+              </Text>
+            ),
+            time: formattedTime,
+            timestamp,
+            action: () => router.push("/Main/Track"),
+          });
+        } else {
+          notificationsList.push({
+            id: `${doc.id}-finalized-lister`,
+            image: require("../../assets/Icon_white.png"),
+            name: "System Notification",
+            content: (
+              <Text>
+                {data.petRequestDetails.name || "Adopter"} has finalized the
+                adoption of{" "}
+                <Text style={styles.boldText}>
+                  {data.petRequestDetails.petName || "their pet"}
                 </Text>
-              ),
-              email: recipientEmail, // Store the email of the adopter
-              time: formattedTime,
-              timestamp,
-              action: () => router.push("/Main/Track"),
-            });
-          } else {
-            const notification = {
-              id: `${doc.id}-finalized-lister`,
-              image: require("../../assets/Icon_white.png"),
-              name: "System Notification",
-              content: (
-                <Text>
-                  {data.petRequestDetails.name || "Adopter"} has finalized the
-                  adoption of{" "}
-                  <Text style={styles.boldText}>
-                    {data.petRequestDetails.petName || "their pet"}
-                  </Text>
-                  . Check the process here.
-                </Text>
-              ),
-              email: recipientEmail, // Store the email of the adopter
-              time: formattedTime,
-              timestamp,
-              action: () => router.push("/Main/Track"),
-            };
-            // Add notification to the list
-            notificationsList.push(notification);
-            // Ensure notifications are updated after processing all pet requests
-            setNotifications([...notificationsList]);
-          }
-
-        };
-
-        try {
-          const adopterSnapshot = await getDocs(finalizedAdoptionsQuery);
-          const listerSnapshot = await getDocs(finalizedListerQuery);
-
-          // Create notifications for adopters and listers
-          adopterSnapshot.forEach((doc) => createNotification(doc, true));
-          listerSnapshot.forEach((doc) => createNotification(doc, false));
-
-          // Sort notificationsList by timestamp (latest first)
-          notificationsList.sort((a, b) => b.timestamp - a.timestamp);
-
-          // Update state with sorted notifications
-          setNotifications([...notificationsList]);
-          setNotificationsMap(newNotificationsMap);
-        } catch (error) {
-          console.error("Error fetching finalized adoptions:", error);
+                . Check the process here.
+              </Text>
+            ),
+            time: formattedTime,
+            timestamp,
+            action: () => router.push("/Main/Track"),
+          });
         }
       };
 
-      fetchFinalizedAdoptions();
-
-
-    });
-
-    return () => unsubscribe();
-  }, [currentUser, users, router, notificationsMap]);
-
-  // Optimized fetchUserDetails with check to prevent duplicate fetches
-  const fetchUserDetails = async (email) => {
-    if (users[email]) return users[email]; // Return cached user details if already fetched
-
-    try {
-      const usersQuery = query(
-        collection(db, "users"),
-        where("email", "==", email)
+      adopterSnapshot.forEach((doc) =>
+        createFinalizedAdoptionNotification(doc, true)
       );
-      const querySnapshot = await getDocs(usersQuery);
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0].data();
-        const userDetails = {
-          name: userDoc.name,
-          profilePicture: userDoc.profilePicture || null,
-        };
-        setUsers((prev) => ({
-          ...prev,
-          [email]: userDetails,
-        }));
-        return userDetails;
-      } else {
-        console.log("User not found for email:", email);
-        return null;
-      }
-    } catch (error) {
-      console.error("Error fetching user details: ", error);
-      return null;
-    }
-  };
+      listerSnapshot.forEach((doc) =>
+        createFinalizedAdoptionNotification(doc, false)
+      );
+
+      notificationsList.sort((a, b) => b.timestamp - a.timestamp);
+      setNotifications([...notificationsList]);
+    };
+
+    fetchNotifications();
+  }, [currentUser, users, router]);
+
   const deleteNotification = (id) => {
     setNotifications((prevNotifications) =>
       prevNotifications.filter((notif) => notif.id !== id)
@@ -507,7 +386,7 @@ const Notification = () => {
         ) : (
           notifications.map((notif) => (
             <Swipeable
-              key={`${notif.id}-${notif.timestamp}`}
+              key={notif.id}
               renderRightActions={() => renderRightActions(notif.id)}
             >
               <View style={styles.horizontalLine}></View>
@@ -594,8 +473,8 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   timeContainer: {
-    justifyContent: "flex-end", // Keeps the content at the end of the container
-    alignItems: "flex-end", // Aligns the content (text) to the right
+    justifyContent: "flex-end",
+    alignItems: "flex-end",
   },
   notifTime: {
     fontFamily: "Lato",
