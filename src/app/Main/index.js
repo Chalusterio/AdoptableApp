@@ -10,7 +10,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import FastImage from "react-native-fast-image";
 import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
@@ -232,6 +232,17 @@ const Feed = () => {
 
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets[item.id];
+    
+    <View style={styles.imageContainer}>
+      <FastImage
+        style={styles.image}
+        source={{
+          uri: item.imageUrl,
+          priority: FastImage.priority.normal,
+        }}
+        resizeMode={FastImage.resizeMode.cover}
+      />
+    </View>
 
     return (
       <TouchableOpacity
@@ -292,6 +303,9 @@ const Feed = () => {
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             numColumns={2}
+            initialNumToRender={10} // Number of items to render initially
+            windowSize={21} // Number of items to keep in memory outside of the render window
+            removeClippedSubviews={true} // Unmount components when outside of window
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.container}
             refreshControl={

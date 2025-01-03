@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -23,6 +24,7 @@ import moment from "moment";
 
 const Notification = () => {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [users, setUsers] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
@@ -370,6 +372,30 @@ const Notification = () => {
     </TouchableOpacity>
   );
 
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      // Simulate fetching notifications
+      setTimeout(() => {
+        // Replace this with your actual fetch logic
+        const fetchedNotifications = []; // Example: []
+
+        setNotifications(fetchedNotifications);
+        setLoading(false);
+      }, 2000); // Simulate a 2-second fetch
+    };
+
+    fetchNotifications();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#68C2FF" />
+        <Text style={styles.loadingText}>Loading notifications...</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -381,7 +407,9 @@ const Notification = () => {
         </View>
         {notifications.length === 0 ? (
           <View style={styles.centeredContainer}>
-            <Text style={styles.loadingText}>No notifications available</Text>
+            <Text style={styles.noNotificationsText}>
+              No notifications available
+            </Text>
           </View>
         ) : (
           notifications.map((notif) => (
@@ -425,8 +453,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: "Lato",
+    color: "#68C2FF",
+  },
   scrollViewContent: {
     paddingBottom: 0,
+    flexGrow: 1,
   },
   mainNotificationContainer: {
     padding: 20,
@@ -519,8 +559,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
   },
-  loadingText: {
-    marginVertical: 250,
+  noNotificationsText: {
     fontFamily: "Lato",
     fontSize: 20,
     textAlign: "center",
