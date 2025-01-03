@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Font from "expo-font";
 import { useRouter } from "expo-router";
-import { registerUser } from "../../firebase"; // Use the registerUser function
+import { registerUser, isEmailVerified } from "../../firebase"; // Import new function
 
 export default function Signup() {
   const theme = useTheme();
@@ -32,7 +32,7 @@ export default function Signup() {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [isOrganization, setIsOrganization] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false); // Loading state
-
+  const [isVerifying, setIsVerifying] = useState(false); // State to handle email verification
   const [errors, setErrors] = useState({
     firstName: "",
     lastName: "",
@@ -141,6 +141,7 @@ export default function Signup() {
       [field]: validateField(field, value),
     }));
   };
+  
   const handleSignup = async () => {
     let valid = true;
     const newErrors = {
@@ -151,10 +152,13 @@ export default function Signup() {
       password: validateField("password", password),
       confirmPassword: validateField("confirmPassword", confirmPassword),
     };
-  
+
     // Validate organizationName if signing up as an organization
     if (isOrganization) {
-      newErrors.organizationName = validateField("organizationName", organizationName);
+      newErrors.organizationName = validateField(
+        "organizationName",
+        organizationName
+      );
       // For organizations, we don't need firstName and lastName
       newErrors.firstName = newErrors.lastName = null; // Remove these for organization signup
     } else {
@@ -162,46 +166,37 @@ export default function Signup() {
       newErrors.firstName = validateField("firstName", firstName);
       newErrors.lastName = validateField("lastName", lastName);
     }
-  
+
     // Check if there are any errors
     Object.values(newErrors).forEach((error) => {
       if (error) valid = false;
     });
-  
+
     if (!valid) {
       setErrors(newErrors);
       return;
     }
-  
+
     setIsSigningUp(true); // Set loading state to true
-  
+
     const name = isOrganization ? organizationName : `${firstName} ${lastName}`;
     const role = isOrganization ? "organization" : "individual"; // Set the role based on signup type
-  
+
     try {
-      await registerUser(email, password, name, contactNumber, role); // Pass the role here
-  
-      if (isOrganization) {
-        router.push({
-          pathname: "Main/List",
-          params: {
-            userName: name,
-            userEmail: email,
-            userContactNumber: contactNumber,
-          },
-        });
-      } else {
-        router.push({
-          pathname: "Options",
-          params: {
-            userName: name,
-            userEmail: email,
-            userContactNumber: contactNumber,
-          },
-        });
-      }
-  
+      const user = await registerUser(
+        email,
+        password,
+        name,
+        contactNumber,
+        role
+      );
+
       setDialogVisible(true); // Show success dialog
+      setIsVerifying(true); // Inform user to check their email for verification
+
+      // Start polling for email verification status
+      pollEmailVerification(user);
+
       // Reset all fields
       setFirstName("");
       setLastName("");
@@ -220,7 +215,41 @@ export default function Signup() {
       setIsSigningUp(false); // Reset loading state after process
     }
   };
-  
+
+  const pollEmailVerification = async (user) => {
+    const intervalId = setInterval(async () => {
+      await user.reload();
+      if (user.emailVerified) {
+        clearInterval(intervalId);
+        navigateToNextPage();
+      }
+    }, 3000); // Poll every 3 seconds
+  };
+
+  const navigateToNextPage = () => {
+    const name = isOrganization ? organizationName : `${firstName} ${lastName}`;
+    const role = isOrganization ? "organization" : "individual"; // Set the role based on signup type
+
+    if (isOrganization) {
+      router.push({
+        pathname: "Main/List",
+        params: {
+          userName: name,
+          userEmail: email,
+          userContactNumber: contactNumber,
+        },
+      });
+    } else {
+      router.push({
+        pathname: "Options",
+        params: {
+          userName: name,
+          userEmail: email,
+          userContactNumber: contactNumber,
+        },
+      });
+    }
+  };
 
   const handleToggleSignupMode = () => {
     setIsOrganization((prev) => !prev);
@@ -246,6 +275,19 @@ export default function Signup() {
   };
 
   const hideDialog = () => setDialogVisible(false);
+
+  if (isVerifying) {
+    return (
+      <View style={styles.verificationContainer}>
+        <Text style={styles.verificationText}>
+          Please check your email to verify your account.
+        </Text>
+        <TouchableOpacity style={styles.verifyButton} onPress={() => setIsVerifying(false)}>
+          <Text style={styles.backToSignupText}>Back to Signup</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -278,6 +320,7 @@ export default function Signup() {
                 left={<TextInput.Icon icon="account" />}
                 mode="flat"
                 activeUnderlineColor="gray"
+                autoCapitalize="words"
               />
             ) : (
               <>
@@ -475,6 +518,34 @@ export default function Signup() {
 }
 
 const styles = StyleSheet.create({
+  verificationContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: '#68C2FF',
+  },
+  verificationText: {
+    fontSize: 24,
+    fontFamily: "Lilita",
+    marginBottom: 20,
+    textAlign: "center",
+    color: 'white',
+  },
+  verifyButton: {
+    justifyContent: 'center',
+    width: '40%',
+    borderWidth: 1,
+    borderRadius: 10,
+    borderColor: 'white',
+    height: 40,
+    marginRight: 10,
+  },
+  backToSignupText: {
+    textAlign: 'center',
+    fontFamily: 'Lato',
+    fontSize: 18,
+    color: 'white',
+  },
   safeArea: {
     flex: 1,
     backgroundColor: "#fff",

@@ -1,8 +1,15 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  sendEmailVerification,
+  onAuthStateChanged,
+} from "firebase/auth";
+import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // Firebase configuration object
 const firebaseConfig = {
@@ -24,20 +31,20 @@ const storage = getStorage(app); // Initialize Firebase Storage
 export const persistSession = async (user) => {
   try {
     const sessionData = JSON.stringify(user);
-    await AsyncStorage.setItem('userSession', sessionData);
-    console.log('User session saved');
+    await AsyncStorage.setItem("userSession", sessionData);
+    console.log("User session saved");
   } catch (error) {
-    console.error('Error saving session: ', error);
+    console.error("Error saving session: ", error);
   }
 };
 
 // Function to retrieve session data
 export const getSession = async () => {
   try {
-    const sessionData = await AsyncStorage.getItem('userSession');
+    const sessionData = await AsyncStorage.getItem("userSession");
     return sessionData ? JSON.parse(sessionData) : null;
   } catch (error) {
-    console.error('Error retrieving session: ', error);
+    console.error("Error retrieving session: ", error);
     return null;
   }
 };
@@ -45,35 +52,65 @@ export const getSession = async () => {
 // Function to clear session data
 export const clearSession = async () => {
   try {
-    await AsyncStorage.removeItem('userSession');
-    console.log('User session cleared');
+    await AsyncStorage.removeItem("userSession");
+    console.log("User session cleared");
   } catch (error) {
-    console.error('Error clearing session: ', error);
+    console.error("Error clearing session: ", error);
   }
 };
 
+// Function to check if user is verified export
+const isEmailVerified = async () => {
+  return new Promise((resolve, reject) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        user
+          .reload()
+          .then(() => {
+            resolve(user.emailVerified);
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      } else {
+        resolve(false);
+      }
+      unsubscribe();
+    });
+  });
+};
+
 // Function to register a user and save their data in Firestore, now including role
-export const registerUser = async (email, password, name, contactNumber, role) => {
+export const registerUser = async (
+  email,
+  password,
+  name,
+  contactNumber,
+  role
+) => {
   try {
-    // Register user with Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
     const user = userCredential.user;
 
-    // Save additional user data in Firestore
+    await sendEmailVerification(user);
+
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, {
       name,
       email,
       contactNumber,
-      role,  // Add the role field
+      role,
       createdAt: new Date(),
     });
 
-    // Persist session in AsyncStorage
     await persistSession(user);
-
+    
     console.log("User registered and data saved to Firestore");
-    return user;  // Return the user object
+    return user;
   } catch (error) {
     console.error("Error registering user: ", error.message);
     throw error;
@@ -83,7 +120,11 @@ export const registerUser = async (email, password, name, contactNumber, role) =
 // Function to log in a user
 export const loginUser = async (email, password) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
     const user = userCredential.user;
 
     await persistSession(user);
