@@ -27,6 +27,7 @@ const Donate = () => {
     setSuppliesModalVisible(true);
     setTimeout(() => {
       setSuppliesModalVisible(false);
+      setCashModalVisible(false);
     }, 3000);
   };
 
@@ -132,7 +133,7 @@ const Donate = () => {
                   </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity style={styles.proceedButton}>
+                <TouchableOpacity style={styles.proceedButton}  onPress={handleSuppliesDonation}>
                   <Text style={styles.proceedButtonText}>Proceed</Text>
                 </TouchableOpacity>
               </View>

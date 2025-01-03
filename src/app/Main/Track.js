@@ -10,9 +10,10 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { db } from "../../../firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
+// PetCard component to display each pet's details and tracking information
 const PetCard = ({
   pet,
   onToggle,
@@ -20,6 +21,7 @@ const PetCard = ({
   trackingStatus,
   currentUserEmail,
 }) => {
+  // Define the steps for the tracking process
   const bigSteps = [
     {
       title: "Application Approved",
@@ -78,6 +80,20 @@ const PetCard = ({
       {isExpanded && (
         <>
           <View style={styles.trackingContainer}>
+            {pet.listedBy === currentUserEmail ? (
+              // If the current user is the pet lister, show the adopter's details
+              <View style={styles.adopterInfoContainer}>
+                <Text style={styles.adopterName}>Adopter: {pet.adopterName}</Text>
+                <Text style={styles.adopterAddress}>Address: {pet.adopterAddress}</Text>
+              </View>
+            ) : (
+              // If the current user is the pet adopter, show the lister's details
+              <View style={styles.adopterInfoContainer}>
+                <Text style={styles.adopterName}>Lister: {pet.listerName}</Text>
+                <Text style={styles.adopterAddress}>Address: {pet.listerAddress}</Text>
+              </View>
+            )}
+
             {/* Delivery Type and Expected Date */}
             <View style={styles.deliveryDetailsContainer}>
               <Text style={styles.deliveryType}>
@@ -131,6 +147,7 @@ const PetCard = ({
   );
 };
 
+// Track component to manage and display the list of tracked pets
 const Track = () => {
   const [expandedCard, setExpandedCard] = useState(null);
   const [adopterPets, setAdopterPets] = useState([]); // State for adopter's pets
@@ -159,7 +176,6 @@ const Track = () => {
         where("status", "==", "finalized"),
         where("petRequestDetails.adopterEmail", "==", currentUserEmail) // For adopter
       );
-
       const unsubscribeAdopter = onSnapshot(
         finalizedAdoptionQuery,
         (finalizedAdoptionSnapshot) => {
@@ -168,15 +184,37 @@ const Track = () => {
             const adoptionData = docSnapshot.data();
             const petRequestDetails = adoptionData.petRequestDetails;
             const petId = petRequestDetails.petName; // Correct the property reference here
+            const listerEmail = petRequestDetails.listedBy; // Assuming 'listedBy' stores the lister's email
             console.log("Adopted Pet ID:", petId);
-
+      
+            // Query to get pet details
             const petRef = collection(db, "listed_pets");
             const petQuery = query(petRef, where("petName", "==", petId));
-
-            onSnapshot(petQuery, (petSnapshot) => {
+      
+            // Query to get lister details from the 'users' collection
+            const userRef = collection(db, "users");
+            const userQuery = query(userRef, where("email", "==", listerEmail)); // Only fetch lister details
+      
+            // Use getDocs instead of onSnapshot
+            Promise.all([getDocs(petQuery), getDocs(userQuery)]).then(([petSnapshot, userSnapshot]) => {
               petSnapshot.forEach((petDoc) => {
                 const petDetails = petDoc.data();
                 console.log("Fetched Pet Details:", petDetails);
+      
+                // Initialize variables for lister details
+                let listerName = '';
+                let listerAddress = '';
+      
+                // Fetch lister details
+                userSnapshot.forEach((userDoc) => {
+                  const userData = userDoc.data();
+                  if (userData.email === listerEmail) {
+                    listerName = userData.name; // Assuming 'name' field exists
+                    listerAddress = userData.address; // Assuming 'address' field exists
+                  }
+                });
+      
+                // Push pet and lister details into petData array
                 petData.push({
                   id: petDoc.id,
                   name: petDetails.petName,
@@ -187,13 +225,18 @@ const Track = () => {
                   deliveryType: adoptionData.deliveryDetails?.type,
                   expectedDate: adoptionData.deliveryDetails?.expectedDate,
                   trackingStatus: adoptionData.tracking_status,
+                  listerName, // Add lister details
+                  listerAddress, // Add lister details
                 });
               });
-              setAdopterPets(petData); // Update state with fetched pets for adopter
+      
+              // Update state with fetched pets for lister
+              setAdopterPets(petData);
             });
           });
         }
       );
+      
 
       // Fetch finalized adoptions for lister
       const finalizedAdoptionQueryLister = query(
@@ -201,6 +244,7 @@ const Track = () => {
         where("status", "==", "finalized"),
         where("petRequestDetails.listedBy", "==", currentUserEmail) // For lister
       );
+
 
       const unsubscribeLister = onSnapshot(
         finalizedAdoptionQueryLister,
@@ -210,33 +254,63 @@ const Track = () => {
             const adoptionData = docSnapshot.data();
             const petRequestDetails = adoptionData.petRequestDetails;
             const petId = petRequestDetails.petName;
+            const adopterEmail = petRequestDetails.adopterEmail; // Assuming you have adopterEmail
+            const listerEmail = petRequestDetails.listedBy; // Assuming 'listedBy' stores the lister's email
             console.log("Lister Pet ID:", petId);
-
+      
             const petRef = collection(db, "listed_pets");
             const petQuery = query(petRef, where("petName", "==", petId));
-
-            onSnapshot(petQuery, (petSnapshot) => {
+      
+            // Query to get both adopter and lister details from the 'users' collection
+            const userRef = collection(db, "users");
+            const userQuery = query(userRef, where("email", "in", [adopterEmail, listerEmail])); // 'in' query to fetch both adopter and lister
+      
+            Promise.all([getDocs(petQuery), getDocs(userQuery)]).then(([petSnapshot, userSnapshot]) => {
               petSnapshot.forEach((petDoc) => {
                 const petDetails = petDoc.data();
-                console.log("Fetched Pet Details for Lister:", petDetails);
-                petData.push({
-                  id: petDoc.id,
-                  name: petDetails.petName,
-                  age: petDetails.petAge,
-                  weight: petDetails.petWeight,
-                  image: petDetails.images[0],
-                  totalAmount: adoptionData.totalAmount,
-                  deliveryType: adoptionData.deliveryDetails?.type,
-                  expectedDate: adoptionData.deliveryDetails?.expectedDate,
-                  trackingStatus: adoptionData.tracking_status,
-                  listedBy: petDetails.listedBy, // Ensure listedBy is included
+                console.log("Fetched Pet Details:", petDetails);
+      
+                // Initialize variables for adopter details
+                let adopterName = '';
+                let adopterAddress = '';
+      
+                // Fetch user details (only for adopter)
+                userSnapshot.forEach((userDoc) => {
+                  const userData = userDoc.data();
+                  if (userData.email === adopterEmail) {
+                    adopterName = userData.name; // Assuming 'name' field exists
+                    adopterAddress = userData.address; // Assuming 'address' field exists
+                  }
+                });
+      
+                // Query for pet details and update petData
+                onSnapshot(petQuery, (petSnapshot) => {
+                  petSnapshot.forEach((petDoc) => {
+                    const petDetails = petDoc.data();
+                    console.log("Fetched Pet Details for Lister:", petDetails);
+                    petData.push({
+                      id: petDoc.id,
+                      name: petDetails.petName,
+                      age: petDetails.petAge,
+                      weight: petDetails.petWeight,
+                      image: petDetails.images[0],
+                      totalAmount: adoptionData.totalAmount,
+                      deliveryType: adoptionData.deliveryDetails?.type,
+                      expectedDate: adoptionData.deliveryDetails?.expectedDate,
+                      trackingStatus: adoptionData.tracking_status,
+                      listedBy: petDetails.listedBy, // Ensure listedBy is included
+                      adopterName, // Add adopter details
+                      adopterAddress, // Add adopter details
+                    });
+                  });
+                  setListerPets(petData); // Update state with fetched pets for lister
                 });
               });
-              setListerPets(petData); // Update state with fetched pets for lister
             });
           });
         }
       );
+      
 
       // Cleanup listeners when component unmounts or currentUserEmail changes
       return () => {
@@ -290,6 +364,7 @@ const Track = () => {
   );
 };
 
+// Styles for the components
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -431,6 +506,22 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 5,
   },
+  adopterInfoContainer: {
+    marginTop: 15,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#C2C2C2",
+  },
+  adopterName: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "bold",
+  },
+  adopterAddress: {
+    fontSize: 14,
+    color: "#666",
+  },
+
 });
 
 export default Track;
