@@ -242,23 +242,6 @@ const PetDetails = () => {
     }
   }, [parsedImages]);
 
-  // Conditional rendering based on login status
-  if (!isLoggedIn) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.loginMessage}>
-          You must be logged in to view this page.
-        </Text>
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={() => router.push("/login")}
-        >
-          <Text style={styles.loginButtonText}>Go to Login</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   const isOwnPet = currentUserEmail === listedBy; // Check if the current user posted the pet
   const isAdopted = petStatus === "finalized";
 

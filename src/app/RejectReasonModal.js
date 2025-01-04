@@ -113,21 +113,7 @@ const RejectReasonModal = ({ visible, onClose, onProceed }) => {
               marginTop: 20,
             }}
           >
-            {/* Proceed Button */}
-            <TouchableOpacity
-              onPress={handleProceed}
-              style={{
-                height: 40,
-                width: 120, // Set a width to keep the buttons uniform
-                backgroundColor: "#68C2FF", // Updated color
-                borderRadius: 30,
-                alignItems: "center",
-                justifyContent: "center",
-                marginHorizontal: 10, // Adds spacing between buttons
-              }}
-            >
-              <Text style={{ color: "#fff", fontFamily: "Lato", fontWeight: "bold" }}>Proceed</Text>
-            </TouchableOpacity>
+           
 
             {/* Cancel Button */}
             <TouchableOpacity
@@ -143,6 +129,22 @@ const RejectReasonModal = ({ visible, onClose, onProceed }) => {
               }}
             >
               <Text style={{ color: "#fff", fontFamily: "Lato", fontWeight: "bold" }}>Cancel</Text>
+            </TouchableOpacity>
+
+             {/* Proceed Button */}
+             <TouchableOpacity
+              onPress={handleProceed}
+              style={{
+                height: 40,
+                width: 120, // Set a width to keep the buttons uniform
+                backgroundColor: "#68C2FF", // Updated color
+                borderRadius: 30,
+                alignItems: "center",
+                justifyContent: "center",
+                marginHorizontal: 10, // Adds spacing between buttons
+              }}
+            >
+              <Text style={{ color: "#fff", fontFamily: "Lato", fontWeight: "bold" }}>Proceed</Text>
             </TouchableOpacity>
           </View>
         </View>

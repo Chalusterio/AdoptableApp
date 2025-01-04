@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from "react-native";
-import { ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
@@ -61,20 +61,20 @@ export default function Screening() {
     try {
       const petRequestRef = doc(db, "pet_request", petRequestId);
       const actionDate = new Date();
-  
+
       const updateData = {
         status,
         adopterNotificationRead: false,
-        listerNotificationRead: false,
+        listerNotificationRead: true, // Reset lister notificationRead to false
       };
-  
+
       if (status === "Accepted") {
         updateData.acceptDate = actionDate;
       } else if (status === "Rejected") {
         updateData.rejectDate = actionDate;
         updateData.rejectReason = reason;
       }
-  
+
       console.log("Updating pet request with:", updateData);
       await updateDoc(petRequestRef, updateData); // Firestore update
       console.log("Pet request updated successfully!");
@@ -82,7 +82,7 @@ export default function Screening() {
       console.error("Error updating pet request:", error);
     }
   };
-  
+
 
   const handleAcceptAdoption = async () => {
     await updatePetRequestStatus("Accepted"); // Update the status to 'accepted'
@@ -102,8 +102,8 @@ export default function Screening() {
   };
 
   const handleProceedWithRejection = async (reason) => {
-    setIsModalVisible(false); 
-    await updatePetRequestStatus("Rejected"); 
+    setIsModalVisible(false);
+    await updatePetRequestStatus("Rejected");
 
     // Assuming you have a 'pet_request' Firestore collection
     const petRequestRef = doc(db, "pet_request", petRequestId);
@@ -135,7 +135,7 @@ export default function Screening() {
       <SafeAreaView style={styles.safeArea}>
         <ActivityIndicator
           size="large"
-          color="#0047AB"
+          color="#68C2FF"
           style={styles.loadingIndicator}
         />
       </SafeAreaView>
@@ -290,7 +290,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   loadingIndicator: {
-    marginTop: 20, // Optional: Adjust the spacing if needed
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollViewContent: {
     paddingBottom: 0,
