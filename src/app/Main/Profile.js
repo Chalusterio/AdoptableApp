@@ -25,7 +25,7 @@ import {
   doc,
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { GOOGLE_API_KEY } from "../../../config"; // Import the Google API key
+import { GOOGLE_API_KEY } from "../config/googleconfig"; // Import the Google API key
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import Geolocation from "react-native-geocoding";
 import MapView, { Marker } from "react-native-maps";
