@@ -26,7 +26,7 @@ import {
   getDoc,
   addDoc,
 } from "firebase/firestore";
-import { db, auth } from "../../firebase";
+import { db, auth } from "./config/firebase";
 import { getStorage, ref, getDownloadURL } from "firebase/storage"; // Firebase storage import
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GOOGLE_API_KEY } from "../../config"; // Import the Google API key

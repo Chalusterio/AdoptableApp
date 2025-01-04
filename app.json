@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "AdoptableApp",
+    "name": "Adoptable",
     "slug": "AdoptableApp",
     "scheme": "com.adoptable.app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/icon.png",
+    "icon": "./src/assets/adoptable-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./src/assets/splash.png",
+      "image": "./src/assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -24,9 +24,10 @@
         "ACCESS_COARSE_LOCATION"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/adaptive-icon.png",
+        "foregroundImage": "./src/assets/adoptable-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.missel012.AdoptableApp"
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
@@ -36,6 +37,14 @@
       "expo-router",
       "expo-build-properties",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "10a7f584-175c-455b-a7b2-6576982d5a7a"
+      }
+    }
   }
 }

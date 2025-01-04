@@ -17,7 +17,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { db } from "../../firebase"; // Ensure `db` is imported from Firebase
+import { db } from "./config/firebase"; // Ensure `db` is imported from Firebase
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { usePets } from "../context/PetContext";
 import * as ImagePicker from "expo-image-picker";

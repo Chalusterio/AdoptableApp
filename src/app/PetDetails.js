@@ -17,7 +17,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { usePets } from '../context/PetContext'; // Import the context
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
-import { db, auth } from "../../firebase"; // Ensure `auth` is imported from Firebase
+import { db, auth } from "./config/firebase"; // Ensure `auth` is imported from Firebase
 import { useNavigation } from "expo-router";
 
 

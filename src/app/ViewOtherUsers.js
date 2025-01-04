@@ -11,7 +11,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getDocs, collection, query, where } from "firebase/firestore";
-import { db } from "../../firebase"; // Adjust the path to your firebase config
+import { db } from "./config/firebase"; // Adjust the path to your firebase config
 
 const ViewOtherUsers = () => {
   const router = useRouter();

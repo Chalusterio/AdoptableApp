@@ -17,7 +17,7 @@ import Entypo from "@expo/vector-icons/Entypo";
 import { Surface, TextInput } from "react-native-paper";
 import SideBar from "../components/SideBar";
 import { useNavigation } from "@react-navigation/native";
-import { db, auth } from "../../firebase";
+import { db, auth } from "./config/firebase";
 import {
   doc,
   getDoc,

@@ -28,7 +28,7 @@ import {
   arrayUnion,
   arrayRemove,
 } from "firebase/firestore";
-import { db, auth } from "../../../firebase";
+import { db, auth } from "../config/firebase";
 
 const Feed = () => {
   const params = useLocalSearchParams();

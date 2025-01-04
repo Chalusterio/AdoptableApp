@@ -20,9 +20,9 @@ import * as Font from "expo-font";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store"; // For storing credentials securely
-import { getUserData } from "../../firebase";
-import { auth, signInWithEmailAndPassword } from "../../firebase"; // Firebase imports
-import { persistSession } from "../../firebase";
+import { getUserData } from "./config/firebase";
+import { auth, signInWithEmailAndPassword } from "./config/firebase"; // Firebase imports
+import { persistSession } from "./config/firebase";
 
 export default function Login() {
   const theme = useTheme();

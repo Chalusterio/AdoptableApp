@@ -19,7 +19,7 @@ import {
   setDoc,
   doc,
 } from "firebase/firestore";
-import { db } from "../../firebase"; // Ensure db is initialized
+import { db } from "./config/firebase"; // Ensure db is initialized
 import Icon from "react-native-vector-icons/MaterialIcons";
 import RejectReasonModal from "./RejectReasonModal";
 

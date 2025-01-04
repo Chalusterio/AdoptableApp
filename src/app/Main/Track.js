@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { db } from "../../../firebase";
+import { db } from "../config/firebase";
 import {
   collection,
   query,

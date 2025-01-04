@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker"; // Import the Picker
-import { auth, signOut, db } from "../../../firebase"; // Ensure this imports your Firebase setup
+import { auth, signOut, db } from "../config/firebase"; // Ensure this imports your Firebase setup
 import {
   getDocs,
   collection,

@@ -15,7 +15,7 @@ import { useRouter } from "expo-router";
 import SideBar from "../components/SideBar";
 import { Surface } from "react-native-paper";
 import { usePets } from "../context/PetContext"; // Adjust the path as needed
-import { db, auth } from "../../firebase"; // Ensure `auth` and `db` are imported from Firebase
+import { db, auth } from "./config/firebase"; // Ensure `auth` and `db` are imported from Firebase
 import { doc, getDoc } from "firebase/firestore"; // Import Firestore functions
 
 const Favorites = () => {

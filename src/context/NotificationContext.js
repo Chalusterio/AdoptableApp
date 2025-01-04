@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { collection, query, where, onSnapshot, getDocs, updateDoc } from "firebase/firestore";
-import { db } from "../../firebase"; // Firebase setup import
-import { auth } from "../../firebase"; // Assuming you have auth setup
+import { db } from "../app/config/firebase"; // Firebase setup import
+import { auth } from "../app/config/firebase"; // Assuming you have auth setup
 import { onAuthStateChanged } from "firebase/auth";
 
 const NotificationContext = createContext();

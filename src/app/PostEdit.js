@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import { MaterialCommunityIcons } from "react-native-vector-icons";
 import { useRouter } from "expo-router";
 import { getDocs, collection, query, where, deleteDoc, doc, updateDoc } from "firebase/firestore";
-import { auth, db } from "../../firebase";
+import { auth, db } from "./config/firebase";
 import { useFonts } from "expo-font";
-import { getSession } from "../../firebase";
+import { getSession } from "./config/firebase";
 
 const PostEdit = () => {
   const router = useRouter();

@@ -15,7 +15,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useRouter } from "expo-router";
-import { auth, signOut, clearSession, getSession } from "../../firebase"; // Ensure this imports your Firebase setup
+import { auth, signOut, clearSession, getSession } from "../app/config/firebase"; // Ensure this imports your Firebase setup
 
 const SideBar = ({ children, selectedItem, setSelectedItem }) => {
   const router = useRouter();

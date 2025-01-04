@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Font from "expo-font";
 import { useRouter } from "expo-router";
-import { registerUser, isEmailVerified } from "../../firebase"; // Import new function
+import { registerUser, isEmailVerified } from "./config/firebase"; // Import new function
 
 export default function Signup() {
   const theme = useTheme();

@@ -18,7 +18,7 @@ import {
   where,
 } from "firebase/firestore";
 import Swipeable from "react-native-gesture-handler/Swipeable";
-import { db, auth } from "../../../firebase";
+import { db, auth } from "../config/firebase";
 import { FontAwesome } from "@expo/vector-icons";
 import moment from "moment";
 
