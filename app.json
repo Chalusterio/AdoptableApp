@@ -21,7 +21,8 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "INTERNET"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/logo-adoptable.png",
@@ -43,7 +44,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "10a7f584-175c-455b-a7b2-6576982d5a7a"
+        "projectId": "86c59580-98fa-4220-891f-007435e05c1c"
       }
     }
   }

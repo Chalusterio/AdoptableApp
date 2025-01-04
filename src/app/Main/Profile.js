@@ -1060,11 +1060,11 @@ const styles = StyleSheet.create({
   },
   map: {
     width: "90%",
-    height: 0.3 * Dimensions.get('window').height, 
+    height: Dimensions.get("window").height * 0.3, // Specific height
     marginTop: 20,
     borderRadius: 10,
     alignSelf: "center",
-  },
+  },  
   bioText: {
     fontSize: 16,
     fontFamily: "Lilita",
