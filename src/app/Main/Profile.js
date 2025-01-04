@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
-  ActivityIndicator,
+  ActivityIndicator, Dimensions,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { TextInput } from "react-native-paper";
@@ -125,16 +125,20 @@ const Profile = () => {
 
   const requestLocationPermission = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
-    setLocationPermission(status);
-
     if (status === "granted") {
-      const location = await Location.getCurrentPositionAsync({});
-      setSelectedLocation(location.coords);
+      try {
+        const location = await Location.getCurrentPositionAsync({});
+        setSelectedLocation(location.coords);
+      } catch (error) {
+        console.log("Failed to fetch location", error);
+        setSelectedLocation({ latitude: 0, longitude: 0 }); // Fallback location
+      }
     } else {
-      // Handle case where permission is not granted
       console.log("Permission to access location was denied");
+      setSelectedLocation({ latitude: 0, longitude: 0 }); // Fallback location
     }
   };
+  
 
   // Handle address input and fetch suggestions
   const handleAddressChange = async (text) => {
@@ -656,27 +660,19 @@ const Profile = () => {
 
                 {/* Map displaying pinpoint location */}
                 {selectedLocation && (
-                  <MapView
-                    style={styles.map}
-                    region={{
-                      latitude: selectedLocation
-                        ? selectedLocation.latitude
-                        : 0,
-                      longitude: selectedLocation
-                        ? selectedLocation.longitude
-                        : 0,
-                      latitudeDelta: 0.0922,
-                      longitudeDelta: 0.0421,
-                    }}
-                  >
-                    {selectedLocation && (
-                      <Marker
-                        coordinate={selectedLocation}
-                        title="Your Location"
-                      />
-                    )}
-                  </MapView>
-                )}
+              <MapView
+                style={styles.map}
+                region={{
+                  latitude: selectedLocation.latitude,
+                  longitude: selectedLocation.longitude,
+                  latitudeDelta: 0.0922,
+                  longitudeDelta: 0.0421,
+                }}
+              >
+                <Marker coordinate={selectedLocation} title="Your Location" />
+              </MapView>
+            )}
+
 
                 {/* Select Address Button */}
                 <View style={styles.modalButtons}>
@@ -1064,7 +1060,7 @@ const styles = StyleSheet.create({
   },
   map: {
     width: "90%",
-    height: 200,
+    height: 0.3 * Dimensions.get('window').height, 
     marginTop: 20,
     borderRadius: 10,
     alignSelf: "center",
