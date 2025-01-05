@@ -133,15 +133,13 @@ export default function ApproveAdoption() {
   };
 
   useEffect(() => {
-    Geolocation.init(GOOGLE_API_KEY);
-
     const fetchPetDetails = async () => {
       if (petRequestId) {
         console.log(`Fetching pet details for petRequestId: ${petRequestId}`);
-
+  
         const petDocRef = doc(db, "pet_request", petRequestId);
         const docSnap = await getDoc(petDocRef);
-
+  
         if (docSnap.exists()) {
           const petData = docSnap.data();
           if (petData.petDetail) {
@@ -153,12 +151,12 @@ export default function ApproveAdoption() {
         }
       }
     };
-
+  
     const fetchPetRequestDetails = async () => {
       if (petRequestId) {
         const requestDocRef = doc(db, "pet_request", petRequestId);
         const docSnap = await getDoc(requestDocRef);
-
+  
         if (docSnap.exists()) {
           const petRequestData = docSnap.data();
           const adopterEmail = petRequestData.adopterEmail;
@@ -167,7 +165,7 @@ export default function ApproveAdoption() {
         }
       }
     };
-
+  
     const fetchUserDetails = async (adopterEmail) => {
       if (adopterEmail) {
         const userRef = collection(db, "users");
@@ -178,47 +176,49 @@ export default function ApproveAdoption() {
             ...prevDetails,
             ...doc.data(),
           }));
-          setNewAddress(doc.data().address || ""); // Initialize address with current data
-          setNewPhoneNumber(doc.data().contactNumber || ""); // Initialize phone number with current data
+          setNewAddress(doc.data().address || "");  // Initialize address
+          setNewPhoneNumber(doc.data().contactNumber || "");  // Initialize phone
         });
       }
     };
-
-    fetchPetDetails();
+  
+    const checkPermissionsAndFetch = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Location permission denied');
+        setSelectedLocation({ latitude: 0, longitude: 0 });
+        return;
+      }
+      fetchPetDetails();  // Only fetch if permission is granted
+    };
+  
+    checkPermissionsAndFetch();
     fetchPetRequestDetails();
-
-    // Set the estimated delivery date
+  
+    // Set estimated delivery date
     const estimatedDate = getEstimatedDeliveryDate();
     setDeliveryDetails((prevDetails) => ({
       ...prevDetails,
       expectedDate: estimatedDate,
     }));
-    requestLocationPermission();
   }, [petRequestId]);
-
-  const requestLocationPermission = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status === "granted") {
-      try {
-        const location = await Location.getCurrentPositionAsync({});
-        setSelectedLocation(location.coords);
-      } catch (error) {
-        console.log("Failed to fetch location", error);
-        setSelectedLocation({ latitude: 0, longitude: 0 }); // Fallback location
-      }
-    } else {
-      console.log("Permission to access location was denied");
-      setSelectedLocation({ latitude: 0, longitude: 0 }); // Fallback location
-    }
-  };
   
+  
+  let debounceTimeout;  // Define this outside the function to persist between calls
 
   // Update address directly as a string, not an object
   const handleAddressChange = async (text) => {
     setNewAddress(text); // Set newAddress as a string directly
     setShowSuggestions(true); // Show the suggestions dropdown when typing
+
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+  
     if (text.length > 2) {
-      fetchAddressSuggestions(text);
+      debounceTimeout = setTimeout(() => {
+        fetchAddressSuggestions(text);
+      }, 500);  // 500ms delay before triggering API call
     }
   };
 
@@ -237,34 +237,28 @@ export default function ApproveAdoption() {
       setIsSaving(false);
     }
   };
-  // Function when an address from the suggestions is selected
-  const handleAddressSelect = (address) => {
+  const handleAddressSelect = async (address) => {
     console.log("Selected address from suggestions:", address); // Debugging log
     setNewAddress(address); // Update the new address state
     setShowSuggestions(false); // Close the suggestions list
-
-    // Geocode the address to get the location
-    Location.geocodeAsync(address)
-      .then((response) => {
-        if (response && response[0]) {
-          const { latitude, longitude } = response[0];
-          setSelectedLocation({ latitude, longitude });
-          console.log("Geocoding successful. Location:", {
-            latitude,
-            longitude,
-          }); // Debugging log
-        } else {
-          alert("Could not geocode the address. Please try again.");
-          console.log("Geocoding failed. No response or incorrect data."); // Debugging log
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-        alert("Failed to get location. Please try again.");
-        console.log("Geocoding error:", error); // Debugging log
-      });
+  
+    try {
+      const response = await Location.geocodeAsync(address);
+  
+      if (response && response.length > 0) {
+        const { latitude, longitude } = response[0];
+        setSelectedLocation({ latitude, longitude });
+        console.log("Geocoding successful. Location:", { latitude, longitude });
+      } else {
+        console.log("Geocoding failed. No response or incorrect data.");
+        alert("Could not find the location. Please verify the address.");
+      }
+    } catch (error) {
+      console.error("Geocoding error:", error);
+      alert("Failed to fetch location. Please check your internet connection.");
+    }
   };
-
+  
   const handleSelectAddressClick = () => {
     const address = newAddress; // Get the address from the state
 
@@ -828,17 +822,19 @@ export default function ApproveAdoption() {
 
             {/* Map displaying pinpoint location */}
             {selectedLocation && (
-              <MapView
-                style={styles.map}
-                region={{
-                  latitude: selectedLocation.latitude,
-                  longitude: selectedLocation.longitude,
-                  latitudeDelta: 0.0922,
-                  longitudeDelta: 0.0421,
-                }}
-              >
-                <Marker coordinate={selectedLocation} title="Your Location" />
-              </MapView>
+             <MapView
+             style={styles.map}
+             region={{
+               latitude: selectedLocation?.latitude || 37.7749,  // Default to SF
+               longitude: selectedLocation?.longitude || -122.4194,
+               latitudeDelta: 0.0922,
+               longitudeDelta: 0.0421,
+             }}
+           >
+             {selectedLocation && (
+               <Marker coordinate={selectedLocation} title="Your Location" />
+             )}
+           </MapView>           
             )}
 
 

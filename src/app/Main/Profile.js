@@ -59,7 +59,19 @@ const Profile = () => {
   const [showSuggestions, setShowSuggestions] = useState(true);
 
   useEffect(() => {
-    Geolocation.init(GOOGLE_API_KEY);
+
+    const checkPermissionsAndFetch = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        alert("Location permission denied");
+        setSelectedLocation({ latitude: 0, longitude: 0 });
+        return;
+      }
+  
+      // Call the fetchUserData after permission is granted
+      fetchUserData();
+    };
+  
 
     const fetchUserData = async () => {
       const user = auth.currentUser;
@@ -119,33 +131,25 @@ const Profile = () => {
         }
       }
     };
-    requestLocationPermission();
+    checkPermissionsAndFetch();
     fetchUserData();
   }, []); // Empty dependency array, will run once when component mounts
 
-  const requestLocationPermission = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status === "granted") {
-      try {
-        const location = await Location.getCurrentPositionAsync({});
-        setSelectedLocation(location.coords);
-      } catch (error) {
-        console.log("Failed to fetch location", error);
-        setSelectedLocation({ latitude: 0, longitude: 0 }); // Fallback location
-      }
-    } else {
-      console.log("Permission to access location was denied");
-      setSelectedLocation({ latitude: 0, longitude: 0 }); // Fallback location
-    }
-  };
-  
+
+  let debounceTimeout;  // Define this outside the function to persist between calls
 
   // Handle address input and fetch suggestions
   const handleAddressChange = async (text) => {
     setEditableInfo((prevState) => ({ ...prevState, address: text }));
     setShowSuggestions(true); // Show the suggestions dropdown when typing
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+  
     if (text.length > 2) {
-      fetchAddressSuggestions(text);
+      debounceTimeout = setTimeout(() => {
+        fetchAddressSuggestions(text);
+      }, 500);  // 500ms delay before triggering API call
     }
   };
 
@@ -359,8 +363,8 @@ const Profile = () => {
                 profileInfo.coverPhoto
                   ? { uri: profileInfo.coverPhoto } // Use the cover photo URL from Firestore
                   : coverImage?.uri
-                  ? { uri: coverImage.uri } // Temporary cover photo if selected
-                  : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+                    ? { uri: coverImage.uri } // Temporary cover photo if selected
+                    : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
               }
             />
 
@@ -446,8 +450,8 @@ const Profile = () => {
                           editableInfo.coverImage?.uri
                             ? { uri: editableInfo.coverImage.uri } // Use the temporary URI selected by the user
                             : profileInfo.coverPhoto
-                            ? { uri: profileInfo.coverPhoto } // Use saved cover photo from Firestore
-                            : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+                              ? { uri: profileInfo.coverPhoto } // Use saved cover photo from Firestore
+                              : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
                         }
                       />
                       <TouchableOpacity
@@ -468,8 +472,8 @@ const Profile = () => {
                           editableInfo.image?.uri
                             ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
                             : profileInfo.profilePicture
-                            ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
-                            : require("../../assets/Profile/dp.png") // Default image if no profile picture
+                              ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
+                              : require("../../assets/Profile/dp.png") // Default image if no profile picture
                         }
                       />
                       <TouchableOpacity
@@ -660,18 +664,20 @@ const Profile = () => {
 
                 {/* Map displaying pinpoint location */}
                 {selectedLocation && (
-              <MapView
-                style={styles.map}
-                region={{
-                  latitude: selectedLocation.latitude,
-                  longitude: selectedLocation.longitude,
-                  latitudeDelta: 0.0922,
-                  longitudeDelta: 0.0421,
-                }}
-              >
-                <Marker coordinate={selectedLocation} title="Your Location" />
-              </MapView>
-            )}
+                  <MapView
+                    style={styles.map}
+                    region={{
+                      latitude: selectedLocation?.latitude || 37.7749,  // Default to SF
+                      longitude: selectedLocation?.longitude || -122.4194,
+                      latitudeDelta: 0.0922,
+                      longitudeDelta: 0.0421,
+                    }}
+                  >
+                    {selectedLocation && (
+                      <Marker coordinate={selectedLocation} title="Your Location" />
+                    )}
+                  </MapView>
+                )}
 
 
                 {/* Select Address Button */}
@@ -1060,7 +1066,7 @@ const styles = StyleSheet.create({
   },
   map: {
     width: "90%",
-    height: 0.3 * Dimensions.get('window').height, 
+    height: 0.3 * Dimensions.get('window').height,
     marginTop: 20,
     borderRadius: 10,
     alignSelf: "center",

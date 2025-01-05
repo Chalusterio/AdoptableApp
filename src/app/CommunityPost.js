@@ -169,10 +169,7 @@ const CommunityPost = () => {
           <View style={styles.container}>
             {userRole === "organization" && (
               <Surface style={styles.titleContainer} elevation={3}>
-                <Text style={styles.title}>Curious About Community Events?</Text>
-                <Text style={styles.instruction}>
-                  Stay tuned for exciting updates!
-                </Text>
+                    <Text style={styles.title}>Keep the community updated!</Text>
                 <TouchableOpacity
                   style={styles.profileButton}
                   onPress={() => navigateTo("PostEdit")}
