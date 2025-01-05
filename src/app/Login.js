@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   ImageBackground,
   ActivityIndicator,
-  ScrollView,
+  ScrollView, 
 } from "react-native";
 import {
   useTheme,
@@ -71,8 +71,8 @@ export default function Login() {
   if (!fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
+      <ActivityIndicator size="large" color="#68C2FF" />
+    </View>
     );
   }
 

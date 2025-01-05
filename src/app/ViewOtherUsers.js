@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator, // Import ActivityIndicator
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -57,7 +58,7 @@ const ViewOtherUsers = () => {
   }, [userName]);
 
   if (!userData) {
-    return <Text style={styles.loading}>Loading...</Text>; // Display while fetching
+    return <ActivityIndicator size="large" color="#68C2FF" style={styles.loading} />; // Display loading indicator
   }
 
   return (
@@ -202,10 +203,9 @@ const styles = StyleSheet.create({
     color: "#68C2FF",
   },
   loading: {
-    fontSize: 18,
-    color: "#333",
-    textAlign: "center",
-    marginTop: 50,
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   detailsContainer: {
     flex: 1,

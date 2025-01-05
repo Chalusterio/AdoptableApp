@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, Image, ScrollView, TextInput } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Modal, Image, TextInput } from "react-native";
 import { MaterialCommunityIcons } from "react-native-vector-icons";
 import { useRouter } from "expo-router";
 import { getDocs, collection, query, where, deleteDoc, doc, updateDoc } from "firebase/firestore";
@@ -154,120 +154,95 @@ const PostEdit = () => {
 
   return (
     <View style={styles.safeArea}>
-      <MaterialCommunityIcons
-        name="arrow-left-circle"
-        size={30}
-        color="#EF5B5B"
-        style={styles.backButton}
-        onPress={() => {
-          if (isEditing) {
-            handleCancel(); // Cancel the edit if editing is in progress
-          } else {
-            router.back(); // Go back if no editing is in progress
-          }
-        }}
+      <FlatList
+        ListHeaderComponent={
+          <>
+            <MaterialCommunityIcons
+              name="arrow-left-circle"
+              size={30}
+              color="#EF5B5B"
+              style={styles.backButton}
+              onPress={() => {
+                if (isEditing) {
+                  handleCancel(); // Cancel the edit if editing is in progress
+                } else {
+                  router.back(); // Go back if no editing is in progress
+                }
+              }}
+            />
+            <Text style={[styles.title, { fontFamily: "LilitaOne", textAlign: "center" }]}>
+              Your Posts
+            </Text>
+            {userPosts.length === 0 && (
+              <Text style={styles.subtitle}>You have no posts yet.</Text>
+            )}
+          </>
+        }
+        data={userPosts}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContainer}
       />
-      <Text style={[styles.title, { fontFamily: "LilitaOne", textAlign: "center" }]}>
-        Your Posts
-      </Text>
-
-      {userPosts.length === 0 ? (
-        <Text style={styles.subtitle}>You have no posts yet.</Text>
-      ) : (
-        <FlatList
-          data={userPosts}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          numColumns={1}
-          contentContainerStyle={styles.listContainer}
-        />
-      )}
 
       {selectedPost && (
         <Modal visible={modalVisible} animationType="slide" onRequestClose={closeModal}>
           <View style={styles.modalBackground}>
             <View style={styles.modalContainer}>
-              <ScrollView contentContainerStyle={styles.scrollView}>
-                {selectedPost.image && (
-                  <Image source={{ uri: selectedPost.image }} style={styles.modalImage} />
-                )}
-
-                <Text style={styles.modalTitle}>{selectedPost.title}</Text>
-                <Text style={styles.modalSubtitle}>
-                  {selectedPost.when ? `📅 ${selectedPost.when}` : "No date specified"}
-                </Text>
-
-                {selectedPost.urgent && <Text style={styles.modalUrgentText}>🔥 Urgent</Text>}
-                {selectedPost.postedBy && (
-                  <Text style={styles.modalText}>Posted by: {selectedPost.postedBy}</Text>
-                )}
-
-                {isEditing ? (
+              <FlatList
+                ListHeaderComponent={
                   <>
-                    <View style={styles.inputContainer}>
-                      <Text style={styles.inputLabel}>Title:</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={selectedPost.title}
-                        onChangeText={(text) => setSelectedPost({ ...selectedPost, title: text })}
-                        placeholder="Title"
-                      />
-                    </View>
-                    <View style={styles.inputContainer}>
-                      <Text style={styles.inputLabel}>What:</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={selectedPost.what}
-                        onChangeText={(text) => setSelectedPost({ ...selectedPost, what: text })}
-                        placeholder="What"
-                      />
-                    </View>
-                    <View style={styles.inputContainer}>
-                      <Text style={styles.inputLabel}>Where:</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={selectedPost.where}
-                        onChangeText={(text) => setSelectedPost({ ...selectedPost, where: text })}
-                        placeholder="Where"
-                      />
-                    </View>
-                    <View style={styles.inputContainer}>
-                      <Text style={styles.inputLabel}>Who:</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={selectedPost.who}
-                        onChangeText={(text) => setSelectedPost({ ...selectedPost, who: text })}
-                        placeholder="Who"
-                      />
-                    </View>
-                    <View style={styles.inputContainer}>
-                      <Text style={styles.inputLabel}>When:</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={selectedPost.when}
-                        onChangeText={(text) => setSelectedPost({ ...selectedPost, when: text })}
-                        placeholder="When"
-                      />
-                    </View>
+                    {selectedPost.image && (
+                      <Image source={{ uri: selectedPost.image }} style={styles.modalImage} />
+                    )}
+                    <Text style={styles.modalTitle}>{selectedPost.title}</Text>
+                    <Text style={styles.modalSubtitle}>
+                      {selectedPost.when ? `📅 ${selectedPost.when}` : "No date specified"}
+                    </Text>
+                    {selectedPost.urgent && <Text style={styles.modalUrgentText}>🔥 Urgent</Text>}
+                    {selectedPost.postedBy && (
+                      <Text style={styles.modalText}>Posted by: {selectedPost.postedBy}</Text>
+                    )}
                   </>
-                ) : (
-                  <>
-                    <View style={styles.infoContainer}>
-                      <Text style={styles.infoTitle}>Who:</Text>
-                      <Text style={styles.detailText}>{selectedPost.who}</Text>
+                }
+                data={isEditing ? [
+                  { key: 'title', label: 'Title', value: selectedPost.title },
+                  { key: 'what', label: 'What', value: selectedPost.what },
+                  { key: 'where', label: 'Where', value: selectedPost.where },
+                  { key: 'who', label: 'Who', value: selectedPost.who },
+                  { key: 'when', label: 'When', value: selectedPost.when },
+                ] : []}
+                renderItem={({ item }) => (
+                  isEditing ? (
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>{item.label}:</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={item.value}
+                        onChangeText={(text) => setSelectedPost({ ...selectedPost, [item.key]: text })}
+                        placeholder={item.label}
+                      />
                     </View>
-                    <View style={styles.infoContainer}>
-                      <Text style={styles.infoTitle}>What:</Text>
-                      <Text style={styles.detailText}>{selectedPost.what}</Text>
-                    </View>
-                    <View style={styles.infoContainer}>
-                      <Text style={styles.infoTitle}>Where:</Text>
-                      <Text style={styles.detailText}>{selectedPost.where}</Text>
-                    </View>
-                  </>
+                  ) : null
                 )}
-              </ScrollView>
-
+                ListFooterComponent={
+                  !isEditing && (
+                    <>
+                      <View style={styles.infoContainer}>
+                        <Text style={styles.infoTitle}>Who:</Text>
+                        <Text style={styles.detailText}>{selectedPost.who}</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={styles.infoTitle}>What:</Text>
+                        <Text style={styles.detailText}>{selectedPost.what}</Text>
+                      </View>
+                      <View style={styles.infoContainer}>
+                        <Text style={styles.infoTitle}>Where:</Text>
+                        <Text style={styles.detailText}>{selectedPost.where}</Text>
+                      </View>
+                    </>
+                  )
+                }
+              />
               <View style={styles.actionsContainer}>
                 {saveSuccess ? (
                   <Text style={styles.saveConfirmation}>Post saved successfully!</Text>
@@ -334,6 +309,9 @@ const styles = StyleSheet.create({
   safeArea: { 
     flex: 1, 
     backgroundColor: "#fff" 
+  },
+  scrollViewContent: {
+    flexGrow: 1,
   },
   container: { 
     flex: 1, 
