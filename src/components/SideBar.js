@@ -88,6 +88,10 @@ const SideBar = ({ children, selectedItem, setSelectedItem }) => {
         return;
       }
 
+       // Close the drawer
+       closeDrawer();
+
+
       // Redirect after successful logout
       console.log("User logged out");
       router.push("/Login"); // Ensure the route is correct

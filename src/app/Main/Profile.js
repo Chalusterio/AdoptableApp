@@ -41,6 +41,7 @@ const Profile = () => {
     houseType: "Not Indicated",
     hasPet: "Not Indicated",
     bio: "", // Add bio field here
+    profilePicture: null, // Add profilePicture here
   });
 
   const [editableInfo, setEditableInfo] = useState(profileInfo);
@@ -57,6 +58,7 @@ const Profile = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [isProfilePicChanged, setIsProfilePicChanged] = useState(false);
 
   useEffect(() => {
 
@@ -67,11 +69,11 @@ const Profile = () => {
         setSelectedLocation({ latitude: 0, longitude: 0 });
         return;
       }
-  
+
       // Call the fetchUserData after permission is granted
       fetchUserData();
     };
-  
+
 
     const fetchUserData = async () => {
       const user = auth.currentUser;
@@ -145,7 +147,7 @@ const Profile = () => {
     if (debounceTimeout) {
       clearTimeout(debounceTimeout);
     }
-  
+
     if (text.length > 2) {
       debounceTimeout = setTimeout(() => {
         fetchAddressSuggestions(text);
@@ -209,27 +211,29 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
-    if (isSaving) return; // Prevent multiple clicks
+    if (isSaving) return;
 
-    setIsSaving(true); // Start the loading state
+    setIsSaving(true);
     try {
       const user = auth.currentUser;
       if (user) {
         const userRef = doc(db, "users", user.uid);
-
         const updatedData = {
           ...editableInfo,
           contactNumber: editableInfo.phone,
-          bio: editableInfo.bio, // Save bio field
-          address: editableInfo.address, // Save the address
+          bio: editableInfo.bio,
+          address: editableInfo.address,
         };
 
-        // Upload profile picture if exists
-        if (editableInfo.image?.uri) {
+        if (isProfilePicChanged && editableInfo.image?.uri) {
           const fileName = `profilePictures/${user.uid}/profile.jpg`;
           const storageRef = ref(storage, fileName);
           try {
+            console.log("Uploading profile picture from URI:", editableInfo.image.uri);
             const response = await fetch(editableInfo.image.uri);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch image. Status: ${response.status}`);
+            }
             const blob = await response.blob();
             await uploadBytes(storageRef, blob);
             const downloadURL = await getDownloadURL(storageRef);
@@ -246,19 +250,22 @@ const Profile = () => {
           }
         }
 
-        // Upload cover photo if exists
-        if (coverImage?.uri) {
+        if (coverImage?.uri && coverImage.uri !== profileInfo.coverPhoto) {
           const coverFileName = `coverPhotos/${user.uid}/cover.jpg`;
           const coverStorageRef = ref(storage, coverFileName);
           try {
+            console.log("Uploading cover photo from URI:", coverImage.uri);
             const coverResponse = await fetch(coverImage.uri);
+            if (!coverResponse.ok) {
+              throw new Error(`Failed to fetch cover image. Status: ${coverResponse.status}`);
+            }
             const coverBlob = await coverResponse.blob();
             await uploadBytes(coverStorageRef, coverBlob);
             const coverDownloadURL = await getDownloadURL(coverStorageRef);
-            updatedData.coverPhoto = coverDownloadURL; // Add cover photo URL
+            updatedData.coverPhoto = coverDownloadURL;
             setProfileInfo((prev) => ({
               ...prev,
-              coverPhoto: coverDownloadURL, // Update profile info state
+              coverPhoto: coverDownloadURL,
             }));
           } catch (error) {
             console.error("Error uploading cover photo: ", error);
@@ -268,16 +275,19 @@ const Profile = () => {
           }
         }
 
-        await updateDoc(userRef, updatedData); // Update Firestore document with all changes
+        await updateDoc(userRef, updatedData);
         setProfileInfo(updatedData);
         setEditConfirmVisible(false);
         setModalVisible(false);
+
+          // Show success alert
+          alert("Profile changes have been saved successfully.");
       }
     } catch (error) {
       console.error("Error saving profile data: ", error);
       alert("Failed to save. Please try again.");
     } finally {
-      setIsSaving(false); // End the loading state
+      setIsSaving(false);
     }
 
     if (
@@ -286,22 +296,24 @@ const Profile = () => {
       !editableInfo.barangay ||
       !editableInfo.city
     ) {
-      setIsAddressEmpty(true); // Set state to true if address fields are empty
+      setIsAddressEmpty(true);
     } else {
-      setIsAddressEmpty(false); // Clear the validation if address is filled
+      setIsAddressEmpty(false);
     }
   };
 
   const handleEditPress = () => {
-    setEditableInfo(profileInfo);
+    setEditableInfo({
+      ...profileInfo,
+      image: null, // Reset the image field to null when opening the edit modal
+    });
     setModalVisible(true);
   };
-
   const handleCancelEdit = () => {
     setEditConfirmVisible(false);
   };
 
-  const storage = getStorage(); // Initialize Firebase Storage
+  const storage = getStorage();
 
   const pickImage = async () => {
     const permissionResult =
@@ -324,8 +336,10 @@ const Profile = () => {
         ...prevState,
         image: { uri: imageUri },
       }));
+      setIsProfilePicChanged(true); // Mark profile picture as changed
     }
   };
+
   const pickCoverImage = async () => {
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -337,13 +351,13 @@ const Profile = () => {
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [16, 9], // Aspect ratio for cover photo
+      aspect: [16, 9],
       quality: 1,
     });
 
     if (!pickerResult.canceled) {
       const imageUri = pickerResult.assets[0].uri;
-      setCoverImage({ uri: imageUri }); // Store cover image URI
+      setCoverImage({ uri: imageUri });
     }
   };
 
@@ -448,10 +462,10 @@ const Profile = () => {
                         style={styles.coverImage}
                         source={
                           editableInfo.coverImage?.uri
-                            ? { uri: editableInfo.coverImage.uri } // Use the temporary URI selected by the user
+                            ? { uri: editableInfo.coverImage.uri }
                             : profileInfo.coverPhoto
-                              ? { uri: profileInfo.coverPhoto } // Use saved cover photo from Firestore
-                              : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+                              ? { uri: profileInfo.coverPhoto }
+                              : require("../../assets/Profile/defaultcover.jpg")
                         }
                       />
                       <TouchableOpacity
@@ -462,29 +476,22 @@ const Profile = () => {
                       </TouchableOpacity>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={styles.profileImageContainer}
-                      onPress={pickImage}
-                    >
+                    <TouchableOpacity style={styles.profileImageContainer} onPress={pickImage}>
                       <Image
                         style={styles.profileImage}
                         source={
                           editableInfo.image?.uri
-                            ? { uri: editableInfo.image.uri } // Use the temporary URI selected by the user
+                            ? { uri: editableInfo.image.uri }
                             : profileInfo.profilePicture
-                              ? { uri: profileInfo.profilePicture } // Use saved profile picture from Firestore
-                              : require("../../assets/Profile/dp.png") // Default image if no profile picture
+                              ? { uri: profileInfo.profilePicture }
+                              : require("../../assets/Profile/dp.png")
                         }
                       />
-                      <TouchableOpacity
-                        style={styles.editProfileImage}
-                        onPress={pickImage}
-                      >
+                      <TouchableOpacity style={styles.editProfileImage} onPress={pickImage}>
                         <Icon name="edit" size={20} color="white" />
                       </TouchableOpacity>
                     </TouchableOpacity>
                   </View>
-                  {/* Other Input Fields */}
 
                   <TextInput
                     style={styles.input}
@@ -537,13 +544,12 @@ const Profile = () => {
                     autoCapitalize="sentences"
                   />
 
-                  {/* Address Field */}
                   <View style={styles.addressFieldContainer}>
                     <TextInput
                       style={styles.input1}
                       placeholder="Address"
                       value={editableInfo.address || ""}
-                      editable={false} // Make it read-only until edit is triggered
+                      editable={false}
                       onChangeText={(text) =>
                         setEditableInfo({ ...editableInfo, address: text })
                       }
@@ -609,7 +615,7 @@ const Profile = () => {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.saveButton}
-                    onPress={() => setEditConfirmVisible(true)}
+                    onPress={handleSave}
                   >
                     <Text style={styles.buttonText}>Save</Text>
                   </TouchableOpacity>
@@ -832,6 +838,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   scrollViewContent2: {
+    flexGrow: 1,
     padding: 20,
   },
   modalContainer: {

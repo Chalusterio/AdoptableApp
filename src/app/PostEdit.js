@@ -331,41 +331,175 @@ const PostEdit = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#fff" },
-  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-  title: { fontSize: 32, fontFamily: "LilitaOne", fontWeight: "bold", color: "#333", marginBottom: 10, marginTop: 50 },
-  subtitle: { fontSize: 16, color: "#666", textAlign: "center", marginTop: 10 },
-  backButton: { position: "absolute", top: 40, left: 10, zIndex: 1 },
-  listContainer: { padding: 16, marginTop: 50 },
-  card: { width: "100%", marginBottom: 16, borderRadius: 8, backgroundColor: "#f9f9f9", shadowOpacity: 0.1, padding: 12 },
-  cardContent: { paddingHorizontal: 10 },
-  cardTitle: { fontSize: 18, fontWeight: "bold", color: "#333" },
-  cardDescription: { fontSize: 14, color: "#666", marginTop: 4 },
-  modalBackground: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#68C2FF" },
-  modalContainer: { width: "80%", padding: 20, backgroundColor: "white", borderRadius: 20, marginHorizontal: 50, alignItems: "center" },
-  scrollView: { marginBottom: 20 },
-  modalImage: { width: "100%", height: 200, borderRadius: 10, marginBottom: 15 },
-  modalTitle: { fontSize: 24, fontWeight: "bold", marginBottom: 5 },
-  modalSubtitle: { fontSize: 16, color: "#EF5B5B", marginBottom: 15 },
-  modalUrgentText: { fontSize: 16, fontWeight: "bold", color: "#EF5B5B", marginBottom: 10 },
-  modalText: { fontSize: 16, color: "#333", marginBottom: 5 },
-  inputContainer: { marginBottom: 15 },
-  inputLabel: { fontSize: 16, fontWeight: "bold", color: "#333" },
-  input: { width: "100%", padding: 10, fontSize: 16, borderColor: "#ccc", borderWidth: 1, borderRadius: 8, marginTop: 5 },
-  infoContainer: { flexDirection: "row", marginBottom: 10 },
-  infoTitle: { fontSize: 16, fontWeight: "bold", color: "#333" },
-  detailText: { fontSize: 16, color: "#666", marginLeft: 10 },
-  actionsContainer: { flexDirection: "row", justifyContent: "space-between", marginTop: 20, paddingHorizontal: 10 },
+  safeArea: { 
+    flex: 1, 
+    backgroundColor: "#fff" 
+  },
+  container: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    padding: 20 
+  },
+  title: { 
+    fontSize: 32, 
+    fontFamily: "LilitaOne", 
+    fontWeight: "bold", 
+    color: "#333", 
+    marginBottom: 10, 
+    marginTop: 50 
+  },
+  subtitle: { 
+    fontSize: 16, 
+    color: "#666", 
+    textAlign: "center", 
+    marginTop: 10 
+  },
+  backButton: { 
+    position: "absolute", 
+    top: 40, 
+    left: 10, 
+    zIndex: 1 
+  },
+  listContainer: { 
+    padding: 16, 
+    marginTop: 50 
+  },
+  card: { 
+    width: "100%", 
+    marginBottom: 16, 
+    borderRadius: 8, 
+    backgroundColor: "#f9f9f9", 
+    shadowOpacity: 0.1, 
+    padding: 12
+  },
+  cardContent: { 
+    paddingHorizontal: 10 
+  },
+  cardTitle: { 
+    fontSize: 18, 
+    fontWeight: "bold", 
+    color: "#333" 
+  },
+  cardDescription: { 
+    fontSize: 14, 
+    color: "#666", 
+    marginTop: 4 
+  },
+  modalBackground: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    backgroundColor: "#68C2FF" 
+  },
+  modalContainer: { 
+    width: "80%", 
+    padding: 20, 
+    backgroundColor: "white", 
+    borderRadius: 20, 
+    marginHorizontal: 50, 
+    alignItems: "center", 
+    marginTop:50, 
+    marginBottom: 50, 
+  },
+  scrollView: { 
+    marginBottom: 20 
+  },
+  modalImage: { 
+    width: "100%", 
+    height: 200, 
+    borderRadius: 10, 
+    marginBottom: 15 
+  },
+  modalTitle: { 
+    fontSize: 24, 
+    fontWeight: "bold", 
+    marginBottom: 5, 
+    textAlign: "center", // Added center alignment for the title
+  },
+  modalSubtitle: { 
+    fontSize: 16, 
+    color: "#EF5B5B", 
+    marginBottom: 15, 
+    textAlign: "center", // Center aligned the subtitle for consistency
+  },
+  modalUrgentText: { 
+    fontSize: 16, 
+    fontWeight: "bold", 
+    color: "#EF5B5B", 
+    marginBottom: 10, 
+    textAlign: "center", // Center aligned the urgent text
+  },
+  modalText: { 
+    fontSize: 16, 
+    color: "#333", 
+    marginBottom: 5, 
+    textAlign: "center", // Center aligned the general text
+  },
+  inputContainer: { 
+    marginBottom: 15, 
+    marginRight: 20,  // Adjusted marginRight for proper alignment and space
+  },
+  inputLabel: { 
+    fontSize: 16, 
+    fontWeight: "bold", 
+    color: "#333", 
+    marginBottom: 5, // Added marginBottom for space between label and input
+  },
+  input: {
+    width: "100%",
+    padding: 10,
+    fontSize: 16,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 8,
+    marginTop: 5,
+    backgroundColor: "#f9f9f9", // Add a background to make it stand out
+  },
+  infoContainer: { 
+    flexDirection: "row", 
+    marginBottom: 10 
+  },
+  infoTitle: { 
+    fontSize: 16, 
+    fontWeight: "bold", 
+    color: "#333" 
+  },
+  detailText: { 
+    fontSize: 16, 
+    color: "#666", 
+    marginLeft: 10, 
+    marginRight: 45, 
+    textAlign: "justify", 
+    letterSpacing: 0.5, 
+  },
+  actionsContainer: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    marginTop: 20, 
+    paddingHorizontal: 10 
+  },
   actionButton: {
     paddingVertical: 10,
     paddingHorizontal: 30,
     borderRadius: 8,
     alignItems: "center",
   },
-  actionText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  saveButton: { marginRight: 10 }, // Added saveButton style for spacing
-  cancelButton: { marginLeft: 10 }, // Added cancelButton style for spacing
-  saveConfirmation: { fontSize: 16, color: "#68C2FF" },
+  actionText: { 
+    color: "#fff", 
+    fontSize: 16, 
+    fontWeight: "bold" 
+  },
+  saveButton: { 
+    marginRight: 10 
+  }, // Adjusted saveButton style for spacing
+  cancelButton: { 
+    marginLeft: 10 
+  }, // Adjusted cancelButton style for spacing
+  saveConfirmation: { 
+    fontSize: 16, 
+    color: "#68C2FF" 
+  },  
   confirmationModal: {
     flex: 1,
     justifyContent: "center",
@@ -378,8 +512,16 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 10,
   },
-  confirmationText: { fontSize: 18, fontWeight: "bold", textAlign: "center" },
-  confirmationActions: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
+  confirmationText:{ 
+    fontSize: 18, 
+    fontWeight: "bold", 
+    textAlign: "center" 
+  },
+  confirmationActions: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    marginTop: 20 
+  },
   confirmationButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,

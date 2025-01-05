@@ -27,7 +27,12 @@
         "foregroundImage": "./src/assets/logo-adoptable.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.missel012.AdoptableApp"
+      "package": "com.missel012.AdoptableApp",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAixxEq55VkRIFNcYZPP-Stzf0_fVxLWzQ"
+        }
+      }
     },
     "web": {
       "favicon": "./src/assets/favicon.png"

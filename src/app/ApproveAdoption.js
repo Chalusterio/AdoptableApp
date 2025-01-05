@@ -229,6 +229,8 @@ export default function ApproveAdoption() {
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${query}&key=${GOOGLE_API_KEY}`
       );
+      console.log("Google API Key:", GOOGLE_API_KEY);
+
       const data = await response.json();
       setAddressSuggestions(data.predictions);
     } catch (error) {
