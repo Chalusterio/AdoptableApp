@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
-  ActivityIndicator, Dimensions,
+  ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { TextInput } from "react-native-paper";
@@ -59,9 +60,9 @@ const Profile = () => {
   const [locationPermission, setLocationPermission] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [isProfilePicChanged, setIsProfilePicChanged] = useState(false);
+  const [isCoverPicChanged, setIsCoverPicChanged] = useState(false); // Add state for cover picture change
 
   useEffect(() => {
-
     const checkPermissionsAndFetch = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
@@ -73,7 +74,6 @@ const Profile = () => {
       // Call the fetchUserData after permission is granted
       fetchUserData();
     };
-
 
     const fetchUserData = async () => {
       const user = auth.currentUser;
@@ -137,8 +137,7 @@ const Profile = () => {
     fetchUserData();
   }, []); // Empty dependency array, will run once when component mounts
 
-
-  let debounceTimeout;  // Define this outside the function to persist between calls
+  let debounceTimeout; // Define this outside the function to persist between calls
 
   // Handle address input and fetch suggestions
   const handleAddressChange = async (text) => {
@@ -151,7 +150,7 @@ const Profile = () => {
     if (text.length > 2) {
       debounceTimeout = setTimeout(() => {
         fetchAddressSuggestions(text);
-      }, 500);  // 500ms delay before triggering API call
+      }, 500); // 500ms delay before triggering API call
     }
   };
 
@@ -229,10 +228,15 @@ const Profile = () => {
           const fileName = `profilePictures/${user.uid}/profile.jpg`;
           const storageRef = ref(storage, fileName);
           try {
-            console.log("Uploading profile picture from URI:", editableInfo.image.uri);
+            console.log(
+              "Uploading profile picture from URI:",
+              editableInfo.image.uri
+            );
             const response = await fetch(editableInfo.image.uri);
             if (!response.ok) {
-              throw new Error(`Failed to fetch image. Status: ${response.status}`);
+              throw new Error(
+                `Failed to fetch image. Status: ${response.status}`
+              );
             }
             const blob = await response.blob();
             await uploadBytes(storageRef, blob);
@@ -250,14 +254,20 @@ const Profile = () => {
           }
         }
 
-        if (coverImage?.uri && coverImage.uri !== profileInfo.coverPhoto) {
+        if (
+          isCoverPicChanged &&
+          coverImage?.uri &&
+          coverImage.uri !== profileInfo.coverPhoto
+        ) {
           const coverFileName = `coverPhotos/${user.uid}/cover.jpg`;
           const coverStorageRef = ref(storage, coverFileName);
           try {
             console.log("Uploading cover photo from URI:", coverImage.uri);
             const coverResponse = await fetch(coverImage.uri);
             if (!coverResponse.ok) {
-              throw new Error(`Failed to fetch cover image. Status: ${coverResponse.status}`);
+              throw new Error(
+                `Failed to fetch cover image. Status: ${coverResponse.status}`
+              );
             }
             const coverBlob = await coverResponse.blob();
             await uploadBytes(coverStorageRef, coverBlob);
@@ -280,8 +290,8 @@ const Profile = () => {
         setEditConfirmVisible(false);
         setModalVisible(false);
 
-          // Show success alert
-          alert("Profile changes have been saved successfully.");
+        // Show success alert
+        alert("Profile changes have been saved successfully.");
       }
     } catch (error) {
       console.error("Error saving profile data: ", error);
@@ -306,9 +316,14 @@ const Profile = () => {
     setEditableInfo({
       ...profileInfo,
       image: null, // Reset the image field to null when opening the edit modal
+      coverImage:
+        coverImage || profileInfo.coverPhoto
+          ? { uri: profileInfo.coverPhoto }
+          : null, // Set the cover image
     });
     setModalVisible(true);
   };
+
   const handleCancelEdit = () => {
     setEditConfirmVisible(false);
   };
@@ -358,6 +373,11 @@ const Profile = () => {
     if (!pickerResult.canceled) {
       const imageUri = pickerResult.assets[0].uri;
       setCoverImage({ uri: imageUri });
+      setEditableInfo((prevState) => ({
+        ...prevState,
+        coverImage: { uri: imageUri },
+      }));
+      setIsCoverPicChanged(true); // Mark cover picture as changed
     }
   };
 
@@ -377,8 +397,8 @@ const Profile = () => {
                 profileInfo.coverPhoto
                   ? { uri: profileInfo.coverPhoto } // Use the cover photo URL from Firestore
                   : coverImage?.uri
-                    ? { uri: coverImage.uri } // Temporary cover photo if selected
-                    : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
+                  ? { uri: coverImage.uri } // Temporary cover photo if selected
+                  : require("../../assets/Profile/defaultcover.jpg") // Default cover photo
               }
             />
 
@@ -464,8 +484,8 @@ const Profile = () => {
                           editableInfo.coverImage?.uri
                             ? { uri: editableInfo.coverImage.uri }
                             : profileInfo.coverPhoto
-                              ? { uri: profileInfo.coverPhoto }
-                              : require("../../assets/Profile/defaultcover.jpg")
+                            ? { uri: profileInfo.coverPhoto }
+                            : require("../../assets/Profile/defaultcover.jpg")
                         }
                       />
                       <TouchableOpacity
@@ -476,18 +496,24 @@ const Profile = () => {
                       </TouchableOpacity>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.profileImageContainer} onPress={pickImage}>
+                    <TouchableOpacity
+                      style={styles.profileImageContainer}
+                      onPress={pickImage}
+                    >
                       <Image
                         style={styles.profileImage}
                         source={
                           editableInfo.image?.uri
                             ? { uri: editableInfo.image.uri }
                             : profileInfo.profilePicture
-                              ? { uri: profileInfo.profilePicture }
-                              : require("../../assets/Profile/dp.png")
+                            ? { uri: profileInfo.profilePicture }
+                            : require("../../assets/Profile/dp.png")
                         }
                       />
-                      <TouchableOpacity style={styles.editProfileImage} onPress={pickImage}>
+                      <TouchableOpacity
+                        style={styles.editProfileImage}
+                        onPress={pickImage}
+                      >
                         <Icon name="edit" size={20} color="white" />
                       </TouchableOpacity>
                     </TouchableOpacity>
@@ -673,18 +699,20 @@ const Profile = () => {
                   <MapView
                     style={styles.map}
                     region={{
-                      latitude: selectedLocation?.latitude || 37.7749,  // Default to SF
+                      latitude: selectedLocation?.latitude || 37.7749, // Default to SF
                       longitude: selectedLocation?.longitude || -122.4194,
                       latitudeDelta: 0.0922,
                       longitudeDelta: 0.0421,
                     }}
                   >
                     {selectedLocation && (
-                      <Marker coordinate={selectedLocation} title="Your Location" />
+                      <Marker
+                        coordinate={selectedLocation}
+                        title="Your Location"
+                      />
                     )}
                   </MapView>
                 )}
-
 
                 {/* Select Address Button */}
                 <View style={styles.modalButtons}>
@@ -1073,7 +1101,7 @@ const styles = StyleSheet.create({
   },
   map: {
     width: "90%",
-    height: 0.3 * Dimensions.get('window').height,
+    height: 0.3 * Dimensions.get("window").height,
     marginTop: 20,
     borderRadius: 10,
     alignSelf: "center",

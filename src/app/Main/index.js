@@ -301,20 +301,31 @@ const Feed = () => {
             <Text style={styles.loadingText}>Loading pets...</Text>
           </View>
         ) : (
-          <FlatList
-            data={filteredPets.filter((pet) => pet.status !== "finalized")}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            numColumns={2}
-            initialNumToRender={10} // Number of items to render initially
-            windowSize={21} // Number of items to keep in memory outside of the render window
-            removeClippedSubviews={true} // Unmount components when outside of window
-            columnWrapperStyle={styles.row}
-            contentContainerStyle={styles.container}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          />
+          <>
+            {filteredPets.length === 0 ? (
+              <View style={styles.noResultsContainer}>
+                <Text style={styles.noResultsText}>No results found</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredPets.filter((pet) => pet.status !== "finalized")}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                numColumns={2}
+                initialNumToRender={10} // Number of items to render initially
+                windowSize={21} // Number of items to keep in memory outside of the render window
+                removeClippedSubviews={true} // Unmount components when outside of window
+                columnWrapperStyle={styles.row}
+                contentContainerStyle={styles.container}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                  />
+                }
+              />
+            )}
+          </>
         )}
       </SafeAreaView>
     </SideBar>
@@ -420,6 +431,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Lato",
     color: "#68C2FF",
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  noResultsText: {
+    fontSize: 18,
+    color: "#444",
+    fontFamily: "Lato",
   },
 });
 

@@ -35,6 +35,7 @@ const FeedHeader = ({}) => {
   const [selectedAdoptionFee, setSelectedAdoptionFee] = useState(""); // Updated state for adoption fee
   const [selectedPetType, setSelectedPetType] = useState(""); // Pet type filter (cat, dog)
   const [location, setLocation] = useState(null);
+  const [noResults, setNoResults] = useState(false);
 
   // Animation values
   const slideAnim = useState(new Animated.Value(300))[0]; // Start position is off-screen (300px to the right)
@@ -77,6 +78,7 @@ const FeedHeader = ({}) => {
     const filterPets = () => {
       if (searchQuery.trim() === "") {
         setFilteredPets(pets);
+        setNoResults(false); // Reset no results state
       } else {
         const searchWords = searchQuery.toLowerCase().split(" "); // Split the query into words
   
@@ -91,6 +93,7 @@ const FeedHeader = ({}) => {
         });
   
         setFilteredPets(filtered);
+        setNoResults(filtered.length === 0); // Set no results state
       }
     };
   
@@ -201,7 +204,6 @@ const FeedHeader = ({}) => {
           </View>
 
           {/* Modal for Filter Options */}
-
           <Modal visible={modalVisible} transparent={true} animationType="fade">
             <View style={styles.modalOverlay}>
               <Animated.View
