@@ -43,10 +43,27 @@ const Feed = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isChatVisible, setIsChatVisible] = useState(false);
 
-  // Chatbot states
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
-  const flatListRef = useRef(null); // ✅ added ref
+  const [isBotTyping, setIsBotTyping] = useState(false);
+  const flatListRef = useRef(null);
+
+  const sendMessage = () => {
+    if (currentMessage.trim()) {
+      const userMessage = { sender: "user", text: currentMessage };
+      setChatMessages((prev) => [...prev, userMessage]);
+      setCurrentMessage("");
+      setIsBotTyping(true);
+      setTimeout(() => {
+        setIsBotTyping(false);
+        const botResponse = {
+          sender: "bot",
+          text: "Thanks for your message!",
+        };
+        setChatMessages((prev) => [...prev, botResponse]);
+      }, 1000);
+    }
+  };
 
   const selectedImages = params.selectedImages
     ? JSON.parse(params.selectedImages)
@@ -292,69 +309,90 @@ const Feed = () => {
         )}
       </SafeAreaView>
 
-      {/* Chatbox */}
       {isChatVisible && (
-        <View style={styles.chatContainer}>
-          <FlatList
-            ref={flatListRef}
-            data={chatMessages}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-              <View
-                style={[
-                  styles.messageBubble,
-                  item.sender === "user"
-                    ? styles.userBubble
-                    : styles.botBubble,
-                ]}
-              >
-                <Text style={styles.messageText}>{item.text}</Text>
-              </View>
-            )}
-            onContentSizeChange={() =>
-              flatListRef.current?.scrollToEnd({ animated: true })
-            }
-            onLayout={() =>
-              flatListRef.current?.scrollToEnd({ animated: true })
-            }
-          />
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Type a message..."
-              value={currentMessage}
-              onChangeText={setCurrentMessage}
-            />
-            <TouchableOpacity
-              style={styles.sendButton}
-              onPress={() => {
-                if (currentMessage.trim()) {
-                  const userMessage = {
-                    sender: "user",
-                    text: currentMessage,
-                  };
-                  setChatMessages((prev) => [...prev, userMessage]);
-                  setCurrentMessage("");
-                  setTimeout(() => {
-                    const botResponse = {
-                      sender: "bot",
-                      text: "Thanks for your message!",
-                    };
-                    setChatMessages((prev) => [...prev, botResponse]);
-                  }, 500);
-                }
-              }}
-            >
-              <Text style={{ color: "#fff" }}>Send</Text>
-            </TouchableOpacity>
-          </View>
+  <View style={styles.chatContainer}>
+    {/* Close Button */}
+    <TouchableOpacity
+      style={{
+        position: "absolute",
+        top: 20,
+        right: 20,
+        zIndex: 999,
+        backgroundColor: "#fff",
+        padding: 8,
+        borderRadius: 20,
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 5,
+        elevation: 5,
+      }}
+      onPress={() => setIsChatVisible(false)}
+    >
+      <Text style={{ fontSize: 16, fontWeight: "bold" }}>✕</Text>
+    </TouchableOpacity>
+
+    {/* Chat messages */}
+    <FlatList
+      ref={flatListRef}
+      data={chatMessages}
+      keyExtractor={(item, index) => index.toString()}
+      renderItem={({ item }) => (
+        <View
+          style={[
+            styles.messageBubble,
+            item.sender === "user" ? styles.userBubble : styles.botBubble,
+          ]}
+        >
+          <Text
+            style={[
+              styles.messageText,
+              item.sender === "user" ? { color: "#fff" } : { color: "#333" },
+            ]}
+          >
+            {item.text}
+          </Text>
         </View>
       )}
+      onContentSizeChange={() =>
+        flatListRef.current?.scrollToEnd({ animated: true })
+      }
+      onLayout={() =>
+        flatListRef.current?.scrollToEnd({ animated: true })
+      }
+    />
 
-      {/* Chatbot Toggle Button */}
+    {/* Typing indicator */}
+    {isBotTyping && (
+      <View style={[styles.messageBubble, styles.botBubble]}>
+        <View style={styles.typingContainer}>
+          <View style={styles.dot} />
+          <View style={styles.dot} />
+          <View style={styles.dot} />
+        </View>
+      </View>
+    )}
+
+    {/* 👇 Input bar fixed at the bottom */}
+    <View style={styles.fixedInputBar}>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Type a message..."
+          value={currentMessage}
+          onChangeText={setCurrentMessage}
+        />
+        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+          <Text style={{ color: "#fff" }}>Send</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+)}
+
       <TouchableOpacity
         style={styles.chatbotButton}
-        onPress={() => setIsChatVisible(!isChatVisible)}
+        onPress={() => setIsChatVisible(true)}
       >
         <FontAwesome name="commenting" size={24} color="#fff" />
       </TouchableOpacity>
@@ -365,7 +403,7 @@ const Feed = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 999,
-    backgroundColor: "#fff",
+    backgroundColor: "#FAFAFA",
   },
   container: {
     padding: 16,
@@ -376,14 +414,14 @@ const styles = StyleSheet.create({
   card: {
     width: "47%",
     marginBottom: 20,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     height: 230,
     shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
   imageContainer: {
@@ -393,35 +431,35 @@ const styles = StyleSheet.create({
   favoriteIconButton: {
     width: 30,
     height: 30,
-    backgroundColor: "rgba(128, 128, 128, 0.7)",
-    borderRadius: 5,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,
     position: "absolute",
-    marginLeft: 140,
-    marginTop: 10,
+    right: 10,
+    top: 10,
   },
   image: {
     width: "100%",
     height: 160,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   petDetailsContainer: {
     flex: 1,
-    margin: 13,
+    marginTop: 10,
     alignItems: "center",
   },
   nameGenderContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 5,
+    marginBottom: 4,
   },
   name: {
     fontSize: 16,
     fontFamily: "LatoBold",
-    color: "black",
+    color: "#333",
     marginRight: 8,
   },
   genderContainer: {
@@ -429,9 +467,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   age: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: "Lato",
-    color: "#C2C2C2",
+    color: "#888",
   },
   loadingContainer: {
     flex: 1,
@@ -452,113 +490,115 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 18,
-    color: "#444",
+    color: "#555",
     fontFamily: "Lato",
   },
   chatbotButton: {
     position: "absolute",
     bottom: 30,
     right: 20,
-    backgroundColor: "#68C2FF",
+    backgroundColor: "#4da6ff",
     borderRadius: 30,
     width: 60,
     height: 60,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 5,
+    elevation: 8,
     zIndex: 999,
   },
 chatContainer: {
   position: "absolute",
   bottom: 100,
-  right: 20,
-  width: 300,
-  maxHeight: 380,
-  backgroundColor: "#fefefe",
-  borderRadius: 16,
-  padding: 12,
+  right: 16,
+  width: "90%",
+  maxHeight: "70%",
+  backgroundColor: "#D6EFFF",
+  borderRadius: 20,
+  paddingTop: 60,
+  paddingBottom: 70,
+  paddingHorizontal: 16,
   shadowColor: "#000",
-  shadowOpacity: 0.25,
+  shadowOpacity: 0.2,
   shadowOffset: { width: 0, height: 4 },
-  shadowRadius: 6,
+  shadowRadius: 10,
   elevation: 10,
   zIndex: 998,
-  borderWidth: 1,
-  borderColor: "#e0e0e0",
 },
+  messageBubble: {
+    padding: 12,
+    borderRadius: 18,
+    marginVertical: 4,
+    marginHorizontal: 8,
+    maxWidth: "85%",
+  },
+  userBubble: {
+    backgroundColor: "#4da6ff",
+    alignSelf: "flex-end",
+    borderTopRightRadius: 2,
+  },
 
-messageBubble: {
-  padding: 10,
-  borderRadius: 12,
-  marginVertical: 6,
-  maxWidth: "85%",
-},
+  botBubble: {
+    backgroundColor: "#ffffff",
+    alignSelf: "flex-start",
+    borderTopLeftRadius: 2,
+  },
+  messageText: {
+    fontFamily: "Lato",
+    fontSize: 14,
+    color: "#333",
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+    backgroundColor: "#E9F4FF",
+    borderRadius: 25,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
 
-userBubble: {
-  backgroundColor: "#cde8ff",
-  alignSelf: "flex-end",
-},
+  input: {
+    flex: 1,
+    height: 42,
+    backgroundColor: "#fff",
+    borderColor: "#B8DFFF",
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    fontSize: 14,
+    fontFamily: "Lato",
+  },
+  sendButton: {
+    marginLeft: 8,
+    backgroundColor: "#2D9CDB", // Deeper blue for contrast
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  typingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingLeft: 10,
+    height: 24,
+  },
 
-botBubble: {
-  backgroundColor: "#f1f1f1",
-  alignSelf: "flex-start",
-},
-
-messageText: {
-  fontFamily: "Lato",
-  fontSize: 15,
-  color: "#333",
-},
-
-inputContainer: {
-  flexDirection: "row",
-  alignItems: "center",
-  borderTopWidth: 1,
-  borderTopColor: "#ddd",
-  paddingTop: 8,
-  marginTop: 10,
-},
-
-input: {
-  flex: 1,
-  height: 40,
-  backgroundColor: "#fafafa",
-  borderColor: "#ccc",
-  borderWidth: 1,
-  borderRadius: 20,
-  paddingHorizontal: 15,
-  fontFamily: "Lato",
-  fontSize: 14,
-},
-
-sendButton: {
-  marginLeft: 8,
-  backgroundColor: "#68C2FF",
-  paddingVertical: 8,
-  paddingHorizontal: 16,
-  borderRadius: 20,
-},
-
-chatbotButton: {
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#888",
+    marginHorizontal: 2,
+  },
+fixedInputBar: {
   position: "absolute",
-  bottom: 30,
-  right: 20,
-  backgroundColor: "#68C2FF",
-  borderRadius: 30,
-  width: 60,
-  height: 60,
-  justifyContent: "center",
-  alignItems: "center",
-  shadowColor: "#000",
-  shadowOpacity: 0.25,
-  shadowOffset: { width: 0, height: 4 },
-  shadowRadius: 6,
-  elevation: 10,
-  zIndex: 999,
+  bottom: 10,
+  left: 16,
+  right: 16,
 },
 });
 
