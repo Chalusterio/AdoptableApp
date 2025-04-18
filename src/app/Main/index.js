@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   RefreshControl,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { FontAwesome } from "@expo/vector-icons";
@@ -35,8 +36,17 @@ const Feed = () => {
   const { pets } = usePets();
   const router = useRouter();
   const { filteredPets, setFilteredPets } = usePets();
-  const [loading, setLoading] = useState(true); // Loading state for initial fetch
+  const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState("Main");
+  const [favoritedPets, setFavoritedPets] = useState({});
+  const [userFavorites, setUserFavorites] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isChatVisible, setIsChatVisible] = useState(false);
+
+  // Chatbot states
+  const [chatMessages, setChatMessages] = useState([]);
+  const [currentMessage, setCurrentMessage] = useState("");
+  const flatListRef = useRef(null); // ✅ added ref
 
   const selectedImages = params.selectedImages
     ? JSON.parse(params.selectedImages)
@@ -53,14 +63,9 @@ const Feed = () => {
     typeof params.petVaccinated !== "undefined" &&
     selectedImages.length > 0;
 
-  const [favoritedPets, setFavoritedPets] = useState({});
-  const [userFavorites, setUserFavorites] = useState([]);
-
-  const [refreshing, setRefreshing] = useState(false); // State to handle refresh loading
-
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchPreferencesAndRankPets(true); // Pass `true` to indicate that it's a refresh
+    await fetchPreferencesAndRankPets(true);
     setRefreshing(false);
   };
 
@@ -68,7 +73,6 @@ const Feed = () => {
     const fetchUserFavorites = async () => {
       const user = auth.currentUser;
       if (user) {
-        console.log("Fetching user favorites...");
         try {
           const userRef = collection(db, "users");
           const userQuery = query(userRef, where("email", "==", user.email));
@@ -89,7 +93,7 @@ const Feed = () => {
         } catch (error) {
           console.error("Error fetching user favorites:", error);
         } finally {
-          setLoading(false); // Set loading to false when user favorites are fetched
+          setLoading(false);
         }
       }
     };
@@ -99,36 +103,25 @@ const Feed = () => {
 
   const toggleFavorite = async (petId, petData) => {
     const userId = auth.currentUser?.uid;
-    if (!userId) {
-      console.log("User is not logged in. Cannot toggle favorite.");
-      return;
-    }
+    if (!userId) return;
 
     const userFavoritesRef = doc(db, "users", userId);
-
-    console.log(`Toggling favorite for pet: ${petId}`);
     setFavoritedPets((prevState) => {
       const newState = { ...prevState };
       if (newState[petId]) {
         delete newState[petId];
         setDoc(
           userFavoritesRef,
-          {
-            favorites: arrayRemove(petData),
-          },
+          { favorites: arrayRemove(petData) },
           { merge: true }
         );
-        console.log(`Removed pet ${petId} from favorites.`);
       } else {
         newState[petId] = true;
         setDoc(
           userFavoritesRef,
-          {
-            favorites: arrayUnion(petData),
-          },
+          { favorites: arrayUnion(petData) },
           { merge: true }
         );
-        console.log(`Added pet ${petId} to favorites.`);
       }
       return newState;
     });
@@ -138,7 +131,6 @@ const Feed = () => {
     const user = auth.currentUser;
     if (!user) return;
 
-    console.log("Fetching preferences and ranking pets...");
     try {
       const preferencesQuery = query(
         collection(db, "preferences"),
@@ -147,14 +139,11 @@ const Feed = () => {
       const preferencesSnapshot = await getDocs(preferencesQuery);
 
       let rankedPets = pets
-        .filter((pet) => pet.status !== "finalized") // Exclude finalized pets
+        .filter((pet) => pet.status !== "finalized")
         .map((pet) => {
           let score = 0;
 
-          if (preferencesSnapshot.empty) {
-            return { ...pet, score: 0 };
-          }
-
+          if (preferencesSnapshot.empty) return { ...pet, score: 0 };
           const userPreferences = preferencesSnapshot.docs[0].data();
 
           if (
@@ -172,9 +161,7 @@ const Feed = () => {
             const minSize = parseInt(sizeRangeMatch[1], 10);
             const maxSize = parseInt(sizeRangeMatch[2], 10);
             matchesSizeLabel = petWeight >= minSize && petWeight <= maxSize;
-            if (matchesSizeLabel) {
-              score += 1;
-            }
+            if (matchesSizeLabel) score += 1;
           }
 
           const matchesGender =
@@ -182,18 +169,14 @@ const Feed = () => {
             (pet.petGender &&
               pet.petGender.toLowerCase() ===
                 userPreferences.selectedGender.toLowerCase());
-          if (matchesGender) {
-            score += 1;
-          }
+          if (matchesGender) score += 1;
 
           const matchesPetType =
             userPreferences.selectedPet === "any" ||
             (pet.petType &&
               pet.petType.toLowerCase() ===
                 userPreferences.selectedPet.toLowerCase());
-          if (matchesPetType) {
-            score += 1;
-          }
+          if (matchesPetType) score += 1;
 
           return { ...pet, score };
         });
@@ -203,14 +186,12 @@ const Feed = () => {
       }
 
       rankedPets = rankedPets.sort((a, b) => b.score - a.score);
-
       const shuffledPets = isRefresh ? shuffleArray(rankedPets) : rankedPets;
-
       setFilteredPets(shuffledPets);
     } catch (error) {
-      console.error("Error fetching user preferences:", error);
+      console.error("Error fetching preferences:", error);
     } finally {
-      setLoading(false); // Set loading to false once the preferences are fetched
+      setLoading(false);
     }
   };
 
@@ -227,23 +208,12 @@ const Feed = () => {
   };
 
   useEffect(() => {
-    fetchPreferencesAndRankPets(); // Initial fetch when the component mounts
+    fetchPreferencesAndRankPets();
   }, [pets]);
 
   const renderItem = ({ item }) => {
     const isFavorited = favoritedPets[item.id];
-    const petAge = parseInt(item.petAge, 10); // Ensure petAge is treated as a number
-
-    <View style={styles.imageContainer}>
-      <FastImage
-        style={styles.image}
-        source={{
-          uri: item.imageUrl,
-          priority: FastImage.priority.normal,
-        }}
-        resizeMode={FastImage.resizeMode.cover}
-      />
-    </View>;
+    const petAge = parseInt(item.petAge, 10);
 
     return (
       <TouchableOpacity
@@ -300,34 +270,94 @@ const Feed = () => {
             <ActivityIndicator size="large" color="#68C2FF" />
             <Text style={styles.loadingText}>Loading pets...</Text>
           </View>
+        ) : filteredPets.length === 0 ? (
+          <View style={styles.noResultsContainer}>
+            <Text style={styles.noResultsText}>No results found</Text>
+          </View>
         ) : (
-          <>
-            {filteredPets.length === 0 ? (
-              <View style={styles.noResultsContainer}>
-                <Text style={styles.noResultsText}>No results found</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={filteredPets.filter((pet) => pet.status !== "finalized")}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                numColumns={2}
-                initialNumToRender={10} // Number of items to render initially
-                windowSize={21} // Number of items to keep in memory outside of the render window
-                removeClippedSubviews={true} // Unmount components when outside of window
-                columnWrapperStyle={styles.row}
-                contentContainerStyle={styles.container}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={onRefresh}
-                  />
-                }
-              />
-            )}
-          </>
+          <FlatList
+            data={filteredPets.filter((pet) => pet.status !== "finalized")}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            numColumns={2}
+            initialNumToRender={10}
+            windowSize={21}
+            removeClippedSubviews={true}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={styles.container}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          />
         )}
       </SafeAreaView>
+
+      {/* Chatbox */}
+      {isChatVisible && (
+        <View style={styles.chatContainer}>
+          <FlatList
+            ref={flatListRef}
+            data={chatMessages}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item }) => (
+              <View
+                style={[
+                  styles.messageBubble,
+                  item.sender === "user"
+                    ? styles.userBubble
+                    : styles.botBubble,
+                ]}
+              >
+                <Text style={styles.messageText}>{item.text}</Text>
+              </View>
+            )}
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
+            onLayout={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
+          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Type a message..."
+              value={currentMessage}
+              onChangeText={setCurrentMessage}
+            />
+            <TouchableOpacity
+              style={styles.sendButton}
+              onPress={() => {
+                if (currentMessage.trim()) {
+                  const userMessage = {
+                    sender: "user",
+                    text: currentMessage,
+                  };
+                  setChatMessages((prev) => [...prev, userMessage]);
+                  setCurrentMessage("");
+                  setTimeout(() => {
+                    const botResponse = {
+                      sender: "bot",
+                      text: "Thanks for your message!",
+                    };
+                    setChatMessages((prev) => [...prev, botResponse]);
+                  }, 500);
+                }
+              }}
+            >
+              <Text style={{ color: "#fff" }}>Send</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Chatbot Toggle Button */}
+      <TouchableOpacity
+        style={styles.chatbotButton}
+        onPress={() => setIsChatVisible(!isChatVisible)}
+      >
+        <FontAwesome name="commenting" size={24} color="#fff" />
+      </TouchableOpacity>
     </SideBar>
   );
 };
@@ -341,16 +371,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   row: {
-    justifyContent: "space-between", // Evenly distribute the cards within a row
+    justifyContent: "space-between",
   },
   card: {
-    width: "47%", // Each card occupies 48% of the row width
-    marginBottom: 20, // Spacing between rows
+    width: "47%",
+    marginBottom: 20,
     borderRadius: 20,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     height: 230,
-    shadowColor: "#000", // Shadow color for iOS
+    shadowColor: "#000",
     shadowOpacity: 0.3,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 0 },
@@ -358,12 +388,12 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     flexDirection: "row",
-    flexWrap: "wrap", // Allow images to wrap into new rows
+    flexWrap: "wrap",
   },
   favoriteIconButton: {
     width: 30,
     height: 30,
-    backgroundColor: "rgba(128, 128, 128, 0.7)", // Gray with 70% opacity
+    backgroundColor: "rgba(128, 128, 128, 0.7)",
     borderRadius: 5,
     alignItems: "center",
     justifyContent: "center",
@@ -375,10 +405,8 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: 160,
-    borderTopLeftRadius: 20, // Top-left corner radius
-    borderTopRightRadius: 20, // Top-right corner radius
-    borderBottomLeftRadius: 0, // Bottom-left corner radius
-    borderBottomRightRadius: 0, // Bottom-right corner radius
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   petDetailsContainer: {
     flex: 1,
@@ -386,40 +414,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   nameGenderContainer: {
-    flexDirection: "row", // Make name and gender appear on the same line
-    alignItems: "center", // Vertically align the text and icon
-    marginBottom: 5, // Optional spacing between name and gender
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 5,
   },
   name: {
     fontSize: 16,
     fontFamily: "LatoBold",
     color: "black",
-    marginRight: 8, // Adds spacing between name and gender icon
+    marginRight: 8,
   },
   genderContainer: {
-    flexDirection: "row", // Arrange the icon and text in a row
-    alignItems: "center", // Center the icon vertically
-  },
-  gender: {
-    fontSize: 16,
-    fontFamily: "Lato",
-    color: "#C2C2C2",
+    flexDirection: "row",
+    alignItems: "center",
   },
   age: {
     fontSize: 16,
     fontFamily: "Lato",
     color: "#C2C2C2",
-  },
-  noPetsContainer: {
-    flex: 1, // Allow the container to take full height
-    justifyContent: "center", // Center content vertically
-    alignItems: "center", // Center content horizontally
-  },
-  noPetsText: {
-    textAlign: "center",
-    fontFamily: "Lato",
-    fontSize: 16,
-    color: "#999",
   },
   loadingContainer: {
     flex: 1,
@@ -443,6 +455,111 @@ const styles = StyleSheet.create({
     color: "#444",
     fontFamily: "Lato",
   },
+  chatbotButton: {
+    position: "absolute",
+    bottom: 30,
+    right: 20,
+    backgroundColor: "#68C2FF",
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 999,
+  },
+chatContainer: {
+  position: "absolute",
+  bottom: 100,
+  right: 20,
+  width: 300,
+  maxHeight: 380,
+  backgroundColor: "#fefefe",
+  borderRadius: 16,
+  padding: 12,
+  shadowColor: "#000",
+  shadowOpacity: 0.25,
+  shadowOffset: { width: 0, height: 4 },
+  shadowRadius: 6,
+  elevation: 10,
+  zIndex: 998,
+  borderWidth: 1,
+  borderColor: "#e0e0e0",
+},
+
+messageBubble: {
+  padding: 10,
+  borderRadius: 12,
+  marginVertical: 6,
+  maxWidth: "85%",
+},
+
+userBubble: {
+  backgroundColor: "#cde8ff",
+  alignSelf: "flex-end",
+},
+
+botBubble: {
+  backgroundColor: "#f1f1f1",
+  alignSelf: "flex-start",
+},
+
+messageText: {
+  fontFamily: "Lato",
+  fontSize: 15,
+  color: "#333",
+},
+
+inputContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  borderTopWidth: 1,
+  borderTopColor: "#ddd",
+  paddingTop: 8,
+  marginTop: 10,
+},
+
+input: {
+  flex: 1,
+  height: 40,
+  backgroundColor: "#fafafa",
+  borderColor: "#ccc",
+  borderWidth: 1,
+  borderRadius: 20,
+  paddingHorizontal: 15,
+  fontFamily: "Lato",
+  fontSize: 14,
+},
+
+sendButton: {
+  marginLeft: 8,
+  backgroundColor: "#68C2FF",
+  paddingVertical: 8,
+  paddingHorizontal: 16,
+  borderRadius: 20,
+},
+
+chatbotButton: {
+  position: "absolute",
+  bottom: 30,
+  right: 20,
+  backgroundColor: "#68C2FF",
+  borderRadius: 30,
+  width: 60,
+  height: 60,
+  justifyContent: "center",
+  alignItems: "center",
+  shadowColor: "#000",
+  shadowOpacity: 0.25,
+  shadowOffset: { width: 0, height: 4 },
+  shadowRadius: 6,
+  elevation: 10,
+  zIndex: 999,
+},
 });
 
 export default Feed;
