@@ -19,6 +19,7 @@ import { useRouter } from "expo-router";
 import FeedHeader from "../../components/FeedHeader";
 import SideBar from "../../components/SideBar";
 import { usePets } from "../../context/PetContext";
+import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import {
   collection,
   doc,
@@ -42,6 +43,7 @@ const Feed = () => {
   const [userFavorites, setUserFavorites] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isChatVisible, setIsChatVisible] = useState(false);
+  const [hasGreeted, setHasGreeted] = useState(false);
 
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
@@ -309,98 +311,107 @@ const Feed = () => {
         )}
       </SafeAreaView>
 
-      {isChatVisible && (
-        <View style={styles.chatContainer}>
-          {/* Close Button */}
-          <TouchableOpacity
-            style={{
-              position: "absolute",
-              top: 20,
-              right: 20,
-              zIndex: 999,
-              backgroundColor: "#fff",
-              padding: 8,
-              borderRadius: 20,
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowOffset: { width: 0, height: 2 },
-              shadowRadius: 5,
-              elevation: 5,
-            }}
-            onPress={() => setIsChatVisible(false)}
+{isChatVisible && (
+  <KeyboardAvoidingView
+    behavior={Platform.OS === "ios" ? "padding" : "height"}
+    keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 20}
+    style={styles.chatContainer}
+  >
+    <View style={{ flex: 1 }}>
+      {/* Chat Header */}
+      <View style={styles.chatHeader}>
+        <View style={styles.chatHeaderLeft}>
+          <Text style={styles.botTitle}>Support Bot</Text>
+          <View style={styles.botStatusRow}>
+            <View style={styles.statusDot} />
+            <Text style={styles.botStatus}>Online</Text>
+          </View>
+        </View>
+        <TouchableOpacity onPress={() => setIsChatVisible(false)}>
+          <Text style={styles.closeIcon}>✕</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Chat Messages */}
+      <FlatList
+        ref={flatListRef}
+        data={chatMessages}
+        keyExtractor={(item, index) => index.toString()}
+        contentContainerStyle={{ paddingBottom: 10 }}
+        style={{ flex: 1 }}
+        renderItem={({ item }) => (
+          <View
+            style={[
+              styles.messageBubble,
+              item.sender === "user"
+                ? styles.userBubble
+                : styles.botBubble,
+            ]}
           >
-            <Text style={{ fontSize: 16, fontWeight: "bold" }}>✕</Text>
-          </TouchableOpacity>
+            <Text
+              style={[
+                styles.messageText,
+                item.sender === "user"
+                  ? { color: "#fff" }
+                  : { color: "#333" },
+              ]}
+            >
+              {item.text}
+            </Text>
+          </View>
+        )}
+        onContentSizeChange={() =>
+          flatListRef.current?.scrollToEnd({ animated: true })
+        }
+        onLayout={() =>
+          flatListRef.current?.scrollToEnd({ animated: true })
+        }
+      />
 
-          {/* Chat messages */}
-          <FlatList
-            ref={flatListRef}
-            style={{ flex: 1 }} // 👈 This makes it take available vertical space
-            data={chatMessages}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-              <View
-                style={[
-                  styles.messageBubble,
-                  item.sender === "user" ? styles.userBubble : styles.botBubble,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.messageText,
-                    item.sender === "user"
-                      ? { color: "#fff" }
-                      : { color: "#333" },
-                  ]}
-                >
-                  {item.text}
-                </Text>
-              </View>
-            )}
-            onContentSizeChange={() =>
-              flatListRef.current?.scrollToEnd({ animated: true })
-            }
-            onLayout={() =>
-              flatListRef.current?.scrollToEnd({ animated: true })
-            }
-          />
-
-          {/* Typing indicator */}
-          {isBotTyping && (
-            <View style={[styles.messageBubble, styles.botBubble]}>
-              <View style={styles.typingContainer}>
-                <View style={styles.dot} />
-                <View style={styles.dot} />
-                <View style={styles.dot} />
-              </View>
-            </View>
-          )}
-
-          {/* 👇 Input bar fixed at the bottom */}
-          <View style={styles.fixedInputBar}>
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Type a message..."
-                value={currentMessage}
-                onChangeText={setCurrentMessage}
-              />
-              <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-                <Text style={{ color: "#fff" }}>Send</Text>
-              </TouchableOpacity>
-            </View>
+      {/* Typing */}
+      {isBotTyping && (
+        <View style={[styles.messageBubble, styles.botBubble]}>
+          <View style={styles.typingContainer}>
+            <View style={styles.dot} />
+            <View style={styles.dot} />
+            <View style={styles.dot} />
           </View>
         </View>
       )}
 
+      {/* Input Field */}
+      <View style={styles.fixedInputBar}>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Type a message..."
+            value={currentMessage}
+            onChangeText={setCurrentMessage}
+            onSubmitEditing={sendMessage}
+          />
+          <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+            <Text style={{ color: "#fff" }}>Send</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  </KeyboardAvoidingView>
+)}
+
       <TouchableOpacity
         style={styles.chatbotButton}
         onPress={() => {
-          setIsChatVisible(true);
-          setChatMessages((prev) => [
-            ...prev,
-            { sender: "bot", text: "How may I help you?" },
-          ]);
+          setIsChatVisible((prev) => {
+            const next = !prev;
+            if (next && !hasGreeted) {
+              setChatMessages((msgs) => [
+                ...msgs,
+                { sender: "bot", text: "How may I help you?" },
+              ]);
+              setHasGreeted(true);
+            }
+            return next;
+          });
         }}
       >
         <FontAwesome name="commenting" size={24} color="#fff" />
@@ -520,24 +531,23 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   chatContainer: {
-    position: "absolute",
-    bottom: 100,
-    right: 16,
-    width: "90%",
-    maxHeight: "70%",
-    backgroundColor: "#D6EFFF",
-    borderRadius: 20,
-    paddingTop: 60,
-    paddingBottom: 70,
-    paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 10,
-    zIndex: 998,
-    flex: 1, // 👈 ensure layout can grow inside this container
-  },
+  position: "absolute",
+  bottom: 100,
+  right: 16,
+  width: "90%",
+  height: "70%",
+  backgroundColor: "#D6EFFF",
+  borderRadius: 20,
+  paddingTop: 60,
+  paddingHorizontal: 16,
+  shadowColor: "#000",
+  shadowOpacity: 0.2,
+  shadowOffset: { width: 0, height: 4 },
+  shadowRadius: 10,
+  elevation: 10,
+  zIndex: 998,
+  overflow: "hidden",
+},
   messageBubble: {
     padding: 12,
     borderRadius: 18,
@@ -604,11 +614,58 @@ const styles = StyleSheet.create({
     backgroundColor: "#888",
     marginHorizontal: 2,
   },
-  fixedInputBar: {
-    position: "absolute",
-    bottom: 10,
-    left: 16,
-    right: 16,
+fixedInputBar: {
+  paddingHorizontal: 10,
+  paddingBottom: Platform.OS === "ios" ? 20 : 10,
+  paddingTop: 10,
+  backgroundColor: "#D6EFFF",
+},
+  chatHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#4da6ff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop: -60,
+    marginHorizontal: -16,
+  },
+
+  chatHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  botTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+
+  botStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+  },
+
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#3BEA81",
+    marginRight: 6,
+  },
+
+  botStatus: {
+    fontSize: 12,
+    color: "#ccc",
+  },
+
+  closeIcon: {
+    fontSize: 18,
+    color: "#fff",
   },
 });
 
