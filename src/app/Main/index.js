@@ -310,89 +310,98 @@ const Feed = () => {
       </SafeAreaView>
 
       {isChatVisible && (
-  <View style={styles.chatContainer}>
-    {/* Close Button */}
-    <TouchableOpacity
-      style={{
-        position: "absolute",
-        top: 20,
-        right: 20,
-        zIndex: 999,
-        backgroundColor: "#fff",
-        padding: 8,
-        borderRadius: 20,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 5,
-        elevation: 5,
-      }}
-      onPress={() => setIsChatVisible(false)}
-    >
-      <Text style={{ fontSize: 16, fontWeight: "bold" }}>✕</Text>
-    </TouchableOpacity>
-
-    {/* Chat messages */}
-    <FlatList
-      ref={flatListRef}
-      data={chatMessages}
-      keyExtractor={(item, index) => index.toString()}
-      renderItem={({ item }) => (
-        <View
-          style={[
-            styles.messageBubble,
-            item.sender === "user" ? styles.userBubble : styles.botBubble,
-          ]}
-        >
-          <Text
-            style={[
-              styles.messageText,
-              item.sender === "user" ? { color: "#fff" } : { color: "#333" },
-            ]}
+        <View style={styles.chatContainer}>
+          {/* Close Button */}
+          <TouchableOpacity
+            style={{
+              position: "absolute",
+              top: 20,
+              right: 20,
+              zIndex: 999,
+              backgroundColor: "#fff",
+              padding: 8,
+              borderRadius: 20,
+              shadowColor: "#000",
+              shadowOpacity: 0.1,
+              shadowOffset: { width: 0, height: 2 },
+              shadowRadius: 5,
+              elevation: 5,
+            }}
+            onPress={() => setIsChatVisible(false)}
           >
-            {item.text}
-          </Text>
+            <Text style={{ fontSize: 16, fontWeight: "bold" }}>✕</Text>
+          </TouchableOpacity>
+
+          {/* Chat messages */}
+          <FlatList
+            ref={flatListRef}
+            style={{ flex: 1 }} // 👈 This makes it take available vertical space
+            data={chatMessages}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item }) => (
+              <View
+                style={[
+                  styles.messageBubble,
+                  item.sender === "user" ? styles.userBubble : styles.botBubble,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.messageText,
+                    item.sender === "user"
+                      ? { color: "#fff" }
+                      : { color: "#333" },
+                  ]}
+                >
+                  {item.text}
+                </Text>
+              </View>
+            )}
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
+            onLayout={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
+          />
+
+          {/* Typing indicator */}
+          {isBotTyping && (
+            <View style={[styles.messageBubble, styles.botBubble]}>
+              <View style={styles.typingContainer}>
+                <View style={styles.dot} />
+                <View style={styles.dot} />
+                <View style={styles.dot} />
+              </View>
+            </View>
+          )}
+
+          {/* 👇 Input bar fixed at the bottom */}
+          <View style={styles.fixedInputBar}>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Type a message..."
+                value={currentMessage}
+                onChangeText={setCurrentMessage}
+              />
+              <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+                <Text style={{ color: "#fff" }}>Send</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       )}
-      onContentSizeChange={() =>
-        flatListRef.current?.scrollToEnd({ animated: true })
-      }
-      onLayout={() =>
-        flatListRef.current?.scrollToEnd({ animated: true })
-      }
-    />
-
-    {/* Typing indicator */}
-    {isBotTyping && (
-      <View style={[styles.messageBubble, styles.botBubble]}>
-        <View style={styles.typingContainer}>
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-        </View>
-      </View>
-    )}
-
-    {/* 👇 Input bar fixed at the bottom */}
-    <View style={styles.fixedInputBar}>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Type a message..."
-          value={currentMessage}
-          onChangeText={setCurrentMessage}
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-          <Text style={{ color: "#fff" }}>Send</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-)}
 
       <TouchableOpacity
         style={styles.chatbotButton}
-        onPress={() => setIsChatVisible(true)}
+        onPress={() => {
+          setIsChatVisible(true);
+          setChatMessages((prev) => [
+            ...prev,
+            { sender: "bot", text: "How may I help you?" },
+          ]);
+        }}
       >
         <FontAwesome name="commenting" size={24} color="#fff" />
       </TouchableOpacity>
@@ -510,24 +519,25 @@ const styles = StyleSheet.create({
     elevation: 8,
     zIndex: 999,
   },
-chatContainer: {
-  position: "absolute",
-  bottom: 100,
-  right: 16,
-  width: "90%",
-  maxHeight: "70%",
-  backgroundColor: "#D6EFFF",
-  borderRadius: 20,
-  paddingTop: 60,
-  paddingBottom: 70,
-  paddingHorizontal: 16,
-  shadowColor: "#000",
-  shadowOpacity: 0.2,
-  shadowOffset: { width: 0, height: 4 },
-  shadowRadius: 10,
-  elevation: 10,
-  zIndex: 998,
-},
+  chatContainer: {
+    position: "absolute",
+    bottom: 100,
+    right: 16,
+    width: "90%",
+    maxHeight: "70%",
+    backgroundColor: "#D6EFFF",
+    borderRadius: 20,
+    paddingTop: 60,
+    paddingBottom: 70,
+    paddingHorizontal: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 10,
+    zIndex: 998,
+    flex: 1, // 👈 ensure layout can grow inside this container
+  },
   messageBubble: {
     padding: 12,
     borderRadius: 18,
@@ -594,12 +604,12 @@ chatContainer: {
     backgroundColor: "#888",
     marginHorizontal: 2,
   },
-fixedInputBar: {
-  position: "absolute",
-  bottom: 10,
-  left: 16,
-  right: 16,
-},
+  fixedInputBar: {
+    position: "absolute",
+    bottom: 10,
+    left: 16,
+    right: 16,
+  },
 });
 
 export default Feed;
