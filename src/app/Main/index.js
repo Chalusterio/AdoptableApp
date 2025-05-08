@@ -530,95 +530,150 @@ const styles = StyleSheet.create({
     elevation: 8,
     zIndex: 999,
   },
-  chatContainer: {
+chatContainer: {
   position: "absolute",
   bottom: 100,
   right: 16,
   width: "90%",
   height: "70%",
-  backgroundColor: "#D6EFFF",
+  backgroundColor: "#F9FBFF",
   borderRadius: 20,
   paddingTop: 60,
   paddingHorizontal: 16,
   shadowColor: "#000",
-  shadowOpacity: 0.2,
-  shadowOffset: { width: 0, height: 4 },
-  shadowRadius: 10,
-  elevation: 10,
+  shadowOpacity: 0.15,
+  shadowOffset: { width: 0, height: 6 },
+  shadowRadius: 12,
+  elevation: 12,
   zIndex: 998,
   overflow: "hidden",
 },
-  messageBubble: {
-    padding: 12,
-    borderRadius: 18,
-    marginVertical: 4,
-    marginHorizontal: 8,
-    maxWidth: "85%",
-  },
-  userBubble: {
-    backgroundColor: "#4da6ff",
-    alignSelf: "flex-end",
-    borderTopRightRadius: 2,
-  },
 
-  botBubble: {
-    backgroundColor: "#ffffff",
-    alignSelf: "flex-start",
-    borderTopLeftRadius: 2,
-  },
-  messageText: {
-    fontFamily: "Lato",
-    fontSize: 14,
-    color: "#333",
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-    backgroundColor: "#E9F4FF",
-    borderRadius: 25,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
+chatHeader: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  backgroundColor: "#377DFF",
+  paddingHorizontal: 18,
+  paddingVertical: 14,
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  marginTop: -60,
+  marginHorizontal: -16,
+},
 
-  input: {
-    flex: 1,
-    height: 42,
-    backgroundColor: "#fff",
-    borderColor: "#B8DFFF",
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    fontSize: 14,
-    fontFamily: "Lato",
-  },
-  sendButton: {
-    marginLeft: 8,
-    backgroundColor: "#2D9CDB", // Deeper blue for contrast
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-  },
-  typingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    paddingLeft: 10,
-    height: 24,
-  },
+botTitle: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#FFFFFF",
+},
 
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#888",
-    marginHorizontal: 2,
-  },
+botStatusRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginTop: 2,
+},
+
+statusDot: {
+  width: 8,
+  height: 8,
+  borderRadius: 4,
+  backgroundColor: "#4CE69E",
+  marginRight: 6,
+},
+
+botStatus: {
+  fontSize: 12,
+  color: "#E4F6F0",
+},
+
+closeIcon: {
+  fontSize: 22,
+  fontWeight: "bold",
+  color: "#fff",
+},
+
+messageBubble: {
+  padding: 14,
+  borderRadius: 18,
+  marginVertical: 6,
+  marginHorizontal: 8,
+  maxWidth: "80%",
+  shadowColor: "#000",
+  shadowOpacity: 0.05,
+  shadowRadius: 4,
+  shadowOffset: { width: 0, height: 2 },
+},
+
+userBubble: {
+  backgroundColor: "#377DFF",
+  alignSelf: "flex-end",
+  borderBottomRightRadius: 4,
+},
+
+botBubble: {
+  backgroundColor: "#E6F0FF",
+  alignSelf: "flex-start",
+  borderBottomLeftRadius: 4,
+},
+
+messageText: {
+  fontSize: 15,
+  fontFamily: "Lato",
+},
+
+inputContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#fff",
+  borderRadius: 30,
+  paddingHorizontal: 12,
+  paddingVertical: 6,
+  marginBottom: 8,
+  shadowColor: "#000",
+  shadowOpacity: 0.08,
+  shadowRadius: 4,
+  shadowOffset: { width: 0, height: 2 },
+},
+
+input: {
+  flex: 1,
+  height: 42,
+  fontSize: 14,
+  fontFamily: "Lato",
+  paddingHorizontal: 12,
+},
+
+sendButton: {
+  backgroundColor: "#377DFF",
+  paddingVertical: 8,
+  paddingHorizontal: 16,
+  borderRadius: 20,
+},
+
+typingContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "flex-start",
+  height: 24,
+  paddingLeft: 16,
+},
+
+dot: {
+  width: 6,
+  height: 6,
+  borderRadius: 3,
+  backgroundColor: "#AAA",
+  marginHorizontal: 3,
+},
+
 fixedInputBar: {
   paddingHorizontal: 10,
-  paddingBottom: Platform.OS === "ios" ? 20 : 10,
-  paddingTop: 10,
-  backgroundColor: "#D6EFFF",
+  paddingBottom: Platform.OS === "ios" ? 20 : 12,
+  paddingTop: 6,
+  backgroundColor: "#F9FBFF",
+  borderTopWidth: 1,
+  borderTopColor: "#EEE",
 },
   chatHeader: {
     flexDirection: "row",
